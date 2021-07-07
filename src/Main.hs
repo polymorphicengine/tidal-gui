@@ -1,6 +1,8 @@
 import       Language.Haskell.Interpreter as Hint
 import       Language.Haskell.Interpreter.Unsafe as Hint
 import       Sound.Tidal.Context
+import       Control.Concurrent.MVar
+import       Control.Concurrent
 import Control.Monad (void)
 import Sound.Tidal.Stream (Target(..))
 import qualified Sound.Tidal.Context as T
@@ -8,7 +10,6 @@ import qualified Sound.Tidal.Context as T
 import qualified Graphics.UI.Threepenny as UI
 import Graphics.UI.Threepenny.Core as C hiding (text)
 
--- d1 = p 1 . (|< orbit 0)
 
 libs = [
     "Sound.Tidal.Context"
@@ -78,30 +79,66 @@ editorValue = mkReadWriteAttr get set
 setup :: (ControlPattern -> IO ()) -> Window -> UI ()
 setup p win = void $ do
 
-  return win C.# C.set title "Tidal"
+      return win C.# C.set title "Tidal"
 
-  input <- UI.textarea
-              C.# C.set (attr "id") "code"
+      input <- UI.textarea
+                  C.# C.set (attr "id") "code"
 
-  submit <- UI.button #+ [ string "submit" ]
-  output <- UI.div #+ [ string "output goes here" ]
-  errors <- UI.div #+ [ string "errors go here" ]
+      output <- UI.div #+ [ string "output goes here" ]
+      errors <- UI.div #+ [ string "errors go here" ]
 
-  on UI.click submit $ \ _ -> do
-                      contents <- C.get editorValue input
-                      res <- liftIO $ Hint.runInterpreter $ do
-                          Hint.set [languageExtensions := exts]
-                          Hint.setImports libs
-                          Hint.interpret contents (Hint.as :: ControlPattern)
-                      case res of
-                          Right pat -> do
-                            element errors C.# C.set UI.text ( "control pattern:" ++ show pat )
-                            liftIO $ p pat
-                          Left  err -> do
-                            element errors C.# C.set UI.text ( "error:" ++ show err )
-                            return ()
 
-  script <- mkElement "script"
-              C.# C.set UI.text "const codemirrorEditor = CodeMirror.fromTextArea(document.getElementById('code'), {lineNumbers: true, mode: \"haskell\"});"
+      strKey <- liftIO $ newMVar False
+      enterKey <- liftIO $ newMVar False
 
-  UI.getBody win #+ [element input, element script, element errors, element submit]
+      body <- UI.getBody win
+      on UI.keydown body $ \x -> keydownEvent strKey enterKey x input errors output
+      on UI.keyup body $ \x -> liftIO $ keyupEvent strKey enterKey x
+
+      script <- mkElement "script"
+                  C.# C.set UI.text "const codemirrorEditor = CodeMirror.fromTextArea(document.getElementById('code'), {lineNumbers: true, mode: \"haskell\"});"
+
+      UI.getBody win #+ [element input, element script, element errors, element output]
+      where keydownEvent strKey enterKey x input errors output = do
+                                          case x of
+                                              17 -> do
+                                                liftIO $ takeMVar strKey
+                                                liftIO $ putMVar strKey True
+                                                enter <- liftIO $ readMVar enterKey
+                                                case enter of
+                                                  True ->  interpretC p input errors output
+                                                  _ -> return ()
+                                              13 -> do
+                                                liftIO $ takeMVar enterKey
+                                                liftIO $ putMVar enterKey True
+                                                str <- liftIO $ readMVar strKey
+                                                case str of
+                                                  True -> interpretC p input errors output
+                                                  _ -> return ()
+                                              _ -> return ()
+
+keyupEvent :: MVar Bool -> MVar Bool -> Int -> IO ()
+keyupEvent strKey enterKey x = do
+              case x of
+                  17 -> do
+                    takeMVar strKey
+                    putMVar strKey False
+                  13 -> do
+                    takeMVar enterKey
+                    putMVar enterKey False
+                  _ -> return ()
+
+interpretC :: (ControlPattern -> IO ()) -> Element -> Element -> Element -> UI ()
+interpretC p input errors output = do
+                contents <- C.get editorValue input
+                res <- liftIO $ Hint.runInterpreter $ do
+                    Hint.set [languageExtensions := exts]
+                    Hint.setImports libs
+                    Hint.interpret contents (Hint.as :: ControlPattern)
+                case res of
+                    Right pat -> do
+                      element output C.# C.set UI.text ( "control pattern:" ++ show pat )
+                      liftIO $ p pat
+                    Left  err -> do
+                      element errors C.# C.set UI.text ( "error:" ++ show err )
+                      return ()
