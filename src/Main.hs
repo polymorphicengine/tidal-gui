@@ -1,15 +1,16 @@
 import       Language.Haskell.Interpreter as Hint
 import       Language.Haskell.Interpreter.Unsafe as Hint
-import       Sound.Tidal.Context
+import       Sound.Tidal.Context as T
 import       Control.Concurrent.MVar
 import       Control.Concurrent
 import Control.Monad (void)
 import Sound.Tidal.Stream (Target(..))
-import qualified Sound.Tidal.Context as T
+import Text.Parsec(parse)
 
 import qualified Graphics.UI.Threepenny as UI
 import Graphics.UI.Threepenny.Core as C hiding (text)
 
+import Parse
 
 libs = [
     "Sound.Tidal.Context"
@@ -63,11 +64,10 @@ main = do
                                                   [T.OSCContext "/code/highlight"]
                                                  )
                                                 ]
-        let p = streamReplace stream 1
         startGUI C.defaultConfig {
               jsStatic = Just static,
               jsCustomHTML     = Just "tidal.html"
-            } $ setup p
+            } $ setup stream
 
 --this is a bit hacky, when calling get, el is actually not needed
 editorValue :: Attr Element String
@@ -76,8 +76,8 @@ editorValue = mkReadWriteAttr get set
       get el = callFunction $ ffi "codemirrorEditor.getValue()"
       set v el = runFunction  $ ffi "$(%1).val(%2)" el v
 
-setup :: (ControlPattern -> IO ()) -> Window -> UI ()
-setup p win = void $ do
+setup :: Stream -> Window -> UI ()
+setup stream win = void $ do
 
       return win C.# C.set title "Tidal"
 
@@ -106,14 +106,14 @@ setup p win = void $ do
                                                 liftIO $ putMVar strKey True
                                                 enter <- liftIO $ readMVar enterKey
                                                 case enter of
-                                                  True ->  interpretC p input errors output
+                                                  True ->  interpretC stream input errors output
                                                   _ -> return ()
                                               13 -> do
                                                 liftIO $ takeMVar enterKey
                                                 liftIO $ putMVar enterKey True
                                                 str <- liftIO $ readMVar strKey
                                                 case str of
-                                                  True -> interpretC p input errors output
+                                                  True -> interpretC stream input errors output
                                                   _ -> return ()
                                               _ -> return ()
 
@@ -128,17 +128,27 @@ keyupEvent strKey enterKey x = do
                     putMVar enterKey False
                   _ -> return ()
 
-interpretC :: (ControlPattern -> IO ()) -> Element -> Element -> Element -> UI ()
-interpretC p input errors output = do
+interpretC :: Stream -> Element -> Element -> Element -> UI ()
+interpretC stream input errors output = do
                 contents <- C.get editorValue input
-                res <- liftIO $ Hint.runInterpreter $ do
-                    Hint.set [languageExtensions := exts]
-                    Hint.setImports libs
-                    Hint.interpret contents (Hint.as :: ControlPattern)
-                case res of
-                    Right pat -> do
-                      element output C.# C.set UI.text ( "control pattern:" ++ show pat )
-                      liftIO $ p pat
-                    Left  err -> do
-                      element errors C.# C.set UI.text ( "error:" ++ show err )
-                      return ()
+                let parsed = parse parseCommand "" contents
+                    p = streamReplace stream
+                case parsed of
+                  Left err -> do
+                        element errors C.# C.set UI.text ( "Parse Error:" ++ show err )
+                        return ()
+                  Right command -> case command of
+                                          (D num str) -> do
+                                                  res <- liftIO $ Hint.runInterpreter $ do
+                                                      Hint.set [languageExtensions := exts]
+                                                      Hint.setImports libs
+                                                      Hint.interpret str (Hint.as :: ControlPattern)
+                                                  case res of
+                                                      Right pat -> do
+                                                        element output C.# C.set UI.text ( "control pattern:" ++ show pat )
+                                                        liftIO $ p num $ pat |< orbit (pure $ num-1)
+                                                      Left  err -> do
+                                                        element errors C.# C.set UI.text ( "Interpreter Error:" ++ show err )
+                                                        return ()
+                                          (Hush)      -> liftIO $ streamHush stream
+                                          (Cps x)   -> liftIO $ streamOnce stream $ cps (pure x)
