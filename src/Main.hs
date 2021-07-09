@@ -14,7 +14,6 @@ import qualified Graphics.UI.Threepenny as UI
 import Graphics.UI.Threepenny.Core as C hiding (text)
 -- import Graphics.UI.Threepenny.Internal(unUI)
 
-
 import Parse
 
 data Env = Env {window :: Window
@@ -59,18 +58,20 @@ exts = [OverloadedStrings, NoImplicitPrelude]
 listenPort = 6011
 remotePort = 6012
 
+remoteTarget = Target {oName = "atom"
+                      ,oAddress = "127.0.0.1"
+                      ,oPort = remotePort
+                      ,oBusPort = Nothing
+                      ,oLatency = 0.1
+                      ,oWindow = Nothing
+                      ,oSchedule = T.Live
+                      ,oHandshake = True
+                      }
+
 main :: IO ()
 main = do
         putStrLn "Please enter path to static:"
         static <- readLn
-        let remoteTarget = Target {oName = "atom",
-                                   oAddress = "127.0.0.1",
-                                   oPort = remotePort,
-                                   oBusPort = Nothing,
-                                   oLatency = 0.1,
-                                   oWindow = Nothing,
-                                   oSchedule = T.Live,
-                                   oHandshake = True}
         stream <- T.startStream T.defaultConfig [(T.superdirtTarget {oLatency = 0.1},
                                                   [T.superdirtShape]
                                                  ),
@@ -92,29 +93,31 @@ editorValue = mkReadWriteAttr get set
 
 setup :: Stream -> Window -> UI ()
 setup stream win = void $ do
-
+      --setup GUI
       return win C.# C.set title "Tidal"
-
       input <- UI.textarea
                   C.# C.set (attr "id") "code"
 
       output <- UI.div #+ [ string "output goes here" ]
       errors <- UI.div #+ [ string "errors go here" ]
+      body <- UI.getBody win
+      script <- mkElement "script"
+                        C.# C.set UI.text "const codemirrorEditor = CodeMirror.fromTextArea(document.getElementById('code'), {lineNumbers: true, mode: \"haskell\"});"
 
+      --setup env
       strKey <- liftIO $ newMVar False
       enterKey <- liftIO $ newMVar False
 
       let env = Env win stream input output errors strKey enterKey
 
-      body <- UI.getBody win
+      --handle Events
       on UI.keydown body $ \x -> liftIO $ runReaderT (keydownEvent x) env
       on UI.keyup body $ \x -> liftIO $ runReaderT (keyupEvent x) env
 
-      script <- mkElement "script"
-                  C.# C.set UI.text "const codemirrorEditor = CodeMirror.fromTextArea(document.getElementById('code'), {lineNumbers: true, mode: \"haskell\"});"
-
+      -- put elements on body
       UI.getBody win #+ [element input, element script, element errors, element output]
 
+-- to combine UI and IO actions with an environment
 instance MonadUI (ReaderT Env IO) where
   liftUI m = do
             env <- ask
