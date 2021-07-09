@@ -12,13 +12,13 @@ import Text.Parsec(parse)
 
 import qualified Graphics.UI.Threepenny as UI
 import Graphics.UI.Threepenny.Core as C hiding (text)
+-- import Foreign.JavaScript.Marshal
 -- import Graphics.UI.Threepenny.Internal(unUI)
 
 import Parse
 
 data Env = Env {window :: Window
                ,stream :: Stream
-               ,input :: Element
                ,output :: Element
                ,errors :: Element
                ,strKey :: MVar Bool
@@ -84,12 +84,18 @@ main = do
               jsCustomHTML     = Just "tidal.html"
             } $ setup stream
 
---this is a bit hacky, when calling get, el is actually not needed
-editorValue :: Attr Element String
-editorValue = mkReadWriteAttr get set
-    where
-      get el = callFunction $ ffi "codemirrorEditor.getValue()"
-      set v el = runFunction  $ ffi "$(%1).val(%2)" el v
+--get the contents of the codeMirror editor
+editorValue :: UI String
+editorValue = callFunction $ ffi "codemirrorEditor.getValue()"
+
+-- instance (FromJS a, FromJS b) => FromJS (a,b) where
+--   fromJs (x,y) = (fromJS x, fromJS y)
+
+getCursorLine :: UI Int
+getCursorLine = callFunction $ ffi "(codemirrorEditor.getCursor()).line"
+
+getCursorCol :: UI Int
+getCursorCol = callFunction $ ffi "(codemirrorEditor.getCursor()).ch"
 
 setup :: Stream -> Window -> UI ()
 setup stream win = void $ do
@@ -108,7 +114,7 @@ setup stream win = void $ do
       strKey <- liftIO $ newMVar False
       enterKey <- liftIO $ newMVar False
 
-      let env = Env win stream input output errors strKey enterKey
+      let env = Env win stream output errors strKey enterKey
 
       --handle Events
       on UI.keydown body $ \x -> liftIO $ runReaderT (keydownEvent x) env
@@ -136,7 +142,6 @@ keydownEvent x = do
                   enter <- liftIO $ readMVar enter
                   case enter of
                     True -> do
-                          liftIO $ putStrLn "hey"
                           interpretC
                     _ -> return ()
                 13 -> do
@@ -165,29 +170,37 @@ keyupEvent x = do
 interpretC :: ReaderT Env IO ()
 interpretC  = do
         env <- ask
-        let inp = input env
-            out = output env
+        let out = output env
             err = errors env
             str = stream env
-        contents <- liftUI $ C.get editorValue inp
-        let parsed = parse parseCommand "" contents
-            p = streamReplace str
-        case parsed of
-          Left e -> do
-                liftUI $ element err C.# C.set UI.text ( "Parse Error:" ++ show e )
-                return ()
-          Right command -> case command of
-                                  (D num string) -> do
-                                          res <- liftIO $ Hint.runInterpreter $ do
-                                              Hint.set [languageExtensions := exts]
-                                              Hint.setImports libs
-                                              Hint.interpret string (Hint.as :: ControlPattern)
-                                          case res of
-                                              Right pat -> do
-                                                liftUI $ element out C.# C.set UI.text ( "control pattern:" ++ show pat )
-                                                liftIO $ p num $ pat |< orbit (pure $ num-1)
-                                              Left  e -> do
-                                                liftUI $ element err C.# C.set UI.text ( "Interpreter Error:" ++ show e )
-                                                return ()
-                                  (Hush)      -> liftIO $ streamHush str
-                                  (Cps x)   -> liftIO $ streamOnce str $ cps (pure x)
+        contents <- liftUI $ editorValue
+        line <- liftUI getCursorLine
+        liftIO $ putStrLn $ show contents
+        let blocks = getBlocks contents
+            blockMaybe = getBlock line blocks
+        case blockMaybe of
+            Nothing -> do
+                    liftUI $ element err C.# C.set UI.text "Failed to get Block"
+                    return ()
+            Just block -> do
+                    let parsed = parse parseCommand "" block
+                        p = streamReplace str
+                    case parsed of
+                          Left e -> do
+                                liftUI $ element err C.# C.set UI.text ( "Parse Error:" ++ show e )
+                                return ()
+                          Right command -> case command of
+                                                  (D num string) -> do
+                                                          res <- liftIO $ Hint.runInterpreter $ do
+                                                              Hint.set [languageExtensions := exts]
+                                                              Hint.setImports libs
+                                                              Hint.interpret string (Hint.as :: ControlPattern)
+                                                          case res of
+                                                              Right pat -> do
+                                                                liftUI $ element out C.# C.set UI.text ( "control pattern:" ++ show pat )
+                                                                liftIO $ p num $ pat |< orbit (pure $ num-1)
+                                                              Left  e -> do
+                                                                liftUI $ element err C.# C.set UI.text ( "Interpreter Error:" ++ show e )
+                                                                return ()
+                                                  (Hush)      -> liftIO $ streamHush str
+                                                  (Cps x)   -> liftIO $ streamOnce str $ cps (pure x)
