@@ -85,31 +85,37 @@ main = do
             } $ setup stream
 
 --get the contents of the codeMirror editor
-editorValue :: UI String
-editorValue = callFunction $ ffi "codemirrorEditor.getValue()"
+editorValueDefinitions :: UI String
+editorValueDefinitions = callFunction $ ffi "definitionsEditor.getValue()"
+
+editorValueControl :: UI String
+editorValueControl = callFunction $ ffi "controlEditor.getValue()"
 
 -- instance (FromJS a, FromJS b) => FromJS (a,b) where
 --   fromJs (x,y) = (fromJS x, fromJS y)
 
 getCursorLine :: UI Int
-getCursorLine = callFunction $ ffi "(codemirrorEditor.getCursor()).line"
+getCursorLine = callFunction $ ffi "(controlEditor.getCursor()).line"
 
 getCursorCol :: UI Int
-getCursorCol = callFunction $ ffi "(codemirrorEditor.getCursor()).ch"
+getCursorCol = callFunction $ ffi "(controlEditor.getCursor()).ch"
 
 setup :: Stream -> Window -> UI ()
 setup stream win = void $ do
       --setup GUI
       return win C.# C.set title "Tidal"
-      input <- UI.textarea
-                  C.# C.set (attr "id") "code"
+      definitions <- UI.textarea
+                  C.# C.set (attr "id") "definitions-editor"
+      control <- UI.textarea
+                  C.# C.set (attr "id") "control-editor"
 
       output <- UI.div #+ [ string "output goes here" ]
       errors <- UI.div #+ [ string "errors go here" ]
       body <- UI.getBody win
-      script <- mkElement "script"
-                        C.# C.set UI.text "const codemirrorEditor = CodeMirror.fromTextArea(document.getElementById('code'), {lineNumbers: true, mode: \"haskell\"});"
-
+      script1 <- mkElement "script"
+                        C.# C.set UI.text "const controlEditor = CodeMirror.fromTextArea(document.getElementById('control-editor'), {lineNumbers: true, mode: \"haskell\"});"
+      script2 <- mkElement "script"
+                        C.# C.set UI.text "const definitionsEditor = CodeMirror.fromTextArea(document.getElementById('definitions-editor'), {lineNumbers: true, mode: \"haskell\"});"
       --setup env
       strKey <- liftIO $ newMVar False
       enterKey <- liftIO $ newMVar False
@@ -120,8 +126,8 @@ setup stream win = void $ do
       on UI.keydown body $ \x -> liftIO $ runReaderT (keydownEvent x) env
       on UI.keyup body $ \x -> liftIO $ runReaderT (keyupEvent x) env
 
-      -- put elements on body
-      UI.getBody win #+ [element input, element script, element errors, element output]
+      -- put elements on bod
+      UI.getBody win #+ [element definitions, element control, element script1, element script2 , element errors, element output]
 
 -- to combine UI and IO actions with an environment
 instance MonadUI (ReaderT Env IO) where
@@ -173,10 +179,10 @@ interpretC  = do
         let out = output env
             err = errors env
             str = stream env
-        contents <- liftUI $ editorValue
+        contentsControl <- liftUI $ editorValueControl
+        contentsDef <- liftUI $ editorValueDefinitions
         line <- liftUI getCursorLine
-        liftIO $ putStrLn $ show contents
-        let blocks = getBlocks contents
+        let blocks = getBlocks contentsControl
             blockMaybe = getBlock line blocks
         case blockMaybe of
             Nothing -> do
@@ -191,16 +197,21 @@ interpretC  = do
                                 return ()
                           Right command -> case command of
                                                   (D num string) -> do
-                                                          res <- liftIO $ Hint.runInterpreter $ do
-                                                              Hint.set [languageExtensions := exts]
-                                                              Hint.setImports libs
-                                                              Hint.interpret string (Hint.as :: ControlPattern)
+                                                          res <- liftIO $ runHintSafe string contentsDef
                                                           case res of
                                                               Right pat -> do
                                                                 liftUI $ element out C.# C.set UI.text ( "control pattern:" ++ show pat )
+                                                                liftUI $ element err C.# C.set UI.text "" 
                                                                 liftIO $ p num $ pat |< orbit (pure $ num-1)
                                                               Left  e -> do
                                                                 liftUI $ element err C.# C.set UI.text ( "Interpreter Error:" ++ show e )
                                                                 return ()
                                                   (Hush)      -> liftIO $ streamHush str
                                                   (Cps x)   -> liftIO $ streamOnce str $ cps (pure x)
+
+runHintSafe :: String -> String -> IO (Either InterpreterError ControlPattern)
+runHintSafe input stmts = Hint.runInterpreter $ do
+                          Hint.set [languageExtensions := exts]
+                          Hint.setImports libs
+                          Hint.runStmt stmts
+                          Hint.interpret input (Hint.as :: ControlPattern)
