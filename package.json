@@ -1,0 +1,33 @@
+{
+  "name": "threepenny-electron",
+  "version": "1.0.0",
+  "description": "A ThreepennyGUI for Tidal",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "pack-app": "electron-packager . tidal-gui --overwrite  --prune=true --ignore=\\.github --ignore=\\.stack-work --ignore=\\.gitignore --ignor=\\dist",
+    "postpack-app:darwin": "node ./postpack-app-darwin.js",
+    "postpack-app:win32": "node ./postpack-app-win.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/"
+  },
+  "keywords": [
+    "Electron",
+    "Threepenny GUI"
+  ],
+  "author": "Martin Gius",
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "electron": "^9.4.4",
+    "electron-packager": "^14.0.6",
+    "ncp": "^2.0.0",
+    "run-script-os": "^1.1.6",
+    "shelljs": "^0.8.3"
+  },
+  "dependencies": {
+    "freeport": "^1.0.5",
+    "wait-on": "^3.3.0"
+  }
+}

@@ -2,6 +2,8 @@
 
 import       Language.Haskell.Interpreter as Hint
 import       Language.Haskell.Interpreter.Unsafe as Hint
+import System.FilePath                       (dropFileName)
+import System.Environment                    (getExecutablePath)
 import       Sound.Tidal.Context as T
 import       Control.Concurrent.MVar
 import       Control.Concurrent
@@ -70,8 +72,7 @@ remoteTarget = Target {oName = "atom"
 
 main :: IO ()
 main = do
-        putStrLn "Please enter path to static:"
-        static <- readLn
+        execPath <- dropFileName <$> getExecutablePath
         stream <- T.startStream T.defaultConfig [(T.superdirtTarget {oLatency = 0.1},
                                                   [T.superdirtShape]
                                                  ),
@@ -80,7 +81,7 @@ main = do
                                                  )
                                                 ]
         startGUI C.defaultConfig {
-              jsStatic = Just static,
+              jsStatic = Just $ execPath ++ "static",
               jsCustomHTML     = Just "tidal.html"
             } $ setup stream
 
@@ -201,7 +202,7 @@ interpretC  = do
                                                           case res of
                                                               Right pat -> do
                                                                 liftUI $ element out C.# C.set UI.text ( "control pattern:" ++ show pat )
-                                                                liftUI $ element err C.# C.set UI.text "" 
+                                                                liftUI $ element err C.# C.set UI.text ""
                                                                 liftIO $ p num $ pat |< orbit (pure $ num-1)
                                                               Left  e -> do
                                                                 liftUI $ element err C.# C.set UI.text ( "Interpreter Error:" ++ show e )
