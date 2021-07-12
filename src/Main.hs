@@ -10,7 +10,9 @@ import       Control.Concurrent
 import Control.Monad (void)
 import Control.Monad.Reader
 import Sound.Tidal.Stream (Target(..))
-import Text.Parsec(parse)
+import Text.Parsec(parse, Line, Column, sourceLine, sourceColumn)
+import Sound.OSC.FD(time)
+import Sound.Tidal.Tempo(timeToCycles)
 
 import qualified Graphics.UI.Threepenny as UI
 import Graphics.UI.Threepenny.Core as C hiding (text)
@@ -98,8 +100,11 @@ editorValueControl = callFunction $ ffi "controlEditor.getValue()"
 getCursorLine :: UI Int
 getCursorLine = callFunction $ ffi "(controlEditor.getCursor()).line"
 
-getCursorCol :: UI Int
-getCursorCol = callFunction $ ffi "(controlEditor.getCursor()).ch"
+highlight :: (Int, Int, Int) -> UI ()
+highlight (line, start, end) = runFunction $ ffi "controlEditor.markText({line: %1, ch: %2}, {line: %1, ch: %3}, {css: \"background-color: red\"});" line start end
+
+unHighlight :: (Int, Int, Int) -> UI ()
+unHighlight (line, start, end) = runFunction $ ffi "controlEditor.markText({line: %1, ch: %2}, {line: %1, ch: %3}, {css: \"background-color: white\"});" line start end
 
 setup :: Stream -> Window -> UI ()
 setup stream win = void $ do
@@ -114,9 +119,10 @@ setup stream win = void $ do
       errors <- UI.div #+ [ string "errors go here" ]
       body <- UI.getBody win
       script1 <- mkElement "script"
-                        C.# C.set UI.text "const controlEditor = CodeMirror.fromTextArea(document.getElementById('control-editor'), {lineNumbers: true, mode: \"haskell\"});"
+                        C.# C.set UI.text "const controlEditor = CodeMirror.fromTextArea(document.getElementById('control-editor'), {lineNumbers: true, mode: \"haskell\", extraKeys: { Tab: betterTab }}); function betterTab(cm) {if (cm.somethingSelected()) {cm.indentSelection(\"add\");} else {cm.replaceSelection(cm.getOption(\"indentWithTabs\")? \"\t\": Array(cm.getOption(\"indentUnit\") + 1).join(\" \"), \"end\", \"+input\");}}"
       script2 <- mkElement "script"
                         C.# C.set UI.text "const definitionsEditor = CodeMirror.fromTextArea(document.getElementById('definitions-editor'), {lineNumbers: true, mode: \"haskell\"});"
+
       --setup env
       strKey <- liftIO $ newMVar False
       enterKey <- liftIO $ newMVar False
@@ -189,7 +195,7 @@ interpretC  = do
             Nothing -> do
                     liftUI $ element err C.# C.set UI.text "Failed to get Block"
                     return ()
-            Just block -> do
+            Just (blockLine, block) -> do
                     let parsed = parse parseCommand "" block
                         p = streamReplace str
                     case parsed of
@@ -201,9 +207,16 @@ interpretC  = do
                                                           res <- liftIO $ runHintSafe string contentsDef
                                                           case res of
                                                               Right pat -> do
-                                                                liftUI $ element out C.# C.set UI.text ( "control pattern:" ++ show pat )
-                                                                liftUI $ element err C.# C.set UI.text ""
-                                                                liftIO $ p num $ pat |< orbit (pure $ num-1)
+                                                                let start = parse startPos "" block
+                                                                case start of
+                                                                  Right pos -> do
+                                                                          let line = sourceLine pos
+                                                                              col = sourceColumn pos
+                                                                          liftUI $ element out C.# C.set UI.text ( "control pattern:" ++ show pat )
+                                                                          liftUI $ element err C.# C.set UI.text ""
+                                                                          liftIO $ p num $ pat |< orbit (pure $ num-1)
+                                                                          highlightLoop line col blockLine pat
+                                                                  Left err -> error "this cannot happen"
                                                               Left  e -> do
                                                                 liftUI $ element err C.# C.set UI.text ( "Interpreter Error:" ++ show e )
                                                                 return ()
@@ -216,3 +229,21 @@ runHintSafe input stmts = Hint.runInterpreter $ do
                           Hint.setImports libs
                           Hint.runStmt stmts
                           Hint.interpret input (Hint.as :: ControlPattern)
+
+--doesn't really work
+locs :: Rational -> Line -> Column -> Int -> ControlPattern -> [(Int,Int,Int)]
+locs t line col n pat = concatMap (evToLocs line col n) $ queryArc pat (Arc t t)
+        where evToLocs line col n (Event {context = Context xs}) = map (toLoc line col n) xs
+              -- assume an event doesn't span a line..
+              toLoc line col n ((bx, by), (ex, _)) = (n+by+line - 2, bx+col - 2, ex+col - 2)
+
+highlightLoop :: Line -> Column -> Int -> ControlPattern -> ReaderT Env IO ()
+highlightLoop line col shift pat = do
+                          env <- ask
+                          tempo <- liftIO $ readMVar $ sTempoMV $ stream env
+                          t <- liftUI $ time
+                          let c = timeToCycles tempo (t-0.2)
+                              ls = locs c line col shift pat
+                          liftUI $ highlight (head ls)
+                          liftIO $ threadDelay 100000
+                          liftUI $ unHighlight (head ls)
