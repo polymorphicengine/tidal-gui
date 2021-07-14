@@ -27,6 +27,7 @@ data Env = Env {window :: Window
                ,errors :: Element
                ,strKey :: MVar Bool
                ,enterKey :: MVar Bool
+               ,high :: MVar Highlight
                }
 
 libs = [
@@ -72,6 +73,14 @@ remoteTarget = Target {oName = "atom"
                       ,oHandshake = True
                       }
 
+data Highlight = Highlight {line :: Int
+                           ,col :: Int
+                           ,shift :: Int
+                           ,streamH :: Stream
+                           ,pat :: ControlPattern
+                           ,winH :: Window
+                           }
+
 main :: IO ()
 main = do
         execPath <- dropFileName <$> getExecutablePath
@@ -86,6 +95,7 @@ main = do
               jsStatic = Just $ execPath ++ "static",
               jsCustomHTML     = Just "tidal.html"
             } $ setup stream
+
 
 --get the contents of the codeMirror editor
 editorValueDefinitions :: UI String
@@ -123,11 +133,15 @@ setup stream win = void $ do
       script2 <- mkElement "script"
                         C.# C.set UI.text "const definitionsEditor = CodeMirror.fromTextArea(document.getElementById('definitions-editor'), {lineNumbers: true, mode: \"haskell\"});"
 
+      --highlight
+      highlight <- liftIO $ newEmptyMVar
+      liftIO $ forkIO $ highlightLoop highlight
+
       --setup env
       strKey <- liftIO $ newMVar False
       enterKey <- liftIO $ newMVar False
 
-      let env = Env win stream output errors strKey enterKey
+      let env = Env win stream output errors strKey enterKey highlight
 
       --handle Events
       on UI.keydown body $ \x -> liftIO $ runReaderT (keydownEvent x) env
@@ -142,6 +156,7 @@ instance MonadUI (ReaderT Env IO) where
             env <- ask
             let win = window env
             liftIO $ runUI win m
+
 
 keydownEvent :: Int -> ReaderT Env IO ()
 keydownEvent x = do
@@ -212,10 +227,13 @@ interpretC  = do
                                                                   Right pos -> do
                                                                           let line = sourceLine pos
                                                                               col = sourceColumn pos
+                                                                              highlight = high env
+                                                                              win = window env
                                                                           liftUI $ element out C.# C.set UI.text ( "control pattern:" ++ show pat )
                                                                           liftUI $ element err C.# C.set UI.text ""
                                                                           liftIO $ p num $ pat |< orbit (pure $ num-1)
-                                                                          highlightLoop line col blockLine pat
+                                                                          liftIO $ tryTakeMVar highlight
+                                                                          liftIO $ putMVar highlight $ Highlight line col blockLine str pat win
                                                                   Left err -> error "this cannot happen"
                                                               Left  e -> do
                                                                 liftUI $ element err C.# C.set UI.text ( "Interpreter Error:" ++ show e )
@@ -237,13 +255,19 @@ locs t line col n pat = concatMap (evToLocs line col n) $ queryArc pat (Arc t t)
               -- assume an event doesn't span a line..
               toLoc line col n ((bx, by), (ex, _)) = (n+by+line - 2, bx+col - 2, ex+col - 2)
 
-highlightLoop :: Line -> Column -> Int -> ControlPattern -> ReaderT Env IO ()
-highlightLoop line col shift pat = do
-                          env <- ask
-                          tempo <- liftIO $ readMVar $ sTempoMV $ stream env
-                          t <- liftUI $ time
-                          let c = timeToCycles tempo (t-0.2)
-                              ls = locs c line col shift pat
-                          liftUI $ highlight (head ls)
-                          liftIO $ threadDelay 100000
-                          liftUI $ unHighlight (head ls)
+highlightLoop :: MVar Highlight -> IO ()
+highlightLoop high = do
+                env <- liftIO $ readMVar high
+                tempo <- liftIO $ readMVar $ sTempoMV $ streamH env
+                t <-  time
+                let win = winH env
+                    p = pat env
+                    ln = line env
+                    cl = col env
+                    sh = shift env
+                    c = timeToCycles tempo (t-0.2)
+                    ls = locs c ln cl sh p
+                liftIO $ runUI win (highlight (head ls))
+                liftIO $ threadDelay 100000
+                liftIO $ runUI win (unHighlight (head ls))
+                highlightLoop high
