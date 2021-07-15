@@ -17,6 +17,7 @@ import Sound.Tidal.Tempo(timeToCycles)
 import Control.Exception
 import Text.Parsec(ParseError)
 import           Sound.Tidal.Utils
+import Foreign.JavaScript(NewJSObject , JSObject)
 
 import qualified Graphics.UI.Threepenny as UI
 import Graphics.UI.Threepenny.Core as C hiding (text)
@@ -108,9 +109,6 @@ editorValueDefinitions = callFunction $ ffi "definitionsEditor.getValue()"
 editorValueControl :: UI String
 editorValueControl = callFunction $ ffi "controlEditor.getValue()"
 
--- instance (FromJS a, FromJS b) => FromJS (a,b) where
---   fromJs (x,y) = (fromJS x, fromJS y)
-
 createHaskellFunction name fn = do
     handler <- ffiExport fn
     runFunction $ ffi ("window." ++ name ++ " = %1") handler
@@ -118,11 +116,11 @@ createHaskellFunction name fn = do
 getCursorLine :: UI Int
 getCursorLine = callFunction $ ffi "(controlEditor.getCursor()).line"
 
-highlight :: (Int, Int, Int) -> UI ()
-highlight (line, start, end) = runFunction $ ffi "controlEditor.markText({line: %1, ch: %2}, {line: %1, ch: %3}, {css: \"background-color: red\"});" line start end
+highlight :: (Int, Int, Int) -> UI JSObject
+highlight (line, start, end) = callFunction $ ffi "(controlEditor.markText({line: %1, ch: %2}, {line: %1, ch: %3}, {css: \"background-color: red\"}))" line start end
 
-unHighlight :: (Int, Int, Int) -> UI ()
-unHighlight (line, start, end) = runFunction $ ffi "controlEditor.markText({line: %1, ch: %2}, {line: %1, ch: %3}, {css: \"background-color: white\"});" line start end
+unHighlight :: JSObject -> UI ()
+unHighlight mark = runFunction $ ffi "%1.clear();" mark
 
 setup :: Stream -> Window -> UI ()
 setup stream win = void $ do
@@ -239,7 +237,7 @@ highlightLoop high = do
                     sh = shift env
                     c = timeToCycles tempo t
                     ls = locs c ln cl sh p
-                liftIO $ runUI win (highlight (head ls))
-                liftIO $ threadDelay 100000
-                liftIO $ runUI win (unHighlight (0,0,100))
+                mark <-  runUI win (highlight (head ls))
+                threadDelay 100000
+                runUI win (unHighlight mark)
                 highlightLoop high
