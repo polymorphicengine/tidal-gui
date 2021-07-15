@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE BangPatterns #-}
 
 import       Language.Haskell.Interpreter as Hint
 import       Language.Haskell.Interpreter.Unsafe as Hint
@@ -183,7 +184,7 @@ interpretC  = do
                                           (D num string) -> do
                                                   res <- liftIO $ runHintSafe string contentsDef
                                                   case res of
-                                                      Right (pat) -> do
+                                                      Right (Right pat) -> do
                                                               let start = parse startPos "" block
                                                               case start of
                                                                   Right pos -> do
@@ -197,22 +198,27 @@ interpretC  = do
                                                                           liftIO $ tryTakeMVar highlight
                                                                           liftIO $ putMVar highlight $ Highlight line col blockLine str pat win
                                                                   Left e -> error "this cannot happen"
-                                                      Left e -> void $ liftUI $ element err C.# C.set UI.text ( "Interpreter Error:" ++ show e )
+                                                      Right(Left e) -> void $ liftUI $ element err C.# C.set UI.text ( "Interpreter Error:" ++ show e )
+                                                      Left e -> void $ liftUI $ element err C.# C.set UI.text ( "Error:" ++ show e )
                                           (Hush)      -> liftIO $ streamHush str
                                           (Cps x)     -> liftIO $ streamOnce str $ cps (pure x)
 
-runHintSafe :: String -> String -> IO (Either InterpreterError ControlPattern)
-runHintSafe input stmts = Hint.runInterpreter $ do
+runHintSafe :: String -> String -> IO (Either SomeException (Either InterpreterError ControlPattern))
+runHintSafe input stmts = try $ do
+                      i <- Hint.runInterpreter $ do
                                   Hint.set [languageExtensions := exts]
                                   Hint.setImports libs
                                   Hint.runStmt stmts
                                   Hint.interpret input (Hint.as :: ControlPattern)
+                      evalDummy i
+                      return i
 
-runPatCatch :: (Int -> ControlPattern -> IO ()) -> Int -> ControlPattern -> IO ()
-runPatCatch p num pat = catch (p num $ pat |< orbit (pure $ num-1)) voidHandle
-
-voidHandle :: SomeException -> IO ()
-voidHandle e = return ()
+--notice the bang pattern
+evalDummy :: (Either InterpreterError ControlPattern) -> IO ()
+evalDummy e = do
+          case e of
+            Left _ -> return ()
+            Right !pat -> return ()
 
 --doesn't really work
 locs :: Rational -> Line -> Column -> Int -> ControlPattern -> [(Int,Int,Int)]
