@@ -13,11 +13,15 @@ import Sound.Tidal.Stream (Target(..))
 import Text.Parsec(parse, Line, Column, sourceLine, sourceColumn)
 import Sound.OSC.FD(time)
 import Sound.Tidal.Tempo(timeToCycles)
+import Control.Exception
+import Text.Parsec(ParseError)
+import           Sound.Tidal.Utils
 
 import qualified Graphics.UI.Threepenny as UI
 import Graphics.UI.Threepenny.Core as C hiding (text)
 -- import Foreign.JavaScript.Marshal
 -- import Graphics.UI.Threepenny.Internal(unUI)
+
 
 import Parse
 
@@ -25,8 +29,6 @@ data Env = Env {window :: Window
                ,stream :: Stream
                ,output :: Element
                ,errors :: Element
-               ,strKey :: MVar Bool
-               ,enterKey :: MVar Bool
                ,high :: MVar Highlight
                }
 
@@ -56,6 +58,7 @@ libs = [
   , "Data.Typeable"
   , "GHC.Float"
   , "GHC.Real"
+  , "Text.Parsec"
   ]
 
 exts = [OverloadedStrings, NoImplicitPrelude]
@@ -107,6 +110,10 @@ editorValueControl = callFunction $ ffi "controlEditor.getValue()"
 -- instance (FromJS a, FromJS b) => FromJS (a,b) where
 --   fromJs (x,y) = (fromJS x, fromJS y)
 
+createHaskellFunction name fn = do
+    handler <- ffiExport fn
+    runFunction $ ffi ("window." ++ name ++ " = %1") handler
+
 getCursorLine :: UI Int
 getCursorLine = callFunction $ ffi "(controlEditor.getCursor()).line"
 
@@ -122,32 +129,29 @@ setup stream win = void $ do
       return win C.# C.set title "Tidal"
       definitions <- UI.textarea
                   C.# C.set (attr "id") "definitions-editor"
-      control <- UI.textarea
+      control <- UI.textarea #+ [ string "d1 $ s \"bd sn\"" ]
                   C.# C.set (attr "id") "control-editor"
 
       output <- UI.div #+ [ string "output goes here" ]
       errors <- UI.div #+ [ string "errors go here" ]
       body <- UI.getBody win
       script1 <- mkElement "script"
-                        C.# C.set UI.text "const controlEditor = CodeMirror.fromTextArea(document.getElementById('control-editor'), {lineNumbers: true, mode: \"haskell\", extraKeys: { Tab: betterTab }}); function betterTab(cm) {if (cm.somethingSelected()) {cm.indentSelection(\"add\");} else {cm.replaceSelection(cm.getOption(\"indentWithTabs\")? \"\t\": Array(cm.getOption(\"indentUnit\") + 1).join(\" \"), \"end\", \"+input\");}}"
+                        C.# C.set UI.text "const controlEditor = CodeMirror.fromTextArea(document.getElementById('control-editor'), {lineNumbers: true, mode: \"haskell\", extraKeys: { Tab: betterTab, \"Ctrl-Enter\": runInterpreter, \"Ctrl-.\": hush}}); function betterTab(cm) {if (cm.somethingSelected()) {cm.indentSelection(\"add\");} else {cm.replaceSelection(cm.getOption(\"indentWithTabs\")? \"\t\": Array(cm.getOption(\"indentUnit\") + 1).join(\" \"), \"end\", \"+input\");}}"
       script2 <- mkElement "script"
-                        C.# C.set UI.text "const definitionsEditor = CodeMirror.fromTextArea(document.getElementById('definitions-editor'), {lineNumbers: true, mode: \"haskell\"});"
+                        C.# C.set UI.text "const definitionsEditor = CodeMirror.fromTextArea(document.getElementById('definitions-editor'), {lineNumbers: true, mode: \"haskell\", extraKeys: {\"Ctrl-Enter\": runInterpreter, \"Ctrl-.\": hush}});"
 
-      --highlight
+      --highlight (experimental)
       highlight <- liftIO $ newEmptyMVar
       liftIO $ forkIO $ highlightLoop highlight
 
-      --setup env
-      strKey <- liftIO $ newMVar False
-      enterKey <- liftIO $ newMVar False
+      let env = Env win stream output errors highlight
+          runI = runReaderT interpretC env
+          hush = streamHush stream
 
-      let env = Env win stream output errors strKey enterKey highlight
+      createHaskellFunction "runInterpreter" runI
+      createHaskellFunction "hush" hush
 
-      --handle Events
-      on UI.keydown body $ \x -> liftIO $ runReaderT (keydownEvent x) env
-      on UI.keyup body $ \x -> liftIO $ runReaderT (keyupEvent x) env
-
-      -- put elements on bod
+      -- put elements on body
       UI.getBody win #+ [element definitions, element control, element script1, element script2 , element errors, element output]
 
 -- to combine UI and IO actions with an environment
@@ -156,44 +160,6 @@ instance MonadUI (ReaderT Env IO) where
             env <- ask
             let win = window env
             liftIO $ runUI win m
-
-
-keydownEvent :: Int -> ReaderT Env IO ()
-keydownEvent x = do
-            env <- ask
-            let str = strKey env
-                enter = enterKey env
-            case x of
-                17 -> do
-                  liftIO $ takeMVar str
-                  liftIO $ putMVar str True
-                  enter <- liftIO $ readMVar enter
-                  case enter of
-                    True -> do
-                          interpretC
-                    _ -> return ()
-                13 -> do
-                  liftIO $ takeMVar enter
-                  liftIO $ putMVar enter True
-                  str <- liftIO $ readMVar str
-                  case str of
-                    True -> interpretC
-                    _ -> return ()
-                _ -> return ()
-
-keyupEvent :: Int -> ReaderT Env IO ()
-keyupEvent x = do
-              env <- ask
-              let str = strKey env
-                  enter = enterKey env
-              case x of
-                  17 -> do
-                    liftIO $ takeMVar str
-                    liftIO $ putMVar str False
-                  13 -> do
-                    liftIO $ takeMVar enter
-                    liftIO $ putMVar enter False
-                  _ -> return ()
 
 interpretC :: ReaderT Env IO ()
 interpretC  = do
@@ -207,23 +173,19 @@ interpretC  = do
         let blocks = getBlocks contentsControl
             blockMaybe = getBlock line blocks
         case blockMaybe of
-            Nothing -> do
-                    liftUI $ element err C.# C.set UI.text "Failed to get Block"
-                    return ()
+            Nothing -> void $ liftUI $ element err C.# C.set UI.text "Failed to get Block"
             Just (blockLine, block) -> do
                     let parsed = parse parseCommand "" block
                         p = streamReplace str
                     case parsed of
-                          Left e -> do
-                                liftUI $ element err C.# C.set UI.text ( "Parse Error:" ++ show e )
-                                return ()
+                          Left e -> void $ liftUI $ element err C.# C.set UI.text ( "Parse Error:" ++ show e )
                           Right command -> case command of
-                                                  (D num string) -> do
-                                                          res <- liftIO $ runHintSafe string contentsDef
-                                                          case res of
-                                                              Right pat -> do
-                                                                let start = parse startPos "" block
-                                                                case start of
+                                          (D num string) -> do
+                                                  res <- liftIO $ runHintSafe string contentsDef
+                                                  case res of
+                                                      Right (pat) -> do
+                                                              let start = parse startPos "" block
+                                                              case start of
                                                                   Right pos -> do
                                                                           let line = sourceLine pos
                                                                               col = sourceColumn pos
@@ -234,19 +196,23 @@ interpretC  = do
                                                                           liftIO $ p num $ pat |< orbit (pure $ num-1)
                                                                           liftIO $ tryTakeMVar highlight
                                                                           liftIO $ putMVar highlight $ Highlight line col blockLine str pat win
-                                                                  Left err -> error "this cannot happen"
-                                                              Left  e -> do
-                                                                liftUI $ element err C.# C.set UI.text ( "Interpreter Error:" ++ show e )
-                                                                return ()
-                                                  (Hush)      -> liftIO $ streamHush str
-                                                  (Cps x)   -> liftIO $ streamOnce str $ cps (pure x)
+                                                                  Left e -> error "this cannot happen"
+                                                      Left e -> void $ liftUI $ element err C.# C.set UI.text ( "Interpreter Error:" ++ show e )
+                                          (Hush)      -> liftIO $ streamHush str
+                                          (Cps x)     -> liftIO $ streamOnce str $ cps (pure x)
 
 runHintSafe :: String -> String -> IO (Either InterpreterError ControlPattern)
 runHintSafe input stmts = Hint.runInterpreter $ do
-                          Hint.set [languageExtensions := exts]
-                          Hint.setImports libs
-                          Hint.runStmt stmts
-                          Hint.interpret input (Hint.as :: ControlPattern)
+                                  Hint.set [languageExtensions := exts]
+                                  Hint.setImports libs
+                                  Hint.runStmt stmts
+                                  Hint.interpret input (Hint.as :: ControlPattern)
+
+runPatCatch :: (Int -> ControlPattern -> IO ()) -> Int -> ControlPattern -> IO ()
+runPatCatch p num pat = catch (p num $ pat |< orbit (pure $ num-1)) voidHandle
+
+voidHandle :: SomeException -> IO ()
+voidHandle e = return ()
 
 --doesn't really work
 locs :: Rational -> Line -> Column -> Int -> ControlPattern -> [(Int,Int,Int)]
@@ -265,9 +231,9 @@ highlightLoop high = do
                     ln = line env
                     cl = col env
                     sh = shift env
-                    c = timeToCycles tempo (t-0.2)
+                    c = timeToCycles tempo t
                     ls = locs c ln cl sh p
                 liftIO $ runUI win (highlight (head ls))
                 liftIO $ threadDelay 100000
-                liftIO $ runUI win (unHighlight (head ls))
+                liftIO $ runUI win (unHighlight (0,0,100))
                 highlightLoop high
