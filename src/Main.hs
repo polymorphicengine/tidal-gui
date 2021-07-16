@@ -86,7 +86,7 @@ data Highlight = Highlight {line :: Int
                            ,winH :: Window
                            }
 
-type Buffer = [(Int,Int,Int)]
+type Buffer = [((Int,Int,Int), Maybe Arc)]
 
 main :: IO ()
 main = do
@@ -147,7 +147,7 @@ setup stream win = void $ do
 
       --highlight (experimental)
       highlight <- liftIO $ newEmptyMVar
-      liftIO $ forkIO $ highlightLoop highlight
+      liftIO $ forkIO $ highlightLoop [] highlight
 
       let env = Env win stream output errors highlight
           runI = runReaderT interpretC env
@@ -225,15 +225,15 @@ evalDummy e = do
             Right !pat -> return ()
 
 --doesn't really work -- probably because it pretty unlikely that we get an onset
-locs :: Rational -> Line -> Column -> Int -> ControlPattern -> [Maybe (Int,Int,Int)]
+locs :: Rational -> Line -> Column -> Int -> ControlPattern -> [((Int,Int,Int), Maybe Arc)]
 locs t line col n pat = concatMap (evToLocs line col n) $ queryArc pat (Arc t t)
-        where evToLocs line col n e@(Event {context = Context xs}) | eventHasOnset e = fmap Just $ map (toLoc line col n) xs
-                                                                   | otherwise = [Nothing]
+        where evToLocs line col n (Event {context = Context xs, whole = wh}) = map (\x -> ((toLoc line col n) x, wh)) xs
               -- assume an event doesn't span a line..
               toLoc line col n ((bx, by), (ex, _)) = (n+by+line - 2, bx+col - 2, ex+col - 2)
+              locsWithArc ls = zip ls (map whole $ queryArc pat (Arc t t))
 
-highlightLoop ::MVar Highlight -> IO ()
-highlightLoop high = do
+highlightLoop :: Buffer -> MVar Highlight -> IO ()
+highlightLoop buffer high = do
                 env <- liftIO $ readMVar high
                 tempo <- liftIO $ readMVar $ sTempoMV $ streamH env
                 t <-  time
@@ -244,20 +244,26 @@ highlightLoop high = do
                     sh = shift env
                     c = timeToCycles tempo t
                     ls = locs c ln cl sh p
-
-                marks <- highlightMany ls win
+                (marks,buffer') <- highlightMany buffer ls win
                 threadDelay 100000
                 unhighlightMany marks win
                 runUI win flushCallBuffer
-                highlightLoop high
+                highlightLoop buffer' high
 
-highlightMany :: [Maybe (Int,Int,Int)] -> Window -> IO [JSObject]
-highlightMany [] win = return []
-highlightMany ((Just x):xs) win = do
-                    mark <- runUI win (highlight x)
-                    marks <- highlightMany xs win
-                    return (mark:marks)
-highlightMany (Nothing:xs) win = highlightMany xs win
+highlightMany :: Buffer -> [((Int,Int,Int), Maybe Arc)] -> Window -> IO ([JSObject],Buffer)
+highlightMany buffer [] win = return ([],buffer)
+highlightMany buffer (x@(i,a):xs) win = do
+                                case elem x buffer of
+                                  True -> do return ([], buffer)
+                                  False -> do
+                                      mark <- runUI win (highlight i)
+                                      let buf = filter (\(j,_) -> j /= i) buffer
+                                      (marks, buffer') <- highlightMany (x:buf) xs win
+                                      return ((mark:marks),buffer')
+
+buffElem :: ((Int,Int,Int), Maybe Arc) -> Buffer -> Bool
+buffElem _ [] = False
+buffElem x@(_,a1) ((_,a2):ys) = a1 /= a2 || buffElem x ys
 
 unhighlightMany :: [JSObject] -> Window -> IO ()
 unhighlightMany [] win = return ()
