@@ -86,6 +86,8 @@ data Highlight = Highlight {line :: Int
                            ,winH :: Window
                            }
 
+type Buffer = [(Int,Int,Int)]
+
 main :: IO ()
 main = do
         execPath <- dropFileName <$> getExecutablePath
@@ -119,8 +121,12 @@ getCursorLine = callFunction $ ffi "(controlEditor.getCursor()).line"
 highlight :: (Int, Int, Int) -> UI JSObject
 highlight (line, start, end) = callFunction $ ffi "(controlEditor.markText({line: %1, ch: %2}, {line: %1, ch: %3}, {css: \"background-color: red\"}))" line start end
 
+-- unHighlight :: JSObject -> UI ()
+-- unHighlight mark = runFunction $ ffi "if (typeof %1 !== 'undefined'){%1.clear()};" mark
+
 unHighlight :: JSObject -> UI ()
 unHighlight mark = runFunction $ ffi "%1.clear();" mark
+
 
 setup :: Stream -> Window -> UI ()
 setup stream win = void $ do
@@ -218,14 +224,15 @@ evalDummy e = do
             Left _ -> return ()
             Right !pat -> return ()
 
---doesn't really work
-locs :: Rational -> Line -> Column -> Int -> ControlPattern -> [(Int,Int,Int)]
+--doesn't really work -- probably because it pretty unlikely that we get an onset
+locs :: Rational -> Line -> Column -> Int -> ControlPattern -> [Maybe (Int,Int,Int)]
 locs t line col n pat = concatMap (evToLocs line col n) $ queryArc pat (Arc t t)
-        where evToLocs line col n (Event {context = Context xs}) = map (toLoc line col n) xs
+        where evToLocs line col n e@(Event {context = Context xs}) | eventHasOnset e = fmap Just $ map (toLoc line col n) xs
+                                                                   | otherwise = [Nothing]
               -- assume an event doesn't span a line..
               toLoc line col n ((bx, by), (ex, _)) = (n+by+line - 2, bx+col - 2, ex+col - 2)
 
-highlightLoop :: MVar Highlight -> IO ()
+highlightLoop ::MVar Highlight -> IO ()
 highlightLoop high = do
                 env <- liftIO $ readMVar high
                 tempo <- liftIO $ readMVar $ sTempoMV $ streamH env
@@ -237,7 +244,23 @@ highlightLoop high = do
                     sh = shift env
                     c = timeToCycles tempo t
                     ls = locs c ln cl sh p
-                mark <-  runUI win (highlight (head ls))
+
+                marks <- highlightMany ls win
                 threadDelay 100000
-                runUI win (unHighlight mark)
+                unhighlightMany marks win
+                runUI win flushCallBuffer
                 highlightLoop high
+
+highlightMany :: [Maybe (Int,Int,Int)] -> Window -> IO [JSObject]
+highlightMany [] win = return []
+highlightMany ((Just x):xs) win = do
+                    mark <- runUI win (highlight x)
+                    marks <- highlightMany xs win
+                    return (mark:marks)
+highlightMany (Nothing:xs) win = highlightMany xs win
+
+unhighlightMany :: [JSObject] -> Window -> IO ()
+unhighlightMany [] win = return ()
+unhighlightMany (x:xs) win = do
+                    runUI win (unHighlight x)
+                    unhighlightMany xs win
