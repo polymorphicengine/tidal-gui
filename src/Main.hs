@@ -5,24 +5,24 @@ import       Language.Haskell.Interpreter as Hint
 import       Language.Haskell.Interpreter.Unsafe as Hint
 import System.FilePath                       (dropFileName)
 import System.Environment                    (getExecutablePath)
-import       Sound.Tidal.Context as T
-import       Control.Concurrent.MVar
-import       Control.Concurrent
+import Sound.Tidal.Context as T
+import Control.Concurrent.MVar
+import Control.Concurrent
 import Control.Monad (void)
 import Control.Monad.Reader
+import Control.Monad.State as ST
 import Sound.Tidal.Stream (Target(..))
 import Text.Parsec(parse, Line, Column, sourceLine, sourceColumn)
 import Sound.OSC.FD(time)
 import Sound.Tidal.Tempo(timeToCycles)
+import Data.Map as Map (Map,elems,insert,empty,null,fromList,assocs)
 import Control.Exception
 import Text.Parsec(ParseError)
-import           Sound.Tidal.Utils
+import Sound.Tidal.Utils
 import Foreign.JavaScript(NewJSObject , JSObject)
 
 import qualified Graphics.UI.Threepenny as UI
 import Graphics.UI.Threepenny.Core as C hiding (text)
--- import Foreign.JavaScript.Marshal
--- import Graphics.UI.Threepenny.Internal(unUI)
 
 
 import Parse
@@ -31,8 +31,23 @@ data Env = Env {window :: Window
                ,stream :: Stream
                ,output :: Element
                ,errors :: Element
-               ,high :: MVar Highlight
+               ,patS :: MVar PatternStates
                }
+
+data PatternState = PS {sPat :: ControlPattern
+                       ,blockLine :: Int
+                       ,muted :: Bool
+                       ,solo :: Bool
+                       } deriving Show
+
+type PatternStates = Map Int PatternState
+
+data Env' = Env' {windowE :: Window
+                 ,streamE :: Stream
+                 ,outputE :: Element
+                 ,errorsE :: Element
+                 ,patE :: PatternState
+                 }
 
 libs = [
     "Sound.Tidal.Context"
@@ -78,9 +93,7 @@ remoteTarget = Target {oName = "atom"
                       ,oHandshake = True
                       }
 
-data Highlight = Highlight {line :: Int
-                           ,col :: Int
-                           ,shift :: Int
+data Highlight = Highlight {shift :: Int
                            ,streamH :: Stream
                            ,pat :: ControlPattern
                            ,winH :: Window
@@ -146,15 +159,14 @@ setup stream win = void $ do
                         C.# C.set UI.text "const definitionsEditor = CodeMirror.fromTextArea(document.getElementById('definitions-editor'), {lineNumbers: true, mode: \"haskell\", extraKeys: {\"Ctrl-Enter\": runInterpreter, \"Ctrl-.\": hush}});"
 
       --highlight (experimental)
-      highlight <- liftIO $ newEmptyMVar
-      liftIO $ forkIO $ highlightLoop [] highlight
+      pats <- liftIO $ newEmptyMVar
+      liftIO $ forkIO $ highlightLoop [] stream win pats
 
-      let env = Env win stream output errors highlight
+      let env = Env win stream output errors pats
           runI = runReaderT interpretC env
-          hush = streamHush stream
 
       createHaskellFunction "runInterpreter" runI
-      createHaskellFunction "hush" hush
+      createHaskellFunction "hush" (bigHush stream pats)
 
       -- put elements on body
       UI.getBody win #+ [element definitions, element control, element script1, element script2 , element errors, element output]
@@ -189,22 +201,22 @@ interpretC  = do
                                                   res <- liftIO $ runHintSafe string contentsDef
                                                   case res of
                                                       Right (Right pat) -> do
-                                                              let start = parse startPos "" block
-                                                              case start of
-                                                                  Right pos -> do
-                                                                          let line = sourceLine pos
-                                                                              col = sourceColumn pos
-                                                                              highlight = high env
-                                                                              win = window env
-                                                                          liftUI $ element out C.# C.set UI.text ( "control pattern:" ++ show pat )
-                                                                          liftUI $ element err C.# C.set UI.text ""
-                                                                          liftIO $ p num $ pat |< orbit (pure $ num-1)
-                                                                          liftIO $ tryTakeMVar highlight
-                                                                          liftIO $ putMVar highlight $ Highlight line col blockLine str pat win
-                                                                  Left e -> error "this cannot happen"
-                                                      Right(Left e) -> void $ liftUI $ element err C.# C.set UI.text ( "Interpreter Error:" ++ show e )
+                                                                        let patStatesMVar = patS env
+                                                                            win = window env
+                                                                        liftUI $ element out C.# C.set UI.text ( "control pattern:" ++ show pat )
+                                                                        liftUI $ element err C.# C.set UI.text ""
+                                                                        liftIO $ p num $ pat |< orbit (pure $ num-1)
+                                                                        patStates <- liftIO $ tryTakeMVar patStatesMVar
+                                                                        case patStates of
+                                                                              Just pats -> do
+                                                                                  let newPatS = Map.insert num (PS pat blockLine False False) pats
+                                                                                  liftIO $ putMVar patStatesMVar $ newPatS
+                                                                              Nothing -> do
+                                                                                  let newPatS = Map.insert num (PS pat blockLine False False) Map.empty
+                                                                                  liftIO $ putMVar patStatesMVar $ newPatS
+                                                      Right (Left e) -> void $ liftUI $ element err C.# C.set UI.text ( "Interpreter Error:" ++ show e )
                                                       Left e -> void $ liftUI $ element err C.# C.set UI.text ( "Error:" ++ show e )
-                                          (Hush)      -> liftIO $ streamHush str
+                                          (Hush)      -> liftIO $ bigHush str (patS env)
                                           (Cps x)     -> liftIO $ streamOnce str $ cps (pure x)
 
 runHintSafe :: String -> String -> IO (Either SomeException (Either InterpreterError ControlPattern))
@@ -213,7 +225,7 @@ runHintSafe input stmts = try $ do
                                   Hint.set [languageExtensions := exts]
                                   Hint.setImports libs
                                   Hint.runStmt stmts
-                                  Hint.interpret input (Hint.as :: ControlPattern)
+                                  Hint.interpret (deltaMini input) (Hint.as :: ControlPattern)
                       evalDummy i
                       return i
 
@@ -224,49 +236,64 @@ evalDummy e = do
             Left _ -> return ()
             Right !pat -> return ()
 
---doesn't really work -- probably because it pretty unlikely that we get an onset
-locs :: Rational -> Line -> Column -> Int -> ControlPattern -> [((Int,Int,Int), Maybe Arc)]
-locs t line col n pat = concatMap (evToLocs line col n) $ queryArc pat (Arc t t)
-        where evToLocs line col n (Event {context = Context xs, whole = wh}) = map (\x -> ((toLoc line col n) x, wh)) xs
+locs :: Rational -> Int -> ControlPattern -> [((Int,Int,Int), Maybe Arc)]
+locs t bShift pat = concatMap (evToLocs bShift) $ queryArc pat (Arc t t)
+        where evToLocs bShift (Event {context = Context xs, whole = wh}) = map (\x -> ((toLoc bShift) x, wh)) xs
               -- assume an event doesn't span a line..
-              toLoc line col n ((bx, by), (ex, _)) = (n+by+line - 2, bx+col - 2, ex+col - 2)
+              toLoc bShift ((bx, by), (ex, _)) | by == 1 = (bShift+by - 1, bx + 4, ex + 4)
+                                                   | otherwise = (bShift+by - 1, bx, ex)
               locsWithArc ls = zip ls (map whole $ queryArc pat (Arc t t))
 
-highlightLoop :: Buffer -> MVar Highlight -> IO ()
-highlightLoop buffer high = do
-                env <- liftIO $ readMVar high
-                tempo <- liftIO $ readMVar $ sTempoMV $ streamH env
-                t <-  time
-                let win = winH env
-                    p = pat env
-                    ln = line env
-                    cl = col env
-                    sh = shift env
-                    c = timeToCycles tempo t
-                    ls = locs c ln cl sh p
-                (marks,buffer') <- highlightMany buffer ls win
-                threadDelay 100000
-                unhighlightMany marks win
-                runUI win flushCallBuffer
-                highlightLoop buffer' high
+highlightLoop :: Buffer -> Stream -> Window -> MVar PatternStates -> IO ()
+highlightLoop buffer stream win patStatesMVar = do
+                patStates <- liftIO $ readMVar patStatesMVar
+                case Map.null patStates of
+                  True -> highlightLoop buffer stream win patStatesMVar
+                  False -> do
+                      tempo <- liftIO $ readMVar $ sTempoMV stream
+                      t <-  time
+                      let pats = Map.elems patStates
+                          c = timeToCycles tempo t
+                      (marks,buffer') <- highlightPats c buffer win pats
+                      threadDelay 100000
+                      putStrLn $ show buffer'
+                      unhighlightMany marks win
+                      runUI win flushCallBuffer
+                      highlightLoop buffer' stream win patStatesMVar
+
+highlightPats :: Rational -> Buffer -> Window -> [PatternState] -> IO ([JSObject],Buffer)
+highlightPats c buffer win [] = return ([], buffer)
+highlightPats c buffer win ((PS pat shift True _):ps) = return ([], buffer) --muted
+highlightPats c buffer win ((PS pat shift False _):ps) = do
+                                              let ls = locs c shift pat
+                                              (marks,buffer') <- highlightMany buffer ls win
+                                              (marks',buffer'') <- highlightPats c buffer' win ps
+                                              return ((marks ++ marks'), buffer'')
 
 highlightMany :: Buffer -> [((Int,Int,Int), Maybe Arc)] -> Window -> IO ([JSObject],Buffer)
 highlightMany buffer [] win = return ([],buffer)
 highlightMany buffer (x@(i,a):xs) win = do
                                 case elem x buffer of
-                                  True -> do return ([], buffer)
+                                  True -> highlightMany buffer xs win
                                   False -> do
                                       mark <- runUI win (highlight i)
-                                      let buf = filter (\(j,_) -> j /= i) buffer
+                                      let buf = filter (\(j,_) -> j /= i) buffer -- so the buffer doesn't clog up
                                       (marks, buffer') <- highlightMany (x:buf) xs win
                                       return ((mark:marks),buffer')
-
-buffElem :: ((Int,Int,Int), Maybe Arc) -> Buffer -> Bool
-buffElem _ [] = False
-buffElem x@(_,a1) ((_,a2):ys) = a1 /= a2 || buffElem x ys
 
 unhighlightMany :: [JSObject] -> Window -> IO ()
 unhighlightMany [] win = return ()
 unhighlightMany (x:xs) win = do
                     runUI win (unHighlight x)
                     unhighlightMany xs win
+
+
+bigHush :: Stream -> MVar PatternStates -> IO ()
+bigHush str patStatesMVar = do
+              patStates <- tryTakeMVar patStatesMVar
+              case patStates of
+                    Just pats -> do
+                        let newPatS = Map.fromList $ map (\(i, p) -> (i, p {muted = True})) (Map.assocs pats)
+                        streamHush str
+                        putMVar patStatesMVar $ newPatS
+                    Nothing -> return ()

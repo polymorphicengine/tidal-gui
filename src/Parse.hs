@@ -10,30 +10,10 @@ import Text.Parsec.Prim
 
 data Command = D Int String | Hush | Cps Double deriving Show
 
-
-sourcePos :: Monad m => ParsecT s u m SourcePos
-sourcePos = statePos `liftM` getParserState
-
-startPosS :: Parser SourcePos
-startPosS = do
-        manyTill anyChar (try $ do
-                              char 's'
-                              whitespace
-                              char '"')
-        s <- sourcePos
-        return s
-
-startPosSound :: Parser SourcePos
-startPosSound = do
-        manyTill anyChar (try $ do
-                              string "sound"
-                              whitespace
-                              char '"')
-        s <- sourcePos
-        return s
-
-startPos :: Parser SourcePos
-startPos = try startPosSound <|> startPosS
+data Block = Block {bStart :: Int
+                   ,bEnd :: Int
+                   ,bContent ::String
+                   }
 
 whitespace :: Parser ()
 whitespace = void $ many $ oneOf " \n\t"
@@ -61,24 +41,23 @@ parseCps = do
             d <- parseDouble
             return $ Cps d
 
-parseDoubleWDot :: Parser Double
-parseDoubleWDot = do
+parseDoubleWP :: Parser Double
+parseDoubleWP = do
         is <- many1 digit
         char '.'
         js <- many1 digit
         return (read $ is ++ "." ++ js ::Double)
 
-parseDoubleWODot :: Parser Double
-parseDoubleWODot = do
+parseDoubleWOP :: Parser Double
+parseDoubleWOP = do
         is <- many1 digit
         return (read is ::Double)
 
 parseDouble :: Parser Double
-parseDouble = try parseDoubleWDot <|> parseDoubleWODot
+parseDouble = try parseDoubleWP <|> parseDoubleWOP
 
 parseCommand :: Parser Command
 parseCommand = try parsePat <|> try parseHush <|> parseCps
-
 
 whiteString :: String -> Bool
 whiteString "" = True
@@ -107,9 +86,3 @@ getBlocks = blocks . blocks' . linesNum
 addNewLine :: [String] -> [String]
 addNewLine [x] = [x]
 addNewLine (x:xs) = (x ++ "\n") : (addNewLine xs)
-
-countTabs :: String -> Int
-countTabs s = length $ filter (\x -> x == '\t') s
-
-filterTabs :: String -> String
-filterTabs s = filter (\x -> x /= '\t') s
