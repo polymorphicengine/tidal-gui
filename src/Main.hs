@@ -16,6 +16,7 @@ import Text.Parsec(parse, Line, Column, sourceLine, sourceColumn)
 import Sound.OSC.FD(time)
 import Sound.Tidal.Tempo(timeToCycles)
 import Data.Map as Map (Map,elems,insert,empty,null,fromList,assocs)
+import Data.List((\\))
 import Control.Exception
 import Text.Parsec(ParseError)
 import Sound.Tidal.Utils
@@ -241,29 +242,29 @@ locs t bShift pat = concatMap (evToLocs bShift) $ queryArc pat (Arc t t)
         where evToLocs bShift (Event {context = Context xs, whole = wh}) = map (\x -> ((toLoc bShift) x, wh)) xs
               -- assume an event doesn't span a line..
               toLoc bShift ((bx, by), (ex, _)) | by == 1 = (bShift+by - 1, bx + 4, ex + 4)
-                                                   | otherwise = (bShift+by - 1, bx, ex)
+                                               | otherwise = (bShift+by - 1, bx, ex)
               locsWithArc ls = zip ls (map whole $ queryArc pat (Arc t t))
 
 highlightLoop :: Buffer -> Stream -> Window -> MVar PatternStates -> IO ()
 highlightLoop buffer stream win patStatesMVar = do
-                patStates <- liftIO $ readMVar patStatesMVar
-                case Map.null patStates of
-                  True -> highlightLoop buffer stream win patStatesMVar
-                  False -> do
-                      tempo <- liftIO $ readMVar $ sTempoMV stream
-                      t <-  time
-                      let pats = Map.elems patStates
-                          c = timeToCycles tempo t
-                      (marks,buffer') <- highlightPats c buffer win pats
-                      threadDelay 100000
-                      putStrLn $ show buffer'
-                      unhighlightMany marks win
-                      runUI win flushCallBuffer
-                      highlightLoop buffer' stream win patStatesMVar
+                patStates <- readMVar patStatesMVar
+                tempo <- readMVar $ sTempoMV stream
+                t <- time
+                let pats = Map.elems patStates
+                    c = timeToCycles tempo t
+                putStrLn $ show pats
+                (marks,buffer') <- highlightPats c buffer win pats
+                threadDelay 100000
+                unhighlightMany marks win
+                runUI win flushCallBuffer
+                highlightLoop buffer' stream win patStatesMVar
 
 highlightPats :: Rational -> Buffer -> Window -> [PatternState] -> IO ([JSObject],Buffer)
 highlightPats c buffer win [] = return ([], buffer)
-highlightPats c buffer win ((PS pat shift True _):ps) = return ([], buffer) --muted
+highlightPats c buffer win ((PS pat shift True _):ps) = do
+                                              let ls = locs c shift pat
+                                              (marks,buffer') <- highlightPats c (buffer \\ ls) win ps
+                                              return (marks, buffer')
 highlightPats c buffer win ((PS pat shift False _):ps) = do
                                               let ls = locs c shift pat
                                               (marks,buffer') <- highlightMany buffer ls win
