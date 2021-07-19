@@ -72,15 +72,15 @@ blocks' ss = case break (whiteString . snd) ss of
               (xs, (y:ys)) -> xs:(blocks' ys)
               (xs, []) -> [xs]
 
-blocks :: [[(Int,String)]] -> [(Int,Int,String)]
+blocks :: [[(Int,String)]] -> [Block]
 blocks [] = []
-blocks (b:bs) = ((fst . head) b, (fst . last) b, concatMap snd b) : (blocks bs)
+blocks (b:bs) = (Block {bStart = (fst . head) b , bEnd = (fst . last) b, bContent = concatMap snd b}):(blocks bs)
 
-getBlock :: Int -> [(Int, Int, String)] -> Maybe (Int, String)
+getBlock :: Int -> [Block] -> Maybe Block
 getBlock num [] = Nothing
-getBlock num ( (n1, n2, b):bs) = if n1 <= num && num <= n2 then Just (n1,b) else getBlock num bs
+getBlock num ( block@(Block n1 n2 b):bs) = if n1 <= num && num <= n2 then Just block else getBlock num bs
 
-getBlocks :: String -> [(Int,Int,String)]
+getBlocks :: String -> [Block]
 getBlocks = blocks . blocks' . linesNum
 
 addNewLine :: [String] -> [String]
