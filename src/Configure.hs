@@ -1,4 +1,4 @@
-module Config where
+module Configure where
 
 import Language.Haskell.Interpreter (Extension (OverloadedStrings, NoImplicitPrelude))
 import Sound.Tidal.Context(Schedule(Live))
