@@ -81,3 +81,22 @@ unhighlightMany [] win = return ()
 unhighlightMany (x:xs) win = do
                     runUI win (unHighlight x)
                     unhighlightMany xs win
+
+--flash on evaluation
+
+highlightBlock :: Int -> Int -> String -> UI JSObject
+highlightBlock lineStart lineEnd color = callFunction $ ffi "(controlEditor.markText({line: %1, ch: 0}, {line: %2, ch: 0}, {css: %3}))" lineStart lineEnd color
+
+flashSuccess :: Int -> Int -> UI ()
+flashSuccess lineStart lineEnd = do
+                            mark <- highlightBlock (max (lineStart - 1) 0) (lineEnd + 1) "background-color: green"
+                            liftIO $ threadDelay 100000
+                            flushCallBuffer
+                            unHighlight mark
+
+flashError :: Int -> Int -> UI ()
+flashError lineStart lineEnd = do
+                            mark <- highlightBlock (max (lineStart - 1) 0) (lineEnd + 1) "background-color: red"
+                            liftIO $ threadDelay 100000
+                            flushCallBuffer
+                            unHighlight mark

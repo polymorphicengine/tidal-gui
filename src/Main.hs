@@ -3,7 +3,7 @@
 import System.FilePath  (dropFileName)
 import System.Environment (getExecutablePath)
 
-import Control.Concurrent (forkIO)
+import Control.Concurrent (forkIO, threadDelay)
 import Control.Concurrent.MVar  (newEmptyMVar, readMVar, tryTakeMVar, takeMVar, MVar, putMVar)
 import Control.Monad  (void)
 import Control.Monad.Reader (ReaderT, runReaderT, ask)
@@ -17,10 +17,12 @@ import Text.Parsec  (parse)
 import qualified Graphics.UI.Threepenny as UI
 import Graphics.UI.Threepenny.Core as C hiding (text)
 
+import Foreign.JavaScript (JSObject)
+
 import Parse
 import Highlight
 import Ui
-import Config
+import Configure
 import Hint
 
 main :: IO ()
@@ -96,16 +98,19 @@ interpretCommands  = do
            blockMaybe = getBlock line blocks
        case blockMaybe of
            Nothing -> void $ liftUI $ element err C.# C.set UI.text "Failed to get Block"
-           Just (blockLine, block) -> do
+           Just (Block blockLineStart blockLineEnd block) -> do
                    let parsed = parse parseCommand "" block
                        p = streamReplace str
                    case parsed of
-                         Left e -> void $ liftUI $ element err C.# C.set UI.text ( "Parse Error:" ++ show e )
+                         Left e -> do
+                           liftUI $ flashError blockLineStart blockLineEnd
+                           void $ liftUI $ element err C.# C.set UI.text ( "Parse Error:" ++ show e )
                          Right command -> case command of
                                          (D num string) -> do
                                                  res <- liftIO $ runHintSafe string contentsDef
                                                  case res of
                                                      Right (Right pat) -> do
+                                                                       liftUI $ flashSuccess blockLineStart blockLineEnd
                                                                        let patStatesMVar = patS env
                                                                            win = window env
                                                                        liftUI $ element out C.# C.set UI.text ( "control pattern:" ++ show pat )
@@ -114,12 +119,20 @@ interpretCommands  = do
                                                                        patStates <- liftIO $ tryTakeMVar patStatesMVar
                                                                        case patStates of
                                                                              Just pats -> do
-                                                                                 let newPatS = Map.insert num (PS pat blockLine False False) pats
+                                                                                 let newPatS = Map.insert num (PS pat blockLineEnd False False) pats
                                                                                  liftIO $ putMVar patStatesMVar $ newPatS
                                                                              Nothing -> do
-                                                                                 let newPatS = Map.insert num (PS pat blockLine False False) Map.empty
+                                                                                 let newPatS = Map.insert num (PS pat blockLineEnd False False) Map.empty
                                                                                  liftIO $ putMVar patStatesMVar $ newPatS
-                                                     Right (Left e) -> void $ liftUI $ element err C.# C.set UI.text ( "Interpreter Error:" ++ show e )
-                                                     Left e -> void $ liftUI $ element err C.# C.set UI.text ( "Error:" ++ show e )
-                                         (Hush)      -> liftIO $ bigHush str (patS env)
-                                         (Cps x)     -> liftIO $ streamOnce str $ cps (pure x)
+                                                     Right (Left e) -> do
+                                                                     liftUI $ flashError blockLineStart blockLineEnd
+                                                                     void $ liftUI $ element err C.# C.set UI.text ( "Interpreter Error:" ++ show e )
+                                                     Left e -> do
+                                                                     liftUI $ flashError blockLineStart blockLineEnd
+                                                                     void $ liftUI $ element err C.# C.set UI.text ( "Error:" ++ show e )
+                                         (Hush)      -> do
+                                                 liftUI $ flashSuccess blockLineStart blockLineEnd
+                                                 liftIO $ bigHush str (patS env)
+                                         (Cps x)     -> do
+                                                 liftUI $ flashSuccess blockLineStart blockLineEnd
+                                                 liftIO $ streamOnce str $ cps (pure x)
