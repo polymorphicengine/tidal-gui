@@ -10,7 +10,7 @@ import Sound.Tidal.Utils (deltaMini)
 import Language.Haskell.Interpreter as Hint
 import Language.Haskell.Interpreter.Unsafe as Hint
 
-import Config
+import Configure
 
 runHintSafe :: String -> String -> IO (Either SomeException (Either InterpreterError ControlPattern))
 runHintSafe input stmts = try $ do
