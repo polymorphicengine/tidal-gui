@@ -6,6 +6,8 @@
   height: 300px;
   color: black;
   direction: ltr;
+  resize: vertical;
+  overflow: auto !important;
 }
 
 /* PADDING */
