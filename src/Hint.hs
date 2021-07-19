@@ -10,6 +10,8 @@ import Sound.Tidal.Utils (deltaMini)
 import Language.Haskell.Interpreter as Hint
 import Language.Haskell.Interpreter.Unsafe as Hint
 
+import Data.List (intercalate)
+
 import Configure
 
 runHintSafe :: String -> String -> IO (Either SomeException (Either InterpreterError ControlPattern))
@@ -28,3 +30,9 @@ evalDummy e = do
           case e of
             Left _ -> return ()
             Right !pat -> return ()
+
+parseError:: InterpreterError -> String
+parseError (UnknownError s) = "Unknown error: " ++ s
+parseError (WontCompile es) = "Compile error: " ++ (intercalate "\n" (Prelude.map errMsg es))
+parseError (NotAllowed s) = "NotAllowed error: " ++ s
+parseError (GhcException s) = "GHC Exception: " ++ s

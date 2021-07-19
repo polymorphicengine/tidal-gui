@@ -50,8 +50,8 @@ setup stream win = void $ do
      control <- UI.textarea #+ [ string "d1 $ s \"bd sn\"" ]
                  C.# C.set (attr "id") "control-editor"
 
-     output <- UI.div #+ [ string "output goes here" ]
-     errors <- UI.div #+ [ string "errors go here" ]
+     output <- UI.pre #+ [ string "output goes here" ]
+     errors <- UI.pre #+ [ string "errors go here" ]
      body <- UI.getBody win
      script1 <- mkElement "script"
                        C.# C.set UI.text "const controlEditor = CodeMirror.fromTextArea(document.getElementById('control-editor'), {lineNumbers: true, mode: \"haskell\", extraKeys: {\"Ctrl-Enter\": runInterpreter, \"Ctrl-.\": hush, \"Ctrl-Up\": upFocus, \"Ctrl-D\": openDocs}}); function upFocus(cm){definitionsEditor.focus()}; function openDocs(cm){var loc = cm.findWordAt(cm.getCursor()); var word = cm.getRange(loc.anchor, loc.head); window.open(\"https://tidalcycles.org/search?q=\" + word,\"_blank\")}; function betterTab(cm) {if (cm.somethingSelected()) {cm.indentSelection(\"add\");} else {cm.replaceSelection(cm.getOption(\"indentWithTabs\")? \"\t\": Array(cm.getOption(\"indentUnit\") + 1).join(\" \"), \"end\", \"+input\");}}"
@@ -104,7 +104,7 @@ interpretCommands  = do
                    case parsed of
                          Left e -> do
                            liftUI $ flashError blockLineStart blockLineEnd
-                           void $ liftUI $ element err C.# C.set UI.text ( "Parse Error:" ++ show e )
+                           void $ liftUI $ element err C.# C.set UI.text ( "Parse error in " ++ show e )
                          Right command -> case command of
                                          (D num string) -> do
                                                  res <- liftIO $ runHintSafe string contentsDef
@@ -113,7 +113,7 @@ interpretCommands  = do
                                                                        liftUI $ flashSuccess blockLineStart blockLineEnd
                                                                        let patStatesMVar = patS env
                                                                            win = window env
-                                                                       liftUI $ element out C.# C.set UI.text ( "control pattern:" ++ show pat )
+                                                                       liftUI $ element out C.# C.set UI.text (show pat )
                                                                        liftUI $ element err C.# C.set UI.text ""
                                                                        liftIO $ p num $ pat |< orbit (pure $ num-1)
                                                                        patStates <- liftIO $ tryTakeMVar patStatesMVar
@@ -126,10 +126,10 @@ interpretCommands  = do
                                                                                  liftIO $ putMVar patStatesMVar $ newPatS
                                                      Right (Left e) -> do
                                                                      liftUI $ flashError blockLineStart blockLineEnd
-                                                                     void $ liftUI $ element err C.# C.set UI.text ( "Interpreter Error:" ++ show e )
+                                                                     void $ liftUI $ element err C.# C.set UI.text (parseError e)
                                                      Left e -> do
                                                                      liftUI $ flashError blockLineStart blockLineEnd
-                                                                     void $ liftUI $ element err C.# C.set UI.text ( "Error:" ++ show e )
+                                                                     void $ liftUI $ element err C.# C.set UI.text (show e)
                                          (Hush)      -> do
                                                  liftUI $ flashSuccess blockLineStart blockLineEnd
                                                  liftIO $ bigHush str (patS env)
