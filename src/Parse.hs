@@ -13,7 +13,7 @@ data Command = D Int String | Hush | Cps Double deriving Show
 data Block = Block {bStart :: Int
                    ,bEnd :: Int
                    ,bContent ::String
-                   }
+                   } deriving Show
 
 whitespace :: Parser ()
 whitespace = void $ many $ oneOf " \n\t"

@@ -54,7 +54,7 @@ setup stream win = void $ do
      errors <- UI.div #+ [ string "errors go here" ]
      body <- UI.getBody win
      script1 <- mkElement "script"
-                       C.# C.set UI.text "const controlEditor = CodeMirror.fromTextArea(document.getElementById('control-editor'), {lineNumbers: true, mode: \"haskell\", extraKeys: {\"Ctrl-Enter\": runInterpreter, \"Ctrl-.\": hush, \"Ctrl-Up\": upFocus, \"Ctrl-D\": openDocs}}); function upFocus(cm){definitionsEditor.focus()}; function openDocs(cm){var loc = cm.findWordAt(cm.getCursor()); var word = cm.getRange(loc.anchor, loc.head); window.open(\"https://tidalcycles.org/search?q=\" + word,\"_blank\")}"
+                       C.# C.set UI.text "const controlEditor = CodeMirror.fromTextArea(document.getElementById('control-editor'), {lineNumbers: true, mode: \"haskell\", extraKeys: {\"Ctrl-Enter\": runInterpreter, \"Ctrl-.\": hush, \"Ctrl-Up\": upFocus, \"Ctrl-D\": openDocs}}); function upFocus(cm){definitionsEditor.focus()}; function openDocs(cm){var loc = cm.findWordAt(cm.getCursor()); var word = cm.getRange(loc.anchor, loc.head); window.open(\"https://tidalcycles.org/search?q=\" + word,\"_blank\")}; function betterTab(cm) {if (cm.somethingSelected()) {cm.indentSelection(\"add\");} else {cm.replaceSelection(cm.getOption(\"indentWithTabs\")? \"\t\": Array(cm.getOption(\"indentUnit\") + 1).join(\" \"), \"end\", \"+input\");}}"
      script2 <- mkElement "script"
                        C.# C.set UI.text "const definitionsEditor = CodeMirror.fromTextArea(document.getElementById('definitions-editor'), {lineNumbers: true, mode: \"haskell\", extraKeys: {\"Ctrl-Enter\": runInterpreter, \"Ctrl-.\": hush, \"Ctrl-Down\": downFocus}}); function downFocus(cm){controlEditor.focus()}"
 
@@ -119,10 +119,10 @@ interpretCommands  = do
                                                                        patStates <- liftIO $ tryTakeMVar patStatesMVar
                                                                        case patStates of
                                                                              Just pats -> do
-                                                                                 let newPatS = Map.insert num (PS pat blockLineEnd False False) pats
+                                                                                 let newPatS = Map.insert num (PS pat blockLineStart False False) pats
                                                                                  liftIO $ putMVar patStatesMVar $ newPatS
                                                                              Nothing -> do
-                                                                                 let newPatS = Map.insert num (PS pat blockLineEnd False False) Map.empty
+                                                                                 let newPatS = Map.insert num (PS pat blockLineStart False False) Map.empty
                                                                                  liftIO $ putMVar patStatesMVar $ newPatS
                                                      Right (Left e) -> do
                                                                      liftUI $ flashError blockLineStart blockLineEnd
