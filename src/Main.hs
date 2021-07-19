@@ -1,12 +1,18 @@
+{-# LANGUAGE FlexibleInstances #-}
+
 import System.FilePath  (dropFileName)
 import System.Environment (getExecutablePath)
 
 import Control.Concurrent (forkIO)
 import Control.Concurrent.MVar  (newEmptyMVar, readMVar, tryTakeMVar, takeMVar, MVar, putMVar)
 import Control.Monad  (void)
-import Control.Monad.Reader (runReaderT)
+import Control.Monad.Reader (ReaderT, runReaderT, ask)
+
+import Data.Map as Map (insert, empty)
 
 import Sound.Tidal.Context as T
+
+import Text.Parsec  (parse)
 
 import qualified Graphics.UI.Threepenny as UI
 import Graphics.UI.Threepenny.Core as C hiding (text)
@@ -32,6 +38,7 @@ main = do
           jsCustomHTML     = Just "tidal.html"
         } $ setup stream
 
+
 setup :: Stream -> Window -> UI ()
 setup stream win = void $ do
      --setup GUI
@@ -54,10 +61,65 @@ setup stream win = void $ do
      liftIO $ forkIO $ highlightLoop [] stream win pats
 
      let env = Env win stream output errors pats
-         runI = runReaderT interpretC env
+         runI = runReaderT interpretCommands env
 
      createHaskellFunction "runInterpreter" runI
      createHaskellFunction "hush" (bigHush stream pats)
 
      -- put elements on body
      UI.getBody win #+ [element definitions, element control, element script1, element script2 , element errors, element output]
+
+data Env = Env {window :: Window
+                ,stream :: Stream
+                ,output :: Element
+                ,errors :: Element
+                ,patS :: MVar PatternStates
+                }
+
+-- to combine UI and IO actions with an environment
+instance MonadUI (ReaderT Env IO) where
+ liftUI m = do
+           env <- ask
+           let win = window env
+           liftIO $ runUI win m
+
+interpretCommands :: ReaderT Env IO ()
+interpretCommands  = do
+       env <- ask
+       let out = output env
+           err = errors env
+           str = stream env
+       contentsControl <- liftUI $ editorValueControl
+       contentsDef <- liftUI $ editorValueDefinitions
+       line <- liftUI getCursorLine
+       let blocks = getBlocks contentsControl
+           blockMaybe = getBlock line blocks
+       case blockMaybe of
+           Nothing -> void $ liftUI $ element err C.# C.set UI.text "Failed to get Block"
+           Just (blockLine, block) -> do
+                   let parsed = parse parseCommand "" block
+                       p = streamReplace str
+                   case parsed of
+                         Left e -> void $ liftUI $ element err C.# C.set UI.text ( "Parse Error:" ++ show e )
+                         Right command -> case command of
+                                         (D num string) -> do
+                                                 res <- liftIO $ runHintSafe string contentsDef
+                                                 case res of
+                                                     Right (Right pat) -> do
+                                                                       let patStatesMVar = patS env
+                                                                           win = window env
+                                                                       liftUI $ element out C.# C.set UI.text ( "control pattern:" ++ show pat )
+                                                                       liftUI $ element err C.# C.set UI.text ""
+                                                                       liftIO $ p num $ pat |< orbit (pure $ num-1)
+                                                                       patStates <- liftIO $ tryTakeMVar patStatesMVar
+                                                                       case patStates of
+                                                                             Just pats -> do
+                                                                                 let newPatS = Map.insert num (PS pat blockLine False False) pats
+                                                                                 liftIO $ putMVar patStatesMVar $ newPatS
+                                                                             Nothing -> do
+                                                                                 let newPatS = Map.insert num (PS pat blockLine False False) Map.empty
+                                                                                 liftIO $ putMVar patStatesMVar $ newPatS
+                                                     Right (Left e) -> void $ liftUI $ element err C.# C.set UI.text ( "Interpreter Error:" ++ show e )
+                                                     Left e -> void $ liftUI $ element err C.# C.set UI.text ( "Error:" ++ show e )
+                                         (Hush)      -> liftIO $ bigHush str (patS env)
+                                         (Cps x)     -> liftIO $ streamOnce str $ cps (pure x)
