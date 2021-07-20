@@ -13,6 +13,7 @@ import Control.Concurrent.MVar  (newEmptyMVar, readMVar, tryTakeMVar, takeMVar, 
 import Data.Map as Map  (Map,elems)
 import Data.List  ((\\))
 
+--each event can be identified through it's whole, so it's drawn only when it first appears
 type Buffer = [((Int,Int,Int), Maybe Arc)]
 
 data PatternState = PS {sPat :: ControlPattern

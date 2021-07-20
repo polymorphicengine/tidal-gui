@@ -6,11 +6,11 @@ import Graphics.UI.Threepenny.Core as C hiding (text)
 import Sound.Tidal.Context hiding (solo)
 
 import Control.Concurrent (forkIO,threadDelay)
-import Control.Concurrent.MVar  (newEmptyMVar, readMVar, tryTakeMVar, takeMVar, MVar, putMVar)
+import Control.Concurrent.MVar  (newEmptyMVar, readMVar, tryTakeMVar, takeMVar, MVar, putMVar, tryPutMVar)
 import Control.Monad  (void)
 import Control.Monad.Reader (runReaderT)
 
-import Data.Map as Map  (insert, fromList, assocs, lookup)
+import Data.Map as Map  (insert, fromList, assocs, lookup, empty)
 
 import Highlight
 
@@ -35,7 +35,8 @@ bigHush str patStatesMVar = do
                     Just pats -> do
                         let newPatS = Map.fromList $ map (\(i, p) -> (i, p {muted = True})) (Map.assocs pats)
                         streamHush str
-                        putMVar patStatesMVar $ newPatS
+                        tryPutMVar patStatesMVar $ Map.empty
+                        return ()
                     Nothing -> return ()
 
 mute :: Stream -> MVar PatternStates -> Int -> IO ()
@@ -47,7 +48,8 @@ mute str patStatesMVar i = do
                           Just p -> do
                             let newPatS = Map.insert i (p {muted = not (muted p)}) pats
                             if muted p then streamUnmute str i else streamMute str i
-                            putMVar patStatesMVar $ newPatS
+                            tryPutMVar patStatesMVar $ newPatS
+                            return ()
                           Nothing -> return ()
                     Nothing -> return ()
 
@@ -61,6 +63,7 @@ soloStr str patStatesMVar i = do
                             let newPatS' = Map.fromList $ map (\(i, p) -> (i, p {muted = True})) (Map.assocs pats)
                             let newPatS = Map.insert i (p {solo = not (solo p)}) newPatS'
                             if solo p then streamUnsolo str i else streamSolo str i
-                            putMVar patStatesMVar $ newPatS
+                            tryPutMVar patStatesMVar $ newPatS
+                            return ()
                           Nothing -> return ()
                     Nothing -> return ()

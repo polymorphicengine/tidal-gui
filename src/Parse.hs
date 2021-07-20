@@ -17,6 +17,8 @@ data Block = Block {bStart :: Int
                    ,bContent ::String
                    } deriving Show
 
+--parsing commands
+
 whitespace :: Parser ()
 whitespace = void $ many $ oneOf " \n\t"
 
@@ -60,6 +62,8 @@ parseDouble = try parseDoubleWP <|> parseDoubleWOP
 
 parseCommand :: Parser Command
 parseCommand = try parsePat <|> try parseHush <|> parseCps
+
+--parsing blocks
 
 whiteString :: String -> Bool
 whiteString "" = True
@@ -119,7 +123,7 @@ deltaMiniParse = do
           rest <- many anyChar
           return $  (concat d) ++ rest
 
--- since parsec counts tabs as 6 chars, just replace them first
+-- since parsec counts tabs as 6 chars, just replace them by a space first
 replaceTabs :: String -> String
 replaceTabs "" = ""
 replaceTabs ('\t':xs) = ' ':replaceTabs xs
