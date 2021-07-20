@@ -8,6 +8,8 @@ import Language.Haskell.Interpreter.Unsafe as Hint
 import Data.List
 import Text.Parsec.Prim
 
+import Sound.Tidal.Utils
+
 data Command = D Int String | Hush | Cps Double deriving Show
 
 data Block = Block {bStart :: Int
@@ -86,3 +88,43 @@ getBlocks = blocks . blocks' . linesNum
 addNewLine :: [String] -> [String]
 addNewLine [x] = [x]
 addNewLine (x:xs) = (x ++ "\n") : (addNewLine xs)
+
+sourcePos :: Monad m => ParsecT s u m SourcePos
+sourcePos = statePos `liftM` getParserState
+
+sParser :: Parser ()
+sParser = do
+        char 's'
+        whitespace
+        char '"'
+        return ()
+
+soundParser :: Parser ()
+soundParser = do
+        string "sound"
+        whitespace
+        char '"'
+        return ()
+
+deltaMany :: Parser String
+deltaMany = do
+    x <- manyTill anyChar (try $ (try soundParser <|> sParser))
+    s <- sourcePos
+    end <- manyTill anyChar (try $ char '\"')
+    return $ x ++ "s (deltaContext " ++ show (sourceColumn s - 2) ++ " " ++ show (sourceLine s - 1) ++ " \"" ++ end ++ "\")"
+
+deltaMiniParse :: Parser String
+deltaMiniParse = do
+          d <- many $ try deltaMany
+          rest <- many anyChar
+          return $  (concat d) ++ rest
+
+-- since parsec counts tabs as 6 chars, just replace them first
+replaceTabs :: String -> String
+replaceTabs "" = ""
+replaceTabs ('\t':xs) = ' ':replaceTabs xs
+replaceTabs (x:xs) = x:replaceTabs xs
+
+-- deltaMini' = deltaMini but also works for expressions that contain normal strings
+deltaMini':: String -> Either ParseError String
+deltaMini' s = parse deltaMiniParse "" (replaceTabs s)

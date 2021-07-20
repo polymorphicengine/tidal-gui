@@ -13,6 +13,7 @@ import Language.Haskell.Interpreter.Unsafe as Hint
 import Data.List (intercalate)
 
 import Configure
+import Parse
 
 runHintSafe :: String -> String -> IO (Either SomeException (Either InterpreterError ControlPattern))
 runHintSafe input stmts = try $ do
@@ -20,7 +21,9 @@ runHintSafe input stmts = try $ do
                                   Hint.set [languageExtensions := exts]
                                   Hint.setImports libs
                                   Hint.runStmt stmts
-                                  Hint.interpret (deltaMini input) (Hint.as :: ControlPattern)
+                                  case deltaMini' input of
+                                    Right s -> Hint.interpret s (Hint.as :: ControlPattern)
+                                    Left _ -> error "can this happen?"
                       evalDummy i
                       return i
 
