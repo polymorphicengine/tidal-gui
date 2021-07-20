@@ -10,7 +10,7 @@ import Control.Monad.Reader (ReaderT, runReaderT, ask)
 
 import Data.Map as Map (insert, empty)
 
-import Sound.Tidal.Context as T
+import Sound.Tidal.Context as T hiding (mute,solo)
 
 import Text.Parsec  (parse)
 
@@ -28,7 +28,7 @@ import Hint
 main :: IO ()
 main = do
     execPath <- dropFileName <$> getExecutablePath
-    stream <- T.startStream T.defaultConfig [(T.superdirtTarget {oLatency = 0.1},
+    stream <- T.startStream T.defaultConfig [(T.superdirtTarget {T.oLatency = 0.1},
                                               [T.superdirtShape]
                                              ),
                                              (remoteTarget,
@@ -54,7 +54,7 @@ setup stream win = void $ do
      errors <- UI.pre #+ [ string "errors go here" ]
      body <- UI.getBody win
      script1 <- mkElement "script"
-                       C.# C.set UI.text "const controlEditor = CodeMirror.fromTextArea(document.getElementById('control-editor'), {lineNumbers: true, mode: \"haskell\", extraKeys: {\"Ctrl-Enter\": runInterpreter, \"Ctrl-.\": hush, \"Ctrl-Up\": upFocus, \"Ctrl-D\": openDocs}}); function upFocus(cm){definitionsEditor.focus()}; function openDocs(cm){var loc = cm.findWordAt(cm.getCursor()); var word = cm.getRange(loc.anchor, loc.head); window.open(\"https://tidalcycles.org/search?q=\" + word,\"_blank\")}; function betterTab(cm) {if (cm.somethingSelected()) {cm.indentSelection(\"add\");} else {cm.replaceSelection(cm.getOption(\"indentWithTabs\")? \"\t\": Array(cm.getOption(\"indentUnit\") + 1).join(\" \"), \"end\", \"+input\");}}"
+                       C.# C.set UI.text "const controlEditor = CodeMirror.fromTextArea(document.getElementById('control-editor'), {lineNumbers: true, mode: \"haskell\", extraKeys: {\"Ctrl-Enter\": runInterpreter, \"Ctrl-.\": hush, \"Ctrl-Up\": upFocus, \"Ctrl-D\": openDocs, \"Ctrl-1\": mute1, \"Ctrl-2\": mute2, \"Ctrl-3\": mute3, \"Ctrl-4\": mute4, \"Ctrl-5\": mute5, \"Ctrl-6\": mute6, \"Ctrl-7\": mute7, \"Ctrl-8\": mute8, \"Ctrl-9\": mute9}}); function upFocus(cm){definitionsEditor.focus()}; function openDocs(cm){var loc = cm.findWordAt(cm.getCursor()); var word = cm.getRange(loc.anchor, loc.head); window.open(\"https://tidalcycles.org/search?q=\" + word,\"_blank\")}; function betterTab(cm) {if (cm.somethingSelected()) {cm.indentSelection(\"add\");} else {cm.replaceSelection(cm.getOption(\"indentWithTabs\")? \"\t\": Array(cm.getOption(\"indentUnit\") + 1).join(\" \"), \"end\", \"+input\");}}"
      script2 <- mkElement "script"
                        C.# C.set UI.text "const definitionsEditor = CodeMirror.fromTextArea(document.getElementById('definitions-editor'), {lineNumbers: true, mode: \"haskell\", extraKeys: {\"Ctrl-Enter\": runInterpreter, \"Ctrl-.\": hush, \"Ctrl-Down\": downFocus}}); function downFocus(cm){controlEditor.focus()}"
 
@@ -67,6 +67,15 @@ setup stream win = void $ do
 
      createHaskellFunction "runInterpreter" runI
      createHaskellFunction "hush" (bigHush stream pats)
+     createHaskellFunction "mute1" (mute stream pats 1)
+     createHaskellFunction "mute2" (mute stream pats 2)
+     createHaskellFunction "mute3" (mute stream pats 3)
+     createHaskellFunction "mute4" (mute stream pats 4)
+     createHaskellFunction "mute5" (mute stream pats 5)
+     createHaskellFunction "mute6" (mute stream pats 6)
+     createHaskellFunction "mute7" (mute stream pats 7)
+     createHaskellFunction "mute8" (mute stream pats 8)
+     createHaskellFunction "mute9" (mute stream pats 9)
 
      -- put elements on body
      UI.getBody win #+ [element definitions, element control, element script1, element script2 , element errors, element output]
