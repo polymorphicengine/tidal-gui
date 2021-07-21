@@ -61,7 +61,7 @@ setup stream win = void $ do
                   # set (attr "onclick") "controlSaveFile()"
      body <- UI.getBody win
      script1 <- mkElement "script"
-                       # set UI.text "const controlEditor = CodeMirror.fromTextArea(document.getElementById('control-editor'), {lineNumbers: true, mode: \"haskell\", extraKeys: {\"Ctrl-Enter\": runInterpreter, \"Ctrl-.\": hush, \"Ctrl-Up\": upFocus, \"Ctrl-D\": openDocs, \"Ctrl-1\": mute1, \"Ctrl-2\": mute2, \"Ctrl-3\": mute3, \"Ctrl-4\": mute4, \"Ctrl-5\": mute5, \"Ctrl-6\": mute6, \"Ctrl-7\": mute7, \"Ctrl-8\": mute8, \"Ctrl-9\": mute9}});"
+                       # set UI.text "const controlEditor = CodeMirror.fromTextArea(document.getElementById('control-editor'), {lineNumbers: true, mode: \"haskell\", extraKeys: {\"Ctrl-Enter\": runInterpreter, \"Ctrl-.\": hush, \"Ctrl-Up\": upFocus, \"Ctrl-D\": openDocs, \"Ctrl-1\": mute1, \"Ctrl-2\": mute2, \"Ctrl-3\": mute3, \"Ctrl-4\": mute4, \"Ctrl-5\": mute5, \"Ctrl-6\": mute6, \"Ctrl-7\": mute7, \"Ctrl-8\": mute8, \"Ctrl-9\": mute9, \"Ctrl-S\": controlSaveFile, \"Ctrl-O\": controlLoadFile}});"
      script2 <- mkElement "script"
                        # set UI.text "const definitionsEditor = CodeMirror.fromTextArea(document.getElementById('definitions-editor'), {lineNumbers: true, mode: \"haskell\", extraKeys: {\"Ctrl-Enter\": runInterpreter, \"Ctrl-.\": hush, \"Ctrl-Down\": downFocus}});"
 
