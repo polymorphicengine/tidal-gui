@@ -129,6 +129,6 @@ replaceTabs "" = ""
 replaceTabs ('\t':xs) = ' ':replaceTabs xs
 replaceTabs (x:xs) = x:replaceTabs xs
 
--- deltaMini' = deltaMini but also works for expressions that contain normal strings
+-- deltaMini' breaks a lot of things :(
 deltaMini':: String -> Either ParseError String
 deltaMini' s = parse deltaMiniParse "" (replaceTabs s)

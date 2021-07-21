@@ -1,11 +1,12 @@
 module Configure where
 
-import Language.Haskell.Interpreter (Extension (OverloadedStrings, NoImplicitPrelude))
+import Language.Haskell.Interpreter
 import Sound.Tidal.Context(Schedule(Live))
 import Sound.Tidal.Stream (Target(..))
 
-libs = [
-    "Sound.Tidal.Context"
+libsU = [
+    "Sound.Tidal.Pattern"
+  , "Sound.Tidal.Context"
   , "Sound.Tidal.Simple"
   , "Control.Applicative"
   , "Data.Bifunctor"
@@ -18,7 +19,6 @@ libs = [
   , "Data.Functor"
   , "Data.Int"
   , "Data.List"
-  , "Data.Map"
   , "Data.Maybe"
   , "Data.Monoid"
   , "Data.Ord"
@@ -33,7 +33,12 @@ libs = [
   , "Text.Parsec"
   ]
 
+libsU' = [ModuleImport x NotQualified NoImportList | x <- libsU]
+
+libs = [ModuleImport "Data.Map" (NotQualified) (HidingList ["size"])] ++ libsU'
+
 exts = [OverloadedStrings, NoImplicitPrelude]
+
 
 listenPort = 6011
 remotePort = 6012

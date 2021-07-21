@@ -19,14 +19,16 @@ runHintSafe :: String -> String -> IO (Either SomeException (Either InterpreterE
 runHintSafe input stmts = try $ do
                       i <- Hint.runInterpreter $ do
                                   Hint.set [languageExtensions := exts]
-                                  Hint.setImports libs
+                                  Hint.setImportsF libs
                                   Hint.runStmt stmts
-                                  case deltaMini' input of
-                                    Right s -> Hint.interpret s (Hint.as :: ControlPattern)
-                                    Left _ -> error "can this happen?"
+                                  Hint.interpret (deltaMini input) (Hint.as :: ControlPattern)
                       evalDummy i
                       return i
 
+
+-- case deltaMini' input of
+--   Right s -> Hint.interpret s (Hint.as :: ControlPattern)
+--   Left _ -> error "can this happen?"
 --notice the bang pattern
 evalDummy :: (Either InterpreterError ControlPattern) -> IO ()
 evalDummy e = do
