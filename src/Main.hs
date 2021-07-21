@@ -56,6 +56,9 @@ setup stream win = void $ do
                   # set (attr "type") "file"
                   # set (attr "id") "fileInput"
                   # set (attr "onchange") "controlLoadFile()"
+     save <- UI.button
+                  # set UI.text "Save file"
+                  # set (attr "onclick") "controlSaveFile()"
      body <- UI.getBody win
      script1 <- mkElement "script"
                        # set UI.text "const controlEditor = CodeMirror.fromTextArea(document.getElementById('control-editor'), {lineNumbers: true, mode: \"haskell\", extraKeys: {\"Ctrl-Enter\": runInterpreter, \"Ctrl-.\": hush, \"Ctrl-Up\": upFocus, \"Ctrl-D\": openDocs, \"Ctrl-1\": mute1, \"Ctrl-2\": mute2, \"Ctrl-3\": mute3, \"Ctrl-4\": mute4, \"Ctrl-5\": mute5, \"Ctrl-6\": mute6, \"Ctrl-7\": mute7, \"Ctrl-8\": mute8, \"Ctrl-9\": mute9}}); function upFocus(cm){definitionsEditor.focus()}; function openDocs(cm){var loc = cm.findWordAt(cm.getCursor()); var word = cm.getRange(loc.anchor, loc.head); window.open(\"https://tidalcycles.org/search?q=\" + word,\"_blank\")}"
@@ -82,7 +85,7 @@ setup stream win = void $ do
      createHaskellFunction "mute9" (mute stream pats 9)
 
      -- put elements on body
-     UI.getBody win #+ [element definitions, element control, element load, element script1, element script2 , element errors, element output]
+     UI.getBody win #+ [element definitions, element control, element load, element save, element script1, element script2 , element errors, element output]
 
 data Env = Env {window :: Window
                 ,stream :: Stream
