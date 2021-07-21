@@ -113,14 +113,14 @@ interpretCommands  = do
        let blocks = getBlocks contentsControl
            blockMaybe = getBlock line blocks
        case blockMaybe of
-           Nothing -> void $ liftUI $ element err C.# C.set UI.text "Failed to get Block"
+           Nothing -> void $ liftUI $ element err # C.set UI.text "Failed to get Block"
            Just (Block blockLineStart blockLineEnd block) -> do
                    let parsed = parse parseCommand "" block
                        p = streamReplace str
                    case parsed of
                          Left e -> do
                            liftUI $ flashError blockLineStart blockLineEnd
-                           void $ liftUI $ element err C.# C.set UI.text ( "Parse error in " ++ show e )
+                           void $ liftUI $ element err # C.set UI.text ( "Parse error in " ++ show e )
                          Right command -> case command of
                                          (D num string) -> do
                                                  res <- liftIO $ runHintSafe string contentsDef
@@ -129,8 +129,8 @@ interpretCommands  = do
                                                                        liftUI $ flashSuccess blockLineStart blockLineEnd
                                                                        let patStatesMVar = patS env
                                                                            win = window env
-                                                                       liftUI $ element out C.# C.set UI.text (show pat )
-                                                                       liftUI $ element err C.# C.set UI.text ""
+                                                                       liftUI $ element out # C.set UI.text (show pat )
+                                                                       liftUI $ element err # C.set UI.text ""
                                                                        liftIO $ p num $ pat |< orbit (pure $ num-1)
                                                                        patStates <- liftIO $ tryTakeMVar patStatesMVar
                                                                        case patStates of
@@ -142,13 +142,25 @@ interpretCommands  = do
                                                                                  liftIO $ putMVar patStatesMVar $ newPatS
                                                      Right (Left e) -> do
                                                                      liftUI $ flashError blockLineStart blockLineEnd
-                                                                     void $ liftUI $ element err C.# C.set UI.text (parseError e)
+                                                                     void $ liftUI $ element err # C.set UI.text (parseError e)
                                                      Left e -> do
                                                                      liftUI $ flashError blockLineStart blockLineEnd
-                                                                     void $ liftUI $ element err C.# C.set UI.text (show e)
+                                                                     void $ liftUI $ element err # C.set UI.text (show e)
                                          (Hush)      -> do
                                                  liftUI $ flashSuccess blockLineStart blockLineEnd
                                                  liftIO $ bigHush str (patS env)
                                          (Cps x)     -> do
                                                  liftUI $ flashSuccess blockLineStart blockLineEnd
                                                  liftIO $ streamOnce str $ cps (pure x)
+                                         (Other s)   -> do
+                                                 res <- liftIO $ runHintSafeOther s contentsDef str
+                                                 case res of
+                                                   Right (Right action) -> do
+                                                                     liftUI $ flashSuccess blockLineStart blockLineEnd
+                                                                     liftIO $ action
+                                                   Right (Left e) -> do
+                                                                   liftUI $ flashError blockLineStart blockLineEnd
+                                                                   void $ liftUI $ element err C.# C.set UI.text (parseError e)
+                                                   Left e -> do
+                                                                   liftUI $ flashError blockLineStart blockLineEnd
+                                                                   void $ liftUI $ element err C.# C.set UI.text (show e)

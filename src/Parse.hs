@@ -10,7 +10,7 @@ import Text.Parsec.Prim
 
 import Sound.Tidal.Utils
 
-data Command = D Int String | Hush | Cps Double deriving Show
+data Command = D Int String | Hush | Cps Double | Other String deriving Show
 
 data Block = Block {bStart :: Int
                    ,bEnd :: Int
@@ -60,8 +60,11 @@ parseDoubleWOP = do
 parseDouble :: Parser Double
 parseDouble = try parseDoubleWP <|> parseDoubleWOP
 
+parseOther :: Parser Command
+parseOther = fmap Other $ many anyChar
+
 parseCommand :: Parser Command
-parseCommand = try parsePat <|> try parseHush <|> parseCps
+parseCommand = try parsePat <|> try parseHush <|> try parseCps <|> parseOther
 
 --parsing blocks
 

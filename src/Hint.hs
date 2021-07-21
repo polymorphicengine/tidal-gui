@@ -4,13 +4,14 @@ module Hint where
 
 import Control.Exception  (SomeException,try)
 
-import Sound.Tidal.Context (ControlPattern)
+import Sound.Tidal.Context (ControlPattern,Stream)
 import Sound.Tidal.Utils (deltaMini)
 
-import Language.Haskell.Interpreter as Hint
+import Language.Haskell.Interpreter as Hint hiding (typeOf)
 import Language.Haskell.Interpreter.Unsafe as Hint
 
 import Data.List (intercalate)
+import Data.IORef
 
 import Configure
 import Parse
@@ -25,12 +26,23 @@ runHintSafe input stmts = try $ do
                       evalDummy i
                       return i
 
+runHintSafeOther :: String -> String -> Stream -> IO (Either SomeException (Either InterpreterError (IO ())))
+runHintSafeOther input stmts stream = try $ do
+                      i <- Hint.runInterpreter $ do
+                                  Hint.set [languageExtensions := exts]
+                                  Hint.setImportsF libs
+                                  bind "tidal" stream
+                                  Hint.runStmt bootTidal
+                                  Hint.runStmt stmts
+                                  Hint.interpret input (Hint.as :: IO ())
+                      evalDummy i
+                      return i
 
 -- case deltaMini' input of
 --   Right s -> Hint.interpret s (Hint.as :: ControlPattern)
 --   Left _ -> error "can this happen?"
 --notice the bang pattern
-evalDummy :: (Either InterpreterError ControlPattern) -> IO ()
+evalDummy :: (Either InterpreterError a) -> IO ()
 evalDummy e = do
           case e of
             Left _ -> return ()
@@ -41,3 +53,11 @@ parseError (UnknownError s) = "Unknown error: " ++ s
 parseError (WontCompile es) = "Compile error: " ++ (intercalate "\n" (Prelude.map errMsg es))
 parseError (NotAllowed s) = "NotAllowed error: " ++ s
 parseError (GhcException s) = "GHC Exception: " ++ s
+
+
+bind :: String -> Stream -> Interpreter ()
+bind var value = do
+  Hint.runStmt "tmpIORef <- newIORef (undefined :: Stream)"
+  tmpIORef <- Hint.interpret "tmpIORef" (Hint.as :: IORef Stream)
+  liftIO $ writeIORef tmpIORef value
+  Hint.runStmt (var ++ " <- readIORef tmpIORef")
