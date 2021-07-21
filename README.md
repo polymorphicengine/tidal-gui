@@ -15,11 +15,13 @@ Ctrl-Down: Move from the upper editor to the lower one
 
 Ctrl-1 ... Ctrl-9: mute/unmute d1 ... d9
 
+Ctrl-S : Save contents
+
+Ctrl-O : Open file
+
 # To do:
 
 --easy:
-
-open and save files
 
 button/shortcut to disable pattern highlighting
 
