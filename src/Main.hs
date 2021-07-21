@@ -10,7 +10,7 @@ import Control.Monad.Reader (ReaderT, runReaderT, ask)
 
 import Data.Map as Map (insert, empty)
 
-import Sound.Tidal.Context as T hiding (mute,solo)
+import Sound.Tidal.Context as T hiding (mute,solo,(#))
 
 import Text.Parsec  (parse)
 
@@ -44,19 +44,23 @@ main = do
 setup :: Stream -> Window -> UI ()
 setup stream win = void $ do
      --setup GUI
-     return win C.# C.set title "Tidal"
+     return win # set title "Tidal"
      definitions <- UI.textarea
-                 C.# C.set (attr "id") "definitions-editor"
+                 # set (attr "id") "definitions-editor"
      control <- UI.textarea #+ [ string "d1 $ s \"bd sn\"" ]
-                 C.# C.set (attr "id") "control-editor"
+                 # set (attr "id") "control-editor"
 
      output <- UI.pre #+ [ string "output goes here" ]
      errors <- UI.pre #+ [ string "errors go here" ]
+     load <- UI.input
+                  # set (attr "type") "file"
+                  # set (attr "id") "fileInput"
+                  # set (attr "onchange") "controlLoadFile()"
      body <- UI.getBody win
      script1 <- mkElement "script"
-                       C.# C.set UI.text "const controlEditor = CodeMirror.fromTextArea(document.getElementById('control-editor'), {lineNumbers: true, mode: \"haskell\", extraKeys: {\"Ctrl-Enter\": runInterpreter, \"Ctrl-.\": hush, \"Ctrl-Up\": upFocus, \"Ctrl-D\": openDocs, \"Ctrl-1\": mute1, \"Ctrl-2\": mute2, \"Ctrl-3\": mute3, \"Ctrl-4\": mute4, \"Ctrl-5\": mute5, \"Ctrl-6\": mute6, \"Ctrl-7\": mute7, \"Ctrl-8\": mute8, \"Ctrl-9\": mute9}}); function upFocus(cm){definitionsEditor.focus()}; function openDocs(cm){var loc = cm.findWordAt(cm.getCursor()); var word = cm.getRange(loc.anchor, loc.head); window.open(\"https://tidalcycles.org/search?q=\" + word,\"_blank\")}; function betterTab(cm) {if (cm.somethingSelected()) {cm.indentSelection(\"add\");} else {cm.replaceSelection(cm.getOption(\"indentWithTabs\")? \"\t\": Array(cm.getOption(\"indentUnit\") + 1).join(\" \"), \"end\", \"+input\");}}"
+                       # set UI.text "const controlEditor = CodeMirror.fromTextArea(document.getElementById('control-editor'), {lineNumbers: true, mode: \"haskell\", extraKeys: {\"Ctrl-Enter\": runInterpreter, \"Ctrl-.\": hush, \"Ctrl-Up\": upFocus, \"Ctrl-D\": openDocs, \"Ctrl-1\": mute1, \"Ctrl-2\": mute2, \"Ctrl-3\": mute3, \"Ctrl-4\": mute4, \"Ctrl-5\": mute5, \"Ctrl-6\": mute6, \"Ctrl-7\": mute7, \"Ctrl-8\": mute8, \"Ctrl-9\": mute9}}); function upFocus(cm){definitionsEditor.focus()}; function openDocs(cm){var loc = cm.findWordAt(cm.getCursor()); var word = cm.getRange(loc.anchor, loc.head); window.open(\"https://tidalcycles.org/search?q=\" + word,\"_blank\")}; function betterTab(cm) {if (cm.somethingSelected()) {cm.indentSelection(\"add\");} else {cm.replaceSelection(cm.getOption(\"indentWithTabs\")? \"\t\": Array(cm.getOption(\"indentUnit\") + 1).join(\" \"), \"end\", \"+input\");}}"
      script2 <- mkElement "script"
-                       C.# C.set UI.text "const definitionsEditor = CodeMirror.fromTextArea(document.getElementById('definitions-editor'), {lineNumbers: true, mode: \"haskell\", extraKeys: {\"Ctrl-Enter\": runInterpreter, \"Ctrl-.\": hush, \"Ctrl-Down\": downFocus}}); function downFocus(cm){controlEditor.focus()}"
+                       # set UI.text "const definitionsEditor = CodeMirror.fromTextArea(document.getElementById('definitions-editor'), {lineNumbers: true, mode: \"haskell\", extraKeys: {\"Ctrl-Enter\": runInterpreter, \"Ctrl-.\": hush, \"Ctrl-Down\": downFocus}}); function downFocus(cm){controlEditor.focus()}"
 
      --highlight (experimental)
      pats <- liftIO $ newEmptyMVar
@@ -78,7 +82,7 @@ setup stream win = void $ do
      createHaskellFunction "mute9" (mute stream pats 9)
 
      -- put elements on body
-     UI.getBody win #+ [element definitions, element control, element script1, element script2 , element errors, element output]
+     UI.getBody win #+ [element definitions, element control, element load, element script1, element script2 , element errors, element output]
 
 data Env = Env {window :: Window
                 ,stream :: Stream
