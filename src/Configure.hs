@@ -57,6 +57,7 @@ remoteTarget = Target {oName = "threepenny"
                       ,oHandshake = True
                       }
 
+--most of this doesn't work (yet) especially for statements that return something like getcps etc.
 bootTidal' = [ "p = streamReplace tidal :: String -> ControlPattern -> IO ()"
               ,"hush = streamHush tidal"
               ,"panic = do hush; once $ sound \"superpanic\""
