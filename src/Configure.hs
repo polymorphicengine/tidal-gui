@@ -41,7 +41,7 @@ libsU' = [ModuleImport x NotQualified NoImportList | x <- libsU]
 
 libs = [ModuleImport "Data.Map" (NotQualified) (HidingList ["size"]), ModuleImport "Text.Parsec" NotQualified (HidingList ["Stream"])] ++ libsU'
 
-exts = [OverloadedStrings, NoImplicitPrelude]
+exts = [OverloadedStrings]
 
 
 listenPort = 6011
