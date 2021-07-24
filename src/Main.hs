@@ -47,7 +47,7 @@ setup stream win = void $ do
      return win # set title "Tidal"
      definitions <- UI.textarea
                  # set (attr "id") "definitions-editor"
-     control <- UI.textarea #+ [ string "d1 $ s \"bd sn\"" ]
+     control <- UI.textarea
                  # set (attr "id") "control-editor"
 
      output <- UI.pre #+ [ string "output goes here" ]
@@ -60,10 +60,13 @@ setup stream win = void $ do
                   # set UI.text "Save file"
                   # set (attr "onclick") "controlSaveFile()"
      body <- UI.getBody win
-     script1 <- mkElement "script"
-                       # set UI.text "const controlEditor = CodeMirror.fromTextArea(document.getElementById('control-editor'), {lineNumbers: true, mode: \"haskell\", extraKeys: {\"Ctrl-Enter\": runInterpreter, \"Ctrl-.\": hush, \"Ctrl-Up\": upFocus, \"Ctrl-D\": openDocs, \"Ctrl-1\": mute1, \"Ctrl-2\": mute2, \"Ctrl-3\": mute3, \"Ctrl-4\": mute4, \"Ctrl-5\": mute5, \"Ctrl-6\": mute6, \"Ctrl-7\": mute7, \"Ctrl-8\": mute8, \"Ctrl-9\": mute9, \"Ctrl-S\": controlSaveFile, \"Ctrl-O\": controlLoadFile}});"
-     script2 <- mkElement "script"
-                       # set UI.text "const definitionsEditor = CodeMirror.fromTextArea(document.getElementById('definitions-editor'), {lineNumbers: true, mode: \"haskell\", extraKeys: {\"Ctrl-Enter\": runInterpreter, \"Ctrl-.\": hush, \"Ctrl-Down\": downFocus}});"
+     execPath <- liftIO $ dropFileName <$> getExecutablePath
+     tidalKeys <- liftIO $ readFile $ execPath ++ "static/tidalConfig.js"
+     settings <- mkElement "script" # set UI.text tidalKeys
+     makeCtrlEditor <- mkElement "script"
+                       # set UI.text "const controlEditor = CodeMirror.fromTextArea(document.getElementById('control-editor'), controlEditorSettings);"
+     makeDefsEditor <- mkElement "script"
+                       # set UI.text "const definitionsEditor = CodeMirror.fromTextArea(document.getElementById('definitions-editor'), definitionsEditorSettings);"
 
      --highlight (experimental)
      pats <- liftIO $ newEmptyMVar
@@ -72,7 +75,7 @@ setup stream win = void $ do
      let env = Env win stream output errors pats
          runI = runReaderT interpretCommands env
 
-     createHaskellFunction "runInterpreter" runI
+     createHaskellFunction "evaluate" runI
      createHaskellFunction "hush" (bigHush stream pats)
      createHaskellFunction "mute1" (mute stream pats 1)
      createHaskellFunction "mute2" (mute stream pats 2)
@@ -85,7 +88,7 @@ setup stream win = void $ do
      createHaskellFunction "mute9" (mute stream pats 9)
 
      -- put elements on body
-     UI.getBody win #+ [element definitions, element control, element load, element save, element script1, element script2 , element errors, element output]
+     UI.getBody win #+ [element definitions, element control, element load, element save, element settings, element makeCtrlEditor, element makeDefsEditor, element errors, element output]
 
 data Env = Env {window :: Window
                 ,stream :: Stream
@@ -107,20 +110,20 @@ interpretCommands  = do
        let out = output env
            err = errors env
            str = stream env
-       contentsControl <- liftUI $ editorValueControl
-       contentsDef <- liftUI $ editorValueDefinitions
+       contentsControl <- liftUI editorValueControl
+       contentsDef <- liftUI editorValueDefinitions
        line <- liftUI getCursorLine
        let blocks = getBlocks contentsControl
            blockMaybe = getBlock line blocks
        case blockMaybe of
-           Nothing -> void $ liftUI $ element err # C.set UI.text "Failed to get Block"
+           Nothing -> void $ liftUI $ element err # set UI.text "Failed to get Block"
            Just (Block blockLineStart blockLineEnd block) -> do
                    let parsed = parse parseCommand "" block
                        p = streamReplace str
                    case parsed of
                          Left e -> do
                            liftUI $ flashError blockLineStart blockLineEnd
-                           void $ liftUI $ element err # C.set UI.text ( "Parse error in " ++ show e )
+                           void $ liftUI $ element err # set UI.text ( "Parse error in " ++ show e )
                          Right command -> case command of
                                          (D num string) -> do
                                                  res <- liftIO $ runHintSafe string contentsDef
@@ -129,8 +132,8 @@ interpretCommands  = do
                                                                        liftUI $ flashSuccess blockLineStart blockLineEnd
                                                                        let patStatesMVar = patS env
                                                                            win = window env
-                                                                       liftUI $ element out # C.set UI.text (show pat )
-                                                                       liftUI $ element err # C.set UI.text ""
+                                                                       liftUI $ element out # set UI.text (show pat )
+                                                                       liftUI $ element err # set UI.text ""
                                                                        liftIO $ p num $ pat |< orbit (pure $ num-1)
                                                                        patStates <- liftIO $ tryTakeMVar patStatesMVar
                                                                        case patStates of
@@ -142,10 +145,10 @@ interpretCommands  = do
                                                                                  liftIO $ putMVar patStatesMVar $ newPatS
                                                      Right (Left e) -> do
                                                                      liftUI $ flashError blockLineStart blockLineEnd
-                                                                     void $ liftUI $ element err # C.set UI.text (parseError e)
+                                                                     void $ liftUI $ element err # set UI.text (parseError e)
                                                      Left e -> do
                                                                      liftUI $ flashError blockLineStart blockLineEnd
-                                                                     void $ liftUI $ element err # C.set UI.text (show e)
+                                                                     void $ liftUI $ element err # set UI.text (show e)
                                          (Hush)      -> do
                                                  liftUI $ flashSuccess blockLineStart blockLineEnd
                                                  liftIO $ bigHush str (patS env)
@@ -160,7 +163,7 @@ interpretCommands  = do
                                                                      liftIO $ action
                                                    Right (Left e) -> do
                                                                    liftUI $ flashError blockLineStart blockLineEnd
-                                                                   void $ liftUI $ element err C.# C.set UI.text (parseError e)
+                                                                   void $ liftUI $ element err # C.set UI.text (parseError e)
                                                    Left e -> do
                                                                    liftUI $ flashError blockLineStart blockLineEnd
-                                                                   void $ liftUI $ element err C.# C.set UI.text (show e)
+                                                                   void $ liftUI $ element err # C.set UI.text (show e)
