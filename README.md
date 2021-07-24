@@ -19,6 +19,8 @@ Ctrl-S : Save contents
 
 Ctrl-O : Open file
 
+Ctrl-/ : Toggle comment
+
 # To do:
 
 --easy:
