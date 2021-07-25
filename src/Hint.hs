@@ -38,8 +38,8 @@ runHintSafeOther input stmts stream = try $ do
                       evalDummy i
                       return i
 
-getType :: String -> String -> IO (Either InterpreterError String)
-getType s stmts = Hint.runInterpreter $ do
+getTypeSafe :: String -> String -> IO (Either InterpreterError String)
+getTypeSafe s stmts = Hint.runInterpreter $ do
                   Hint.set [languageExtensions := exts]
                   Hint.setImportsF libs
                   Hint.runStmt stmts

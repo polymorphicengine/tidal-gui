@@ -168,7 +168,7 @@ interpretCommands  = do
                                                                    liftUI $ flashError blockLineStart blockLineEnd
                                                                    void $ liftUI $ element err # C.set UI.text (show e)
                                          (T s)        -> do
-                                                  res <- liftIO $ getType s contentsDef
+                                                  res <- liftIO $ getTypeSafe s contentsDef
                                                   case res of
                                                     (Right t) -> do
                                                                   liftUI $ flashSuccess blockLineStart blockLineEnd
