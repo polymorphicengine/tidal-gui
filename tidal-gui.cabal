@@ -24,6 +24,7 @@ executable tidal-gui
                        Ui
   -- other-extensions:
   ghc-options: -threaded
+               -Wall
   build-depends:       base >=4.12 && <4.13,
                        threepenny-gui,
                        hint,

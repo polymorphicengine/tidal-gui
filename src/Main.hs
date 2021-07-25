@@ -3,21 +3,19 @@
 import System.FilePath  (dropFileName)
 import System.Environment (getExecutablePath)
 
-import Control.Concurrent (forkIO, threadDelay)
-import Control.Concurrent.MVar  (newEmptyMVar, readMVar, tryTakeMVar, takeMVar, MVar, putMVar)
+import Control.Concurrent (forkIO)
+import Control.Concurrent.MVar  (newEmptyMVar, tryTakeMVar, MVar, putMVar)
 import Control.Monad  (void)
 import Control.Monad.Reader (ReaderT, runReaderT, ask)
 
 import Data.Map as Map (insert, empty)
 
-import Sound.Tidal.Context as T hiding (mute,solo,(#))
+import Sound.Tidal.Context as T hiding (mute,solo,(#),s)
 
 import Text.Parsec  (parse)
 
 import qualified Graphics.UI.Threepenny as UI
 import Graphics.UI.Threepenny.Core as C hiding (text)
-
-import Foreign.JavaScript (JSObject)
 
 import Parse
 import Highlight
@@ -28,7 +26,7 @@ import Hint
 main :: IO ()
 main = do
     execPath <- dropFileName <$> getExecutablePath
-    stream <- T.startStream T.defaultConfig [(T.superdirtTarget {T.oLatency = 0.1},
+    str <- T.startStream T.defaultConfig [(T.superdirtTarget {T.oLatency = 0.1},
                                               [T.superdirtShape]
                                              ),
                                              (remoteTarget,
@@ -38,20 +36,19 @@ main = do
     startGUI C.defaultConfig {
           jsStatic = Just $ execPath ++ "static",
           jsCustomHTML     = Just "tidal.html"
-        } $ setup stream
+        } $ setup str
 
 
 setup :: Stream -> Window -> UI ()
-setup stream win = void $ do
+setup str win = void $ do
      --setup GUI
-     return win # set title "Tidal"
+     void $ return win # set title "Tidal"
      definitions <- UI.textarea
                  # set (attr "id") "definitions-editor"
-     control <- UI.textarea
+     ctrl <- UI.textarea
                  # set (attr "id") "control-editor"
 
      output <- UI.pre #+ [ string "output goes here" ]
-     errors <- UI.pre #+ [ string "errors go here" ]
      load <- UI.input
                   # set (attr "type") "file"
                   # set (attr "id") "fileInput"
@@ -59,7 +56,7 @@ setup stream win = void $ do
      save <- UI.button
                   # set UI.text "Save file"
                   # set (attr "onclick") "controlSaveFile()"
-     body <- UI.getBody win
+
      execPath <- liftIO $ dropFileName <$> getExecutablePath
      tidalKeys <- liftIO $ readFile $ execPath ++ "static/tidalConfig.js"
      settings <- mkElement "script" # set UI.text tidalKeys
@@ -70,30 +67,29 @@ setup stream win = void $ do
 
      --highlight (experimental)
      pats <- liftIO $ newEmptyMVar
-     liftIO $ forkIO $ highlightLoop [] stream win pats
+     void $ liftIO $ forkIO $ highlightLoop [] str win pats
 
-     let env = Env win stream output errors pats
+     let env = Env win str output pats
          runI = runReaderT interpretCommands env
 
      createHaskellFunction "evaluate" runI
-     createHaskellFunction "hush" (bigHush stream pats)
-     createHaskellFunction "mute1" (mute stream pats 1)
-     createHaskellFunction "mute2" (mute stream pats 2)
-     createHaskellFunction "mute3" (mute stream pats 3)
-     createHaskellFunction "mute4" (mute stream pats 4)
-     createHaskellFunction "mute5" (mute stream pats 5)
-     createHaskellFunction "mute6" (mute stream pats 6)
-     createHaskellFunction "mute7" (mute stream pats 7)
-     createHaskellFunction "mute8" (mute stream pats 8)
-     createHaskellFunction "mute9" (mute stream pats 9)
+     createHaskellFunction "hush" (bigHush str pats)
+     createHaskellFunction "mute1" (mute str pats 1)
+     createHaskellFunction "mute2" (mute str pats 2)
+     createHaskellFunction "mute3" (mute str pats 3)
+     createHaskellFunction "mute4" (mute str pats 4)
+     createHaskellFunction "mute5" (mute str pats 5)
+     createHaskellFunction "mute6" (mute str pats 6)
+     createHaskellFunction "mute7" (mute str pats 7)
+     createHaskellFunction "mute8" (mute str pats 8)
+     createHaskellFunction "mute9" (mute str pats 9)
 
      -- put elements on body
-     UI.getBody win #+ [element definitions, element control, element load, element save, element settings, element makeCtrlEditor, element makeDefsEditor, element errors, element output]
+     UI.getBody win #+ [element definitions, element ctrl, element load, element save, element settings, element makeCtrlEditor, element makeDefsEditor, element output]
 
-data Env = Env {window :: Window
-                ,stream :: Stream
-                ,output :: Element
-                ,errors :: Element
+data Env = Env {windowE :: Window
+                ,streamE :: Stream
+                ,outputE :: Element
                 ,patS :: MVar PatternStates
                 }
 
@@ -101,39 +97,36 @@ data Env = Env {window :: Window
 instance MonadUI (ReaderT Env IO) where
  liftUI m = do
            env <- ask
-           let win = window env
+           let win = windowE env
            liftIO $ runUI win m
 
 interpretCommands :: ReaderT Env IO ()
 interpretCommands  = do
        env <- ask
-       let out = output env
-           err = errors env
-           str = stream env
+       let out = outputE env
+           str = streamE env
        contentsControl <- liftUI editorValueControl
        contentsDef <- liftUI editorValueDefinitions
        line <- liftUI getCursorLine
-       let blocks = getBlocks contentsControl
-           blockMaybe = getBlock line blocks
+       let bs = getBlocks contentsControl
+           blockMaybe = getBlock line bs
        case blockMaybe of
-           Nothing -> void $ liftUI $ element err # set UI.text "Failed to get Block"
+           Nothing -> void $ liftUI $ element out # set UI.text "Failed to get Block"
            Just (Block blockLineStart blockLineEnd block) -> do
                    let parsed = parse parseCommand "" block
                        p = streamReplace str
                    case parsed of
                          Left e -> do
                            liftUI $ flashError blockLineStart blockLineEnd
-                           void $ liftUI $ element err # set UI.text ( "Parse error in " ++ show e )
+                           void $ liftUI $ element out # set UI.text ( "Parse error in " ++ show e )
                          Right command -> case command of
-                                         (D num string) -> do
-                                                 res <- liftIO $ runHintSafe string contentsDef
+                                         (D num s) -> do
+                                                 res <- liftIO $ runHintSafe s contentsDef
                                                  case res of
                                                      Right (Right pat) -> do
                                                                        liftUI $ flashSuccess blockLineStart blockLineEnd
                                                                        let patStatesMVar = patS env
-                                                                           win = window env
-                                                                       liftUI $ element out # set UI.text (show pat )
-                                                                       liftUI $ element err # set UI.text ""
+                                                                       void $ liftUI $ element out # set UI.text (show pat )
                                                                        liftIO $ p num $ pat |< orbit (pure $ num-1)
                                                                        patStates <- liftIO $ tryTakeMVar patStatesMVar
                                                                        case patStates of
@@ -145,10 +138,10 @@ interpretCommands  = do
                                                                                  liftIO $ putMVar patStatesMVar $ newPatS
                                                      Right (Left e) -> do
                                                                      liftUI $ flashError blockLineStart blockLineEnd
-                                                                     void $ liftUI $ element err # set UI.text (parseError e)
+                                                                     void $ liftUI $ element out # set UI.text (parseError e)
                                                      Left e -> do
                                                                      liftUI $ flashError blockLineStart blockLineEnd
-                                                                     void $ liftUI $ element err # set UI.text (show e)
+                                                                     void $ liftUI $ element out # set UI.text (show e)
                                          (Hush)      -> do
                                                  liftUI $ flashSuccess blockLineStart blockLineEnd
                                                  liftIO $ bigHush str (patS env)
@@ -163,10 +156,10 @@ interpretCommands  = do
                                                                    liftIO $ action
                                                    Right (Left e) -> do
                                                                    liftUI $ flashError blockLineStart blockLineEnd
-                                                                   void $ liftUI $ element err # C.set UI.text (parseError e)
+                                                                   void $ liftUI $ element out # C.set UI.text (parseError e)
                                                    Left e -> do
                                                                    liftUI $ flashError blockLineStart blockLineEnd
-                                                                   void $ liftUI $ element err # C.set UI.text (show e)
+                                                                   void $ liftUI $ element out # C.set UI.text (show e)
                                          (T s)        -> do
                                                   res <- liftIO $ getTypeSafe s contentsDef
                                                   case res of
@@ -175,4 +168,4 @@ interpretCommands  = do
                                                                   void $ liftUI $ element out # set UI.text t
                                                     (Left e) -> do
                                                                   liftUI $ flashError blockLineStart blockLineEnd
-                                                                  void $ liftUI $ element err # C.set UI.text (parseError e)
+                                                                  void $ liftUI $ element out # C.set UI.text (parseError e)
