@@ -10,7 +10,7 @@ import Text.Parsec.Prim
 
 import Sound.Tidal.Utils
 
-data Command = D Int String | Hush | Cps Double | Other String deriving Show
+data Command = D Int String | Hush | Cps Double | T String | Other String deriving Show
 
 data Block = Block {bStart :: Int
                    ,bEnd :: Int
@@ -38,6 +38,13 @@ parseHush = do
         string "hush"
         return Hush
 
+parseT :: Parser Command
+parseT = do
+        whitespace
+        string ":t"
+        s <- many anyChar
+        return (T s)
+
 parseCps :: Parser Command
 parseCps = do
             whitespace
@@ -64,7 +71,7 @@ parseOther :: Parser Command
 parseOther = fmap Other $ many anyChar
 
 parseCommand :: Parser Command
-parseCommand = try parsePat <|> try parseHush <|> try parseCps <|> parseOther
+parseCommand = try parsePat <|> try parseHush <|> try parseCps <|> try parseT <|> parseOther
 
 --parsing blocks
 

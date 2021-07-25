@@ -7,7 +7,7 @@ import Control.Exception  (SomeException,try)
 import Sound.Tidal.Context (ControlPattern,Stream)
 import Sound.Tidal.Utils (deltaMini)
 
-import Language.Haskell.Interpreter as Hint hiding (typeOf)
+import Language.Haskell.Interpreter as Hint
 import Language.Haskell.Interpreter.Unsafe as Hint
 
 import Data.List (intercalate)
@@ -38,9 +38,13 @@ runHintSafeOther input stmts stream = try $ do
                       evalDummy i
                       return i
 
--- case deltaMini' input of
---   Right s -> Hint.interpret s (Hint.as :: ControlPattern)
---   Left _ -> error "can this happen?"
+getType :: String -> String -> IO (Either InterpreterError String)
+getType s stmts = Hint.runInterpreter $ do
+                  Hint.set [languageExtensions := exts]
+                  Hint.setImportsF libs
+                  Hint.runStmt stmts
+                  Hint.typeOf s
+
 --notice the bang pattern
 evalDummy :: (Either InterpreterError a) -> IO ()
 evalDummy e = do

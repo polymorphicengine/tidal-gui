@@ -31,7 +31,6 @@ options to configure look
 
 make the editor look nicer
 
-:t commands to see types of expressions
 
 --advanced:
 

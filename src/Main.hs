@@ -159,11 +159,20 @@ interpretCommands  = do
                                                  res <- liftIO $ runHintSafeOther s contentsDef str
                                                  case res of
                                                    Right (Right action) -> do
-                                                                     liftUI $ flashSuccess blockLineStart blockLineEnd
-                                                                     liftIO $ action
+                                                                   liftUI $ flashSuccess blockLineStart blockLineEnd
+                                                                   liftIO $ action
                                                    Right (Left e) -> do
                                                                    liftUI $ flashError blockLineStart blockLineEnd
                                                                    void $ liftUI $ element err # C.set UI.text (parseError e)
                                                    Left e -> do
                                                                    liftUI $ flashError blockLineStart blockLineEnd
                                                                    void $ liftUI $ element err # C.set UI.text (show e)
+                                         (T s)        -> do
+                                                  res <- liftIO $ getType s contentsDef
+                                                  case res of
+                                                    (Right t) -> do
+                                                                  liftUI $ flashSuccess blockLineStart blockLineEnd
+                                                                  void $ liftUI $ element out # set UI.text t
+                                                    (Left e) -> do
+                                                                  liftUI $ flashError blockLineStart blockLineEnd
+                                                                  void $ liftUI $ element err # C.set UI.text (parseError e)
