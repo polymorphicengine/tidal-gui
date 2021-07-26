@@ -28,11 +28,12 @@ type PatternStates = Map Int PatternState
 highlight :: (Int, Int, Int) -> UI JSObject
 highlight (line, start, end) = callFunction $ ffi "(controlEditor.markText({line: %1, ch: %2}, {line: %1, ch: %3}, {css: \"background-color: red\"}))" line start end
 
--- unHighlight :: JSObject -> UI ()
--- unHighlight mark = runFunction $ ffi "if (typeof %1 !== 'undefined'){%1.clear()};" mark
-
+--safer but might leave some objects 
 unHighlight :: JSObject -> UI ()
-unHighlight mark = runFunction $ ffi "%1.clear();" mark
+unHighlight mark = runFunction $ ffi "if (typeof %1 !== 'undefined'){%1.clear()};" mark
+
+-- unHighlight :: JSObject -> UI ()
+-- unHighlight mark = runFunction $ ffi "%1.clear();" mark
 
 locs :: Rational -> Int -> Int -> ControlPattern -> [((Int,Int,Int), Maybe Arc)]
 locs t bShift cShift pat = concatMap (evToLocs bShift cShift) $ queryArc pat (Arc t t)
