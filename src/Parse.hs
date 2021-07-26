@@ -10,7 +10,9 @@ import Text.Parsec.Prim
 
 import Sound.Tidal.Utils
 
-data Command = D Int String | Hush | Cps Double | T String | Other String deriving Show
+type Position = (Int,Int)
+
+data Command = H Int String Position | Hush | Cps Double | T String | Other String deriving Show
 
 data Block = Block {bStart :: Int
                    ,bEnd :: Int
@@ -24,13 +26,19 @@ whitespace = void $ many $ oneOf " \n\t"
 
 parsePat :: Parser Command
 parsePat = do
-        whitespace
-        char 'd'
-        d <- many1 digit
-        whitespace
+        white1 <- many $ oneOf " \n\t"
+        char 'h'
+        h <- many1 digit
+        white2 <- many $ oneOf " \t"
+        white3 <- many $ oneOf " \t\n"
         char '$'
+        white4 <- many $ oneOf " \t\n"
         pat <- many anyToken
-        return $ D (read d) pat
+        case elem '\n' white3 of
+          False -> case elem '\n' white4 of
+            False -> return $ H (read h) (white4 ++ pat) (0,length white1 + length h + length white2 + length white3 + 2)
+            True -> return $ H (read h) (white4 ++ pat) (0,0)
+          True -> return $ H (read h) (white4 ++ pat) (1,0)
 
 parseHush :: Parser Command
 parseHush = do

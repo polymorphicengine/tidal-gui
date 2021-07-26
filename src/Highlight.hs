@@ -17,7 +17,8 @@ import Data.List  ((\\))
 type Buffer = [((Int,Int,Int), Maybe Arc)]
 
 data PatternState = PS {sPat :: ControlPattern
-                       ,blockLine :: Int
+                       ,bShift :: Int
+                       ,cShift :: Int
                        ,muted :: Bool
                        ,solo :: Bool
                        } deriving Show
@@ -33,12 +34,11 @@ highlight (line, start, end) = callFunction $ ffi "(controlEditor.markText({line
 unHighlight :: JSObject -> UI ()
 unHighlight mark = runFunction $ ffi "%1.clear();" mark
 
-locs :: Rational -> Int -> ControlPattern -> [((Int,Int,Int), Maybe Arc)]
-locs t bShift pat = concatMap (evToLocs bShift) $ queryArc pat (Arc t t)
-        where evToLocs bShift (Event {context = Context xs, whole = wh}) = map (\x -> ((toLoc bShift) x, wh)) xs
+locs :: Rational -> Int -> Int -> ControlPattern -> [((Int,Int,Int), Maybe Arc)]
+locs t bShift cShift pat = concatMap (evToLocs bShift cShift) $ queryArc pat (Arc t t)
+        where evToLocs bShift cShift (Event {context = Context xs, whole = wh}) = map (\x -> ((toLoc bShift cShift) x, wh)) xs
               -- assume an event doesn't span a line..
-              toLoc bShift ((bx, by), (ex, _)) | by == 1 = (bShift+by - 1, bx + 4, ex + 4)
-                                               | otherwise = (bShift+by - 1, bx, ex)
+              toLoc bShift cShift ((bx, by), (ex, _)) = (bShift+by - 1, bx + cShift, ex + cShift)
               locsWithArc ls = zip ls (map whole $ queryArc pat (Arc t t))
 
 highlightLoop :: Buffer -> Stream -> Window -> MVar PatternStates -> IO ()
@@ -56,12 +56,12 @@ highlightLoop buffer stream win patStatesMVar = do
 
 highlightPats :: Rational -> Buffer -> Window -> [PatternState] -> IO ([JSObject],Buffer)
 highlightPats c buffer win [] = return ([], buffer)
-highlightPats c buffer win ((PS pat shift True _):ps) = do
-                                              let ls = locs c shift pat
+highlightPats c buffer win ((PS pat bShift cShift True _):ps) = do
+                                              let ls = locs c bShift cShift pat
                                               (marks,buffer') <- highlightPats c (buffer \\ ls) win ps
                                               return (marks, buffer')
-highlightPats c buffer win ((PS pat shift False _):ps) = do
-                                              let ls = locs c shift pat
+highlightPats c buffer win ((PS pat bShift cShift False _):ps) = do
+                                              let ls = locs c bShift cShift pat
                                               (marks,buffer') <- highlightMany buffer ls win
                                               (marks',buffer'') <- highlightPats c buffer' win ps
                                               return ((marks ++ marks'), buffer'')

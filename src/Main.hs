@@ -120,7 +120,7 @@ interpretCommands  = do
                            liftUI $ flashError blockLineStart blockLineEnd
                            void $ liftUI $ element out # set UI.text ( "Parse error in " ++ show e )
                          Right command -> case command of
-                                         (D num s) -> do
+                                         (H num s (ln,ch)) -> do
                                                  res <- liftIO $ runHintSafe s contentsDef
                                                  case res of
                                                      Right (Right pat) -> do
@@ -131,10 +131,10 @@ interpretCommands  = do
                                                                        patStates <- liftIO $ tryTakeMVar patStatesMVar
                                                                        case patStates of
                                                                              Just pats -> do
-                                                                                 let newPatS = Map.insert num (PS pat blockLineStart False False) pats
+                                                                                 let newPatS = Map.insert num (PS pat (blockLineStart + ln) ch False False) pats
                                                                                  liftIO $ putMVar patStatesMVar $ newPatS
                                                                              Nothing -> do
-                                                                                 let newPatS = Map.insert num (PS pat blockLineStart False False) Map.empty
+                                                                                 let newPatS = Map.insert num (PS pat (blockLineStart + ln) ch False False) Map.empty
                                                                                  liftIO $ putMVar patStatesMVar $ newPatS
                                                      Right (Left e) -> do
                                                                      liftUI $ flashError blockLineStart blockLineEnd
