@@ -38,7 +38,8 @@ locs :: Rational -> Int -> Int -> ControlPattern -> [((Int,Int,Int), Maybe Arc)]
 locs t bShift cShift pat = concatMap (evToLocs bShift cShift) $ queryArc pat (Arc t t)
         where evToLocs bShift cShift (Event {context = Context xs, whole = wh}) = map (\x -> ((toLoc bShift cShift) x, wh)) xs
               -- assume an event doesn't span a line..
-              toLoc bShift cShift ((bx, by), (ex, _)) = (bShift+by - 1, bx + cShift, ex + cShift)
+              toLoc bShift cShift ((bx, by), (ex, _)) | by == 1 = (bShift+by - 1, bx + cShift, ex + cShift)
+                                                      | otherwise = (bShift+by - 1, bx, ex)
               locsWithArc ls = zip ls (map whole $ queryArc pat (Arc t t))
 
 highlightLoop :: Buffer -> Stream -> Window -> MVar PatternStates -> IO ()
