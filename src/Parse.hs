@@ -98,6 +98,7 @@ blocks' ss = case break (whiteString . snd) ss of
 
 blocks :: [[(Int,String)]] -> [Block]
 blocks [] = []
+blocks ([]:bs) = []
 blocks (b:bs) = (Block {bStart = (fst . head) b , bEnd = (fst . last) b, bContent = concatMap snd b}):(blocks bs)
 
 getBlock :: Int -> [Block] -> Maybe Block
@@ -108,6 +109,7 @@ getBlocks :: String -> [Block]
 getBlocks = blocks . blocks' . linesNum
 
 addNewLine :: [String] -> [String]
+addNewLine [] = []
 addNewLine [x] = [x]
 addNewLine (x:xs) = (x ++ "\n") : (addNewLine xs)
 
