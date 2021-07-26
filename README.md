@@ -7,6 +7,8 @@ Use h1, h2 etc. for highlighting (not inside of do blocks)
 
 Ctrl-Enter: Evaluate block of code at the cursor position
 
+Shift-Enter: Evaluate line of code at the cursor position
+
 Ctrl-. : Hush
 
 Ctrl-D: Open docs with the word at current cursor position
