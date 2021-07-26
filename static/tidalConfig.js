@@ -1,5 +1,6 @@
 const controlExtraKeys = {"Ctrl-.": hush, 
-			   "Ctrl-Enter": evaluate, 
+			   "Ctrl-Enter": evaluateBlock,
+			   "Shift-Enter": evaluateLine,
 			   "Ctrl-Up": upFocus, 
 			   "Ctrl-D": openDocs, 
 			   "Ctrl-1": mute1, 
@@ -16,7 +17,8 @@ const controlExtraKeys = {"Ctrl-.": hush,
 			   "Ctrl-/": 'toggleComment'}
 			   
 const definitionsExtraKeys = {"Ctrl-.": hush, 
-			"Ctrl-Enter": evaluate, 
+			"Ctrl-Enter": evaluateBlock, 
+			"Shift-Enter": evaluateLine,
 			"Ctrl-Down": downFocus, 
 			"Ctrl-D": openDocs, 
 			"Ctrl-1": mute1, 

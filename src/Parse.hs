@@ -37,7 +37,7 @@ parsePat = do
         case elem '\n' white3 of
           False -> case elem '\n' white4 of
             False -> return $ H (read h) (white4 ++ pat) (0,length white1 + length h + length white2 + length white3 + 2)
-            True -> return $ H (read h) (white4 ++ pat) (0,0)
+            True -> return $ H (read h) (white4 ++ pat) (0,1)
           True -> return $ H (read h) (white4 ++ pat) (1,0)
 
 parseHush :: Parser Command
@@ -111,42 +111,9 @@ addNewLine :: [String] -> [String]
 addNewLine [x] = [x]
 addNewLine (x:xs) = (x ++ "\n") : (addNewLine xs)
 
-sourcePos :: Monad m => ParsecT s u m SourcePos
-sourcePos = statePos `liftM` getParserState
+getLineContent :: Int -> [(Int,String)] -> Maybe Block
+getLineContent num [] = Nothing
+getLineContent num ((n,s):ls) | n == num = Just $ Block n n s
+                              | otherwise = getLineContent num ls
 
-sParser :: Parser ()
-sParser = do
-        char 's'
-        whitespace
-        char '"'
-        return ()
-
-soundParser :: Parser ()
-soundParser = do
-        string "sound"
-        whitespace
-        char '"'
-        return ()
-
-deltaMany :: Parser String
-deltaMany = do
-    x <- manyTill anyChar (try $ (try soundParser <|> sParser))
-    s <- sourcePos
-    end <- manyTill anyChar (try $ char '\"')
-    return $ x ++ "s (deltaContext " ++ show (sourceColumn s - 2) ++ " " ++ show (sourceLine s - 1) ++ " \"" ++ end ++ "\")"
-
-deltaMiniParse :: Parser String
-deltaMiniParse = do
-          d <- many $ try deltaMany
-          rest <- many anyChar
-          return $  (concat d) ++ rest
-
--- since parsec counts tabs as 6 chars, just replace them by a space first
-replaceTabs :: String -> String
-replaceTabs "" = ""
-replaceTabs ('\t':xs) = ' ':replaceTabs xs
-replaceTabs (x:xs) = x:replaceTabs xs
-
--- deltaMini' breaks a lot of things :(
-deltaMini':: String -> Either ParseError String
-deltaMini' s = parse deltaMiniParse "" (replaceTabs s)
+-------

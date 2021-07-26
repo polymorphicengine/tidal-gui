@@ -38,8 +38,8 @@ runHintSafeOther input stmts stream = try $ do
                       evalDummy i
                       return i
 
-getTypeSafe :: String -> String -> IO (Either InterpreterError String)
-getTypeSafe s stmts = Hint.runInterpreter $ do
+getTypeSafe :: String -> String -> Stream -> IO (Either InterpreterError String)
+getTypeSafe s stmts stream = Hint.runInterpreter $ do
                   Hint.set [languageExtensions := exts]
                   Hint.setImportsF libs
                   bind "tidal" stream

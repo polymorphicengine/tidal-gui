@@ -70,9 +70,11 @@ setup str win = void $ do
      void $ liftIO $ forkIO $ highlightLoop [] str win pats
 
      let env = Env win str output pats
-         runI = runReaderT interpretCommands env
+         evaluateBlock = runReaderT (interpretCommands False) env
+         evaluateLine = runReaderT (interpretCommands True) env
 
-     createHaskellFunction "evaluate" runI
+     createHaskellFunction "evaluateBlock" evaluateBlock
+     createHaskellFunction "evaluateLine" evaluateLine
      createHaskellFunction "hush" (bigHush str pats)
      createHaskellFunction "mute1" (mute str pats 1)
      createHaskellFunction "mute2" (mute str pats 2)
@@ -100,8 +102,8 @@ instance MonadUI (ReaderT Env IO) where
            let win = windowE env
            liftIO $ runUI win m
 
-interpretCommands :: ReaderT Env IO ()
-interpretCommands  = do
+interpretCommands :: Bool -> ReaderT Env IO ()
+interpretCommands lineBool = do
        env <- ask
        let out = outputE env
            str = streamE env
@@ -109,7 +111,7 @@ interpretCommands  = do
        contentsDef <- liftUI editorValueDefinitions
        line <- liftUI getCursorLine
        let bs = getBlocks contentsControl
-           blockMaybe = getBlock line bs
+           blockMaybe = if lineBool then getLineContent line (linesNum contentsControl) else getBlock line bs
        case blockMaybe of
            Nothing -> void $ liftUI $ element out # set UI.text "Failed to get Block"
            Just (Block blockLineStart blockLineEnd block) -> do
@@ -161,7 +163,7 @@ interpretCommands  = do
                                                                    liftUI $ flashError blockLineStart blockLineEnd
                                                                    void $ liftUI $ element out # C.set UI.text (show e)
                                          (T s)        -> do
-                                                  res <- liftIO $ getTypeSafe s contentsDef
+                                                  res <- liftIO $ getTypeSafe s contentsDef str
                                                   case res of
                                                     (Right t) -> do
                                                                   liftUI $ flashSuccess blockLineStart blockLineEnd
