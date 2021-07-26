@@ -37,7 +37,7 @@ parsePat = do
         case elem '\n' white3 of
           False -> case elem '\n' white4 of
             False -> return $ H (read h) (white4 ++ pat) (0,length white1 + length h + length white2 + length white3 + 2)
-            True -> return $ H (read h) (white4 ++ pat) (0,1)
+            True -> return $ H (read h) (white4 ++ pat) (0,2)
           True -> return $ H (read h) (white4 ++ pat) (1,0)
 
 parseHush :: Parser Command
