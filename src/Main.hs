@@ -153,7 +153,9 @@ interpretCommands lineBool = do
                                          (Other s)   -> do
                                                  res <- liftIO $ runHintSafeStatement s contentsDef str
                                                  case res of
-                                                   Right _ -> liftUI $ flashSuccess blockLineStart blockLineEnd
+                                                   Right "()" -> liftUI $ flashSuccess blockLineStart blockLineEnd
+                                                   Right outputString -> do liftUI $ flashSuccess blockLineStart blockLineEnd
+                                                                            void $ liftUI $ element out # C.set UI.text outputString
                                                    Left e -> do
                                                                  liftUI $ flashError blockLineStart blockLineEnd
                                                                  void $ liftUI $ element out # C.set UI.text (parseError e)

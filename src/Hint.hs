@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE BangPatterns,ScopedTypeVariables #-}
 
 module Hint where
 
@@ -39,16 +39,28 @@ runHintSafeOther input stmts stream = try $ do
                       evalDummy i
                       return i
 
-runHintSafeStatement :: String -> String -> Stream -> IO (Either InterpreterError ())
-runHintSafeStatement input stmts stream = do
-                      Hint.runInterpreter $ do
-                                  Hint.set [languageExtensions := exts]
-                                  Hint.setImportsF libs
-                                  bind "tidal" stream
-                                  Hint.runStmt bootTidal
-                                  Hint.runStmt stmts
-                                  Hint.runStmt input
+runHintSafeStatement :: String -> String -> Stream -> IO (Either InterpreterError String)
+runHintSafeStatement input stmts stream = Hint.runInterpreter $ runHintSafeStatIO input stmts stream
 
+runHintSafeStatIO :: String -> String -> Stream -> Interpreter String
+runHintSafeStatIO input stmts stream = do
+                      Hint.set [languageExtensions := exts]
+                      Hint.setImportsF libs
+                      bind "tidal" stream
+                      Hint.runStmt bootTidal
+                      Hint.runStmt stmts
+                      Hint.runStmt ("temp <- " ++ input)
+                      Hint.eval "temp"
+
+runHintSafeStatBase :: String -> String -> Stream -> Interpreter String
+runHintSafeStatBase input stmts stream = do
+                      Hint.set [languageExtensions := exts]
+                      Hint.setImportsF libs
+                      bind "tidal" stream
+                      Hint.runStmt bootTidal
+                      Hint.runStmt stmts
+                      Hint.runStmt ("temp <- return $ " ++ input)
+                      Hint.eval "temp"
 
 getTypeSafe :: String -> String -> Stream -> IO (Either InterpreterError String)
 getTypeSafe s stmts stream = Hint.runInterpreter $ do
@@ -63,8 +75,8 @@ getTypeSafe s stmts stream = Hint.runInterpreter $ do
 evalDummy :: (Either InterpreterError a) -> IO ()
 evalDummy e = do
           case e of
-            Left _ -> return ()
-            Right !pat -> return ()
+            Left !_ -> return ()
+            Right !_ -> return ()
 
 parseError:: InterpreterError -> String
 parseError (UnknownError s) = "Unknown error: " ++ s
