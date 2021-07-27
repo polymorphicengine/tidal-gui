@@ -2,7 +2,7 @@
 
 module Hint where
 
-import Control.Exception  (SomeException,try)
+import Control.Exception  (SomeException,try, catch)
 
 import Sound.Tidal.Context (ControlPattern,Stream)
 import Sound.Tidal.Utils (deltaMini)
@@ -12,6 +12,7 @@ import Language.Haskell.Interpreter.Unsafe as Hint
 
 import Data.List (intercalate)
 import Data.IORef
+import Data.Typeable
 
 import Configure
 import Parse
@@ -37,6 +38,17 @@ runHintSafeOther input stmts stream = try $ do
                                   Hint.interpret input (Hint.as :: IO ())
                       evalDummy i
                       return i
+
+runHintSafeStatement :: String -> String -> Stream -> IO (Either InterpreterError ())
+runHintSafeStatement input stmts stream = do
+                      Hint.runInterpreter $ do
+                                  Hint.set [languageExtensions := exts]
+                                  Hint.setImportsF libs
+                                  bind "tidal" stream
+                                  Hint.runStmt bootTidal
+                                  Hint.runStmt stmts
+                                  Hint.runStmt input
+
 
 getTypeSafe :: String -> String -> Stream -> IO (Either InterpreterError String)
 getTypeSafe s stmts stream = Hint.runInterpreter $ do

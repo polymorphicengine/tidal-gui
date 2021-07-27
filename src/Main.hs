@@ -151,17 +151,12 @@ interpretCommands lineBool = do
                                                  liftUI $ flashSuccess blockLineStart blockLineEnd
                                                  liftIO $ streamOnce str $ cps (pure x)
                                          (Other s)   -> do
-                                                 res <- liftIO $ runHintSafeOther s contentsDef str
+                                                 res <- liftIO $ runHintSafeStatement s contentsDef str
                                                  case res of
-                                                   Right (Right action) -> do
-                                                                   liftUI $ flashSuccess blockLineStart blockLineEnd
-                                                                   liftIO $ action
-                                                   Right (Left e) -> do
-                                                                   liftUI $ flashError blockLineStart blockLineEnd
-                                                                   void $ liftUI $ element out # C.set UI.text (parseError e)
+                                                   Right _ -> liftUI $ flashSuccess blockLineStart blockLineEnd
                                                    Left e -> do
-                                                                   liftUI $ flashError blockLineStart blockLineEnd
-                                                                   void $ liftUI $ element out # C.set UI.text (show e)
+                                                                 liftUI $ flashError blockLineStart blockLineEnd
+                                                                 void $ liftUI $ element out # C.set UI.text (parseError e)
                                          (T s)        -> do
                                                   res <- liftIO $ getTypeSafe s contentsDef str
                                                   case res of
