@@ -39,7 +39,6 @@ main = do
           jsCustomHTML     = Just "tidal.html"
         } $ setup str
 
-
 setup :: Stream -> Window -> UI ()
 setup str win = void $ do
      --setup GUI
@@ -125,7 +124,7 @@ interpretCommands lineBool = do
                            void $ liftUI $ element out # set UI.text ( "Parse error in " ++ show e )
                          Right command -> case command of
                                          (H num s (ln,ch)) -> do
-                                                 res <- liftIO $ runHintSafe s contentsDef
+                                                 res <- liftIO $ runHintPattern True s contentsDef
                                                  case res of
                                                      Right (Right pat) -> do
                                                                        liftUI $ flashSuccess blockLineStart blockLineEnd
@@ -151,7 +150,7 @@ interpretCommands lineBool = do
                                                  liftUI $ flashSuccess blockLineStart blockLineEnd
                                                  liftIO $ streamOnce str $ cps (pure x)
                                          (Other s)   -> do
-                                                 res <- liftIO $ runHintSafeStatement s contentsDef str
+                                                 res <- liftIO $ runHintStatement True s contentsDef str
                                                  case res of
                                                    Right "()" -> liftUI $ flashSuccess blockLineStart blockLineEnd
                                                    Right (['\"','d',num,'\"']) -> do
@@ -171,7 +170,7 @@ interpretCommands lineBool = do
                                                                  liftUI $ flashError blockLineStart blockLineEnd
                                                                  void $ liftUI $ element out # C.set UI.text (parseError e)
                                          (T s)        -> do
-                                                  res <- liftIO $ getTypeSafe s contentsDef str
+                                                  res <- liftIO $ getType True s contentsDef str
                                                   case res of
                                                     (Right t) -> do
                                                                   liftUI $ flashSuccess blockLineStart blockLineEnd
