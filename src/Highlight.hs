@@ -7,8 +7,8 @@ import Sound.OSC.FD (time)
 import Graphics.UI.Threepenny.Core as C hiding (text)
 import Foreign.JavaScript (JSObject)
 
-import Control.Concurrent (forkIO,threadDelay)
-import Control.Concurrent.MVar  (newEmptyMVar, readMVar, tryTakeMVar, takeMVar, MVar, putMVar)
+import Control.Concurrent (threadDelay)
+import Control.Concurrent.MVar  (readMVar, MVar)
 
 import Data.Map as Map  (Map,elems)
 import Data.List  ((\\))
@@ -26,9 +26,9 @@ data PatternState = PS {sPat :: ControlPattern
 type PatternStates = Map Int PatternState
 
 highlight :: (Int, Int, Int) -> UI JSObject
-highlight (line, start, end) = callFunction $ ffi "(controlEditor.markText({line: %1, ch: %2}, {line: %1, ch: %3}, {css: \"background-color: red\"}))" line start end
+highlight (line, st, e) = callFunction $ ffi "(controlEditor.markText({line: %1, ch: %2}, {line: %1, ch: %3}, {css: \"background-color: red\"}))" line st e
 
---safer but might leave some objects 
+--safer but might leave some objects
 unHighlight :: JSObject -> UI ()
 unHighlight mark = runFunction $ ffi "if (typeof %1 !== 'undefined'){%1.clear()};" mark
 
@@ -36,12 +36,11 @@ unHighlight mark = runFunction $ ffi "if (typeof %1 !== 'undefined'){%1.clear()}
 -- unHighlight mark = runFunction $ ffi "%1.clear();" mark
 
 locs :: Rational -> Int -> Int -> ControlPattern -> [((Int,Int,Int), Maybe Arc)]
-locs t bShift cShift pat = concatMap (evToLocs bShift cShift) $ queryArc pat (Arc t t)
-        where evToLocs bShift cShift (Event {context = Context xs, whole = wh}) = map (\x -> ((toLoc bShift cShift) x, wh)) xs
+locs t bSh cSh pat = concatMap (evToLocs bSh cSh) $ queryArc pat (Arc t t)
+        where evToLocs a b (Event {context = Context xs, whole = wh}) = map (\x -> ((toLoc a b) x, wh)) xs
               -- assume an event doesn't span a line..
-              toLoc bShift cShift ((bx, by), (ex, _)) | by == 1 = (bShift+by - 1, bx + cShift, ex + cShift)
-                                                      | otherwise = (bShift+by - 1, bx, ex)
-              locsWithArc ls = zip ls (map whole $ queryArc pat (Arc t t))
+              toLoc blockSh colSh ((bx, by), (ex, _)) | by == 1 = (blockSh+by - 1, bx + colSh, ex + colSh)
+                                                | otherwise = (blockSh+by - 1, bx, ex)
 
 highlightLoop :: Buffer -> Stream -> Window -> MVar PatternStates -> IO ()
 highlightLoop buffer stream win patStatesMVar = do
@@ -57,20 +56,20 @@ highlightLoop buffer stream win patStatesMVar = do
                 highlightLoop buffer' stream win patStatesMVar
 
 highlightPats :: Rational -> Buffer -> Window -> [PatternState] -> IO ([JSObject],Buffer)
-highlightPats c buffer win [] = return ([], buffer)
-highlightPats c buffer win ((PS pat bShift cShift True _):ps) = do
-                                              let ls = locs c bShift cShift pat
+highlightPats _ buffer _ [] = return ([], buffer)
+highlightPats c buffer win ((PS pat bSh cSh True _):ps) = do
+                                              let ls = locs c bSh cSh pat
                                               (marks,buffer') <- highlightPats c (buffer \\ ls) win ps
                                               return (marks, buffer')
-highlightPats c buffer win ((PS pat bShift cShift False _):ps) = do
-                                              let ls = locs c bShift cShift pat
+highlightPats c buffer win ((PS pat bSh cSh False _):ps) = do
+                                              let ls = locs c bSh cSh pat
                                               (marks,buffer') <- highlightMany buffer ls win
                                               (marks',buffer'') <- highlightPats c buffer' win ps
                                               return ((marks ++ marks'), buffer'')
 
 highlightMany :: Buffer -> [((Int,Int,Int), Maybe Arc)] -> Window -> IO ([JSObject],Buffer)
-highlightMany buffer [] win = return ([],buffer)
-highlightMany buffer (x@(i,a):xs) win = do
+highlightMany buffer [] _ = return ([],buffer)
+highlightMany buffer (x@(i,_):xs) win = do
                                 case elem x buffer of
                                   True -> highlightMany buffer xs win
                                   False -> do
@@ -80,7 +79,7 @@ highlightMany buffer (x@(i,a):xs) win = do
                                       return ((mark:marks),buffer')
 
 unhighlightMany :: [JSObject] -> Window -> IO ()
-unhighlightMany [] win = return ()
+unhighlightMany [] _ = return ()
 unhighlightMany (x:xs) win = do
                     runUI win (unHighlight x)
                     unhighlightMany xs win

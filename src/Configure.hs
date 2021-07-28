@@ -5,6 +5,7 @@ import Sound.Tidal.Context(Schedule(Live))
 import Sound.Tidal.Stream (Target(..))
 import Data.List
 
+libsU :: [String]
 libsU = [
     "Sound.Tidal.Pattern"
   , "Sound.Tidal.Transition"
@@ -37,16 +38,20 @@ libsU = [
   , "System.IO"
   ]
 
+libsU' :: [ModuleImport]
 libsU' = [ModuleImport x NotQualified NoImportList | x <- libsU]
 
+libs :: [ModuleImport]
 libs = [ModuleImport "Data.Map" (NotQualified) (HidingList ["size"]), ModuleImport "Text.Parsec" NotQualified (HidingList ["Stream"])] ++ libsU'
 
+exts :: [Extension]
 exts = [OverloadedStrings]
 
-
+listenPort,remotePort :: Int
 listenPort = 6011
 remotePort = 6012
 
+remoteTarget :: Target
 remoteTarget = Target {oName = "threepenny"
                       ,oAddress = "127.0.0.1"
                       ,oPort = remotePort
@@ -56,22 +61,22 @@ remoteTarget = Target {oName = "threepenny"
                       ,oSchedule = Live
                       ,oHandshake = True
                       }
-
---most of this doesn't work (yet) especially for statements that return something like getcps etc.
+                      
+bootTidal' :: [String]
 bootTidal' = [ "p = streamReplace tidal"
-              ,"d1 pat = p 1 $ pat |< orbit 0"
-              ,"d2 pat = p 2 $ pat |< orbit 1"
-              ,"d3 pat = p 2 $ pat |< orbit 2"
-              ,"d4 pat = p 3 $ pat |< orbit 3"
-              ,"d5 pat = p 5 $ pat |< orbit 4"
-              ,"d6 pat = p 6 $ pat |< orbit 5"
-              ,"d7 pat = p 7 $ pat |< orbit 6"
-              ,"d8 pat = p 8 $ pat |< orbit 7"
-              ,"d9 pat = p 9 $ pat |< orbit 8"
+              ,"d1 pat = do p 1 $ pat |< orbit 0; return \"d1\""
+              ,"d2 pat = do p 1 $ pat |< orbit 2; return \"d2\""
+              ,"d3 pat = do p 1 $ pat |< orbit 2; return \"d3\""
+              ,"d4 pat = do p 1 $ pat |< orbit 3; return \"d4\""
+              ,"d5 pat = do p 1 $ pat |< orbit 4; return \"d5\""
+              ,"d6 pat = do p 1 $ pat |< orbit 5; return \"d6\""
+              ,"d7 pat = do p 1 $ pat |< orbit 6; return \"d7\""
+              ,"d8 pat = do p 1 $ pat |< orbit 7; return \"d8\""
+              ,"d9 pat = do p 1 $ pat |< orbit 8; return \"d9\""
               ,"hush = streamHush tidal"
               ,"panic = do hush; once $ sound \"superpanic\""
               ,"list = streamList tidal"
-              --,"mute = streamMute tidal :: Show a => a -> IO ()"
+              -- ,"mute = streamMute tidal"
               --,"unmute = streamUnmute tidal :: Show a => a -> IO ()"
               ,"unmuteAll = streamUnmuteAll tidal"
               ,"unsoloAll = streamUnsoloAll tidal"
@@ -105,4 +110,5 @@ bootTidal' = [ "p = streamReplace tidal"
               ,"forId i t = transition tidal False (Sound.Tidal.Transition.mortalOverlay t) i"
              ]
 
+bootTidal :: String
 bootTidal = "let \n" ++ (intercalate "\n" bootTidal')

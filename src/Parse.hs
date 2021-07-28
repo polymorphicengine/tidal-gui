@@ -2,13 +2,7 @@ module Parse where
 
 import Text.Parsec.String
 import Text.Parsec
-import Control.Monad (void, liftM)
-import Language.Haskell.Interpreter as Hint
-import Language.Haskell.Interpreter.Unsafe as Hint
-import Data.List
-import Text.Parsec.Prim
-
-import Sound.Tidal.Utils
+import Control.Monad (void)
 
 type Position = (Int,Int)
 
@@ -21,17 +15,18 @@ data Block = Block {bStart :: Int
 
 --parsing commands
 
+
 whitespace :: Parser ()
 whitespace = void $ many $ oneOf " \n\t"
 
 parsePat :: Parser Command
 parsePat = do
         white1 <- many $ oneOf " \n\t"
-        char 'h'
+        _ <- char 'h'
         h <- many1 digit
         white2 <- many $ oneOf " \t"
         white3 <- many $ oneOf " \t\n"
-        char '$'
+        _ <- char '$'
         white4 <- many $ oneOf " \t\n"
         pat <- many anyToken
         case elem '\n' white3 of
@@ -43,27 +38,27 @@ parsePat = do
 parseHush :: Parser Command
 parseHush = do
         whitespace
-        string "hush"
+        _ <- string "hush"
         return Hush
 
 parseT :: Parser Command
 parseT = do
         whitespace
-        string ":t"
+        _ <- string ":t"
         s <- many anyChar
         return (T s)
 
 parseCps :: Parser Command
 parseCps = do
             whitespace
-            string "setcps "
+            _ <- string "setcps "
             d <- parseDouble
             return $ Cps d
 
 parseDoubleWP :: Parser Double
 parseDoubleWP = do
         is <- many1 digit
-        char '.'
+        _ <- char '.'
         js <- many1 digit
         return (read $ is ++ "." ++ js ::Double)
 
@@ -92,18 +87,18 @@ linesNum s = zip [0..] (addNewLine . lines $ s)
 
 blocks' :: [(Int,String)] -> [[(Int,String)]]
 blocks' ss = case break (whiteString . snd) ss of
-              ([], (y:ys)) -> blocks' ys
-              (xs, (y:ys)) -> xs:(blocks' ys)
+              ([], (_:ys)) -> blocks' ys
+              (xs, (_:ys)) -> xs:(blocks' ys)
               (xs, []) -> [xs]
 
 blocks :: [[(Int,String)]] -> [Block]
 blocks [] = []
-blocks ([]:bs) = []
+blocks ([]:_) = []
 blocks (b:bs) = (Block {bStart = (fst . head) b , bEnd = (fst . last) b, bContent = concatMap snd b}):(blocks bs)
 
 getBlock :: Int -> [Block] -> Maybe Block
-getBlock num [] = Nothing
-getBlock num ( block@(Block n1 n2 b):bs) = if n1 <= num && num <= n2 then Just block else getBlock num bs
+getBlock _ [] = Nothing
+getBlock num ( block@(Block n1 n2 _):bs) = if n1 <= num && num <= n2 then Just block else getBlock num bs
 
 getBlocks :: String -> [Block]
 getBlocks = blocks . blocks' . linesNum
@@ -114,7 +109,7 @@ addNewLine [x] = [x]
 addNewLine (x:xs) = (x ++ "\n") : (addNewLine xs)
 
 getLineContent :: Int -> [(Int,String)] -> Maybe Block
-getLineContent num [] = Nothing
+getLineContent _ [] = Nothing
 getLineContent num ((n,s):ls) | n == num = Just $ Block n n s
                               | otherwise = getLineContent num ls
 

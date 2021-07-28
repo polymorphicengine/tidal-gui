@@ -23,6 +23,7 @@ import Ui
 import Configure
 import Hint
 
+
 main :: IO ()
 main = do
     execPath <- dropFileName <$> getExecutablePath
@@ -107,6 +108,7 @@ interpretCommands lineBool = do
        env <- ask
        let out = outputE env
            str = streamE env
+           patStatesMVar = patS env
        contentsControl <- liftUI editorValueControl
        contentsDef <- liftUI editorValueDefinitions
        line <- liftUI getCursorLine
@@ -127,8 +129,6 @@ interpretCommands lineBool = do
                                                  case res of
                                                      Right (Right pat) -> do
                                                                        liftUI $ flashSuccess blockLineStart blockLineEnd
-                                                                       let patStatesMVar = patS env
-                                                                       void $ liftUI $ element out # set UI.text (show pat )
                                                                        liftIO $ p num $ pat |< orbit (pure $ num-1)
                                                                        patStates <- liftIO $ tryTakeMVar patStatesMVar
                                                                        case patStates of
@@ -154,8 +154,19 @@ interpretCommands lineBool = do
                                                  res <- liftIO $ runHintSafeStatement s contentsDef str
                                                  case res of
                                                    Right "()" -> liftUI $ flashSuccess blockLineStart blockLineEnd
-                                                   Right outputString -> do liftUI $ flashSuccess blockLineStart blockLineEnd
-                                                                            void $ liftUI $ element out # C.set UI.text outputString
+                                                   Right (['\"','d',num,'\"']) -> do
+                                                                    liftUI $ flashSuccess blockLineStart blockLineEnd
+                                                                    patStates <- liftIO $ tryTakeMVar patStatesMVar
+                                                                    case patStates of
+                                                                          Just pats -> do
+                                                                              let newPatS = Map.insert (read [num]) (PS T.empty 0 0 False False) pats
+                                                                              liftIO $ putMVar patStatesMVar $ newPatS
+                                                                          Nothing -> do
+                                                                              let newPatS = Map.insert (read [num]) (PS T.empty 0 0 False False) Map.empty
+                                                                              liftIO $ putMVar patStatesMVar $ newPatS
+                                                   Right outputString -> do
+                                                                liftUI $ flashSuccess blockLineStart blockLineEnd
+                                                                void $ liftUI $ element out # C.set UI.text outputString
                                                    Left e -> do
                                                                  liftUI $ flashError blockLineStart blockLineEnd
                                                                  void $ liftUI $ element out # C.set UI.text (parseError e)
