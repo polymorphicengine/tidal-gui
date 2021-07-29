@@ -61,18 +61,18 @@ remoteTarget = Target {oName = "threepenny"
                       ,oSchedule = Live
                       ,oHandshake = True
                       }
-                      
+
 bootTidal' :: [String]
 bootTidal' = [ "p = streamReplace tidal"
               ,"d1 pat = do p 1 $ pat |< orbit 0; return \"d1\""
-              ,"d2 pat = do p 1 $ pat |< orbit 2; return \"d2\""
-              ,"d3 pat = do p 1 $ pat |< orbit 2; return \"d3\""
-              ,"d4 pat = do p 1 $ pat |< orbit 3; return \"d4\""
-              ,"d5 pat = do p 1 $ pat |< orbit 4; return \"d5\""
-              ,"d6 pat = do p 1 $ pat |< orbit 5; return \"d6\""
-              ,"d7 pat = do p 1 $ pat |< orbit 6; return \"d7\""
-              ,"d8 pat = do p 1 $ pat |< orbit 7; return \"d8\""
-              ,"d9 pat = do p 1 $ pat |< orbit 8; return \"d9\""
+              ,"d2 pat = do p 2 $ pat |< orbit 1; return \"d2\""
+              ,"d3 pat = do p 3 $ pat |< orbit 2; return \"d3\""
+              ,"d4 pat = do p 4 $ pat |< orbit 3; return \"d4\""
+              ,"d5 pat = do p 5 $ pat |< orbit 4; return \"d5\""
+              ,"d6 pat = do p 6 $ pat |< orbit 5; return \"d6\""
+              ,"d7 pat = do p 7 $ pat |< orbit 6; return \"d7\""
+              ,"d8 pat = do p 8 $ pat |< orbit 7; return \"d8\""
+              ,"d9 pat = do p 9 $ pat |< orbit 8; return \"d9\""
               ,"hush = streamHush tidal"
               ,"panic = do hush; once $ sound \"superpanic\""
               ,"list = streamList tidal"
