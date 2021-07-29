@@ -120,6 +120,7 @@ interpretCommands lineBool = do
            str = streamE env
            highStatesMVar = patH env
            patStatesMVar = patS env
+           p = streamReplace str
        contentsControl <- liftUI editorValueControl
        contentsDef <- liftUI editorValueDefinitions
        line <- liftUI getCursorLine
@@ -128,19 +129,14 @@ interpretCommands lineBool = do
        case blockMaybe of
            Nothing -> void $ liftUI $ element out # set UI.text "Failed to get Block"
            Just (Block blockLineStart blockLineEnd block) -> do
-                   let parsed = parse parseCommand "" block
-                       p = streamReplace str
-                   case parsed of
-                         Left e -> do
-                           liftUI $ flashError blockLineStart blockLineEnd
-                           void $ liftUI $ element out # set UI.text ( "Parse error in " ++ show e )
+                   case parse parseCommand "" block of
+                         Left e -> errorUI $ show e
                          Right command -> case command of
                                          (H name s (ln,ch)) -> do
                                                  res <- liftIO $ runHintPattern True s contentsDef
                                                  case res of
                                                      Right (Right pat) -> do
-                                                                       liftUI $ flashSuccess blockLineStart blockLineEnd
-                                                                       void $ liftUI $ element out # set UI.text ""
+                                                                       successUI >> (outputUI "")
                                                                        liftIO $ p name $ pat
                                                                        highStates <- liftIO $ tryTakeMVar highStatesMVar
                                                                        case highStates of
@@ -150,41 +146,26 @@ interpretCommands lineBool = do
                                                                              Nothing -> do
                                                                                  let newPatS = Map.insert name (HS pat (blockLineStart + ln) ch False False) Map.empty
                                                                                  liftIO $ putMVar highStatesMVar $ newPatS
-                                                     Right (Left e) -> do
-                                                                     liftUI $ flashError blockLineStart blockLineEnd
-                                                                     void $ liftUI $ element out # set UI.text (parseError e)
-                                                     Left e -> do
-                                                                     liftUI $ flashError blockLineStart blockLineEnd
-                                                                     void $ liftUI $ element out # set UI.text (show e)
-                                         (Hush)      -> do
-                                                 liftUI $ flashSuccess blockLineStart blockLineEnd
-                                                 liftIO $ hush str patStatesMVar highStatesMVar
-                                         (Cps x)     -> do
-                                                 liftUI $ flashSuccess blockLineStart blockLineEnd
-                                                 liftIO $ streamOnce str $ cps (pure x)
+                                                     Right (Left e) -> errorUI $ parseError e
+                                                     Left e -> errorUI $ show e
+                                         (Hush)      -> successUI >> (liftIO $ hush str patStatesMVar highStatesMVar)
+                                         (Cps x)     -> successUI >> (liftIO $ streamOnce str $ cps (pure x))
                                          (Other s)   -> do
                                                  res <- liftIO $ runHintStatement True s contentsDef str
                                                  case res of
-                                                   Right "()" -> liftUI $ flashSuccess blockLineStart blockLineEnd
+                                                   Right "()" -> successUI
                                                    Right (['\"','d',num,'\"']) -> do
-                                                                    liftUI $ flashSuccess blockLineStart blockLineEnd
-                                                                    void $ liftUI $ element out # set UI.text ""
+                                                                    successUI >> (outputUI "")
                                                                     patStates <- liftIO $ takeMVar patStatesMVar
                                                                     let newPatS = Map.insert (read [num]) (PS (read [num]) False False) patStates
                                                                     liftIO $ putMVar patStatesMVar $ newPatS
-
-                                                   Right outputString -> do
-                                                                liftUI $ flashSuccess blockLineStart blockLineEnd
-                                                                void $ liftUI $ element out # C.set UI.text outputString
-                                                   Left e -> do
-                                                                 liftUI $ flashError blockLineStart blockLineEnd
-                                                                 void $ liftUI $ element out # C.set UI.text (parseError e)
+                                                   Right outputString -> successUI >> (outputUI outputString)
+                                                   Left e -> errorUI $ parseError e
                                          (T s)        -> do
                                                   res <- liftIO $ getType True s contentsDef str
                                                   case res of
-                                                    (Right t) -> do
-                                                                  liftUI $ flashSuccess blockLineStart blockLineEnd
-                                                                  void $ liftUI $ element out # set UI.text t
-                                                    (Left e) -> do
-                                                                  liftUI $ flashError blockLineStart blockLineEnd
-                                                                  void $ liftUI $ element out # C.set UI.text (parseError e)
+                                                    (Right t) -> successUI >> (outputUI t)
+                                                    (Left e) -> errorUI $ parseError e
+            where successUI = liftUI $ flashSuccess blockLineStart blockLineEnd
+                  errorUI string = (liftUI $ flashError blockLineStart blockLineEnd) >> (void $ liftUI $ element out # C.set UI.text string)
+                  outputUI string = void $ liftUI $ element out # set UI.text string
