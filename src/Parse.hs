@@ -6,7 +6,7 @@ import Control.Monad (void)
 
 type Position = (Int,Int)
 
-data Command = H Int String Position | Hush | Cps Double | T String | Other String deriving Show
+data Command = H String String Position | Hush | Cps Double | T String | Other String deriving Show
 
 data Block = Block {bStart :: Int
                    ,bEnd :: Int
@@ -31,9 +31,9 @@ parsePat = do
         pat <- many anyToken
         case elem '\n' white3 of
           False -> case elem '\n' white4 of
-            False -> return $ H (read h) (white4 ++ pat) (0,length white1 + length h + length white2 + length white3 + 2)
-            True -> return $ H (read h) (white4 ++ pat) (0,2)
-          True -> return $ H (read h) (white4 ++ pat) (1,0)
+            False -> return $ H ("h"++h) (white4 ++ pat) (0,length white1 + length h + length white2 + length white3 + 2)
+            True -> return $ H ("h"++h) (white4 ++ pat) (0,2)
+          True -> return $ H ("h"++h) (white4 ++ pat) (1,0)
 
 parseHush :: Parser Command
 parseHush = do

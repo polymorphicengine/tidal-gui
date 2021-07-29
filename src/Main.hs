@@ -4,7 +4,7 @@ import System.FilePath  (dropFileName)
 import System.Environment (getExecutablePath)
 
 import Control.Concurrent (forkIO)
-import Control.Concurrent.MVar  (newEmptyMVar, tryTakeMVar, MVar, putMVar)
+import Control.Concurrent.MVar  (newEmptyMVar, tryTakeMVar, MVar, putMVar, newMVar, takeMVar)
 import Control.Monad  (void)
 import Control.Monad.Reader (ReaderT, runReaderT, ask)
 
@@ -66,32 +66,43 @@ setup str win = void $ do
                        # set UI.text "const definitionsEditor = CodeMirror.fromTextArea(document.getElementById('definitions-editor'), definitionsEditorSettings);"
 
      --highlight (experimental)
-     pats <- liftIO $ newEmptyMVar
-     void $ liftIO $ forkIO $ highlightLoop [] str win pats
+     high <- liftIO newEmptyMVar
+     pats <- liftIO $ newMVar Map.empty
+     void $ liftIO $ forkIO $ highlightLoop [] str win high
 
-     let env = Env win str output pats
+     let env = Env win str output high pats
          evaluateBlock = runReaderT (interpretCommands False) env
          evaluateLine = runReaderT (interpretCommands True) env
 
      createHaskellFunction "evaluateBlock" evaluateBlock
      createHaskellFunction "evaluateLine" evaluateLine
-     createHaskellFunction "hush" (bigHush str pats)
-     createHaskellFunction "mute1" (mute str pats 1)
-     createHaskellFunction "mute2" (mute str pats 2)
-     createHaskellFunction "mute3" (mute str pats 3)
-     createHaskellFunction "mute4" (mute str pats 4)
-     createHaskellFunction "mute5" (mute str pats 5)
-     createHaskellFunction "mute6" (mute str pats 6)
-     createHaskellFunction "mute7" (mute str pats 7)
-     createHaskellFunction "mute8" (mute str pats 8)
-     createHaskellFunction "mute9" (mute str pats 9)
+     createHaskellFunction "hush" (hush str pats high)
+     createHaskellFunction "muteH1" (muteH str high "h1")
+     createHaskellFunction "muteH2" (muteH str high "h2")
+     createHaskellFunction "muteH3" (muteH str high "h3")
+     createHaskellFunction "muteH4" (muteH str high "h4")
+     createHaskellFunction "muteH5" (muteH str high "h5")
+     createHaskellFunction "muteH6" (muteH str high "h6")
+     createHaskellFunction "muteH7" (muteH str high "h7")
+     createHaskellFunction "muteH8" (muteH str high "h8")
+     createHaskellFunction "muteH9" (muteH str high "h9")
 
+     createHaskellFunction "muteP1" (muteP str pats 1)
+     createHaskellFunction "muteP2" (muteP str pats 2)
+     createHaskellFunction "muteP3" (muteP str pats 3)
+     createHaskellFunction "muteP4" (muteP str pats 4)
+     createHaskellFunction "muteP5" (muteP str pats 5)
+     createHaskellFunction "muteP6" (muteP str pats 6)
+     createHaskellFunction "muteP7" (muteP str pats 7)
+     createHaskellFunction "muteP8" (muteP str pats 8)
+     createHaskellFunction "muteP9" (muteP str pats 9)
      -- put elements on body
      UI.getBody win #+ [element definitions, element ctrl, element load, element save, element settings, element makeCtrlEditor, element makeDefsEditor, element output]
 
 data Env = Env {windowE :: Window
                 ,streamE :: Stream
                 ,outputE :: Element
+                ,patH :: MVar HighlightStates
                 ,patS :: MVar PatternStates
                 }
 
@@ -107,6 +118,7 @@ interpretCommands lineBool = do
        env <- ask
        let out = outputE env
            str = streamE env
+           highStatesMVar = patH env
            patStatesMVar = patS env
        contentsControl <- liftUI editorValueControl
        contentsDef <- liftUI editorValueDefinitions
@@ -123,20 +135,21 @@ interpretCommands lineBool = do
                            liftUI $ flashError blockLineStart blockLineEnd
                            void $ liftUI $ element out # set UI.text ( "Parse error in " ++ show e )
                          Right command -> case command of
-                                         (H num s (ln,ch)) -> do
+                                         (H name s (ln,ch)) -> do
                                                  res <- liftIO $ runHintPattern True s contentsDef
                                                  case res of
                                                      Right (Right pat) -> do
                                                                        liftUI $ flashSuccess blockLineStart blockLineEnd
-                                                                       liftIO $ p num $ pat |< orbit (pure $ num-1)
-                                                                       patStates <- liftIO $ tryTakeMVar patStatesMVar
-                                                                       case patStates of
+                                                                       void $ liftUI $ element out # set UI.text ""
+                                                                       liftIO $ p name $ pat
+                                                                       highStates <- liftIO $ tryTakeMVar highStatesMVar
+                                                                       case highStates of
                                                                              Just pats -> do
-                                                                                 let newPatS = Map.insert num (PS pat (blockLineStart + ln) ch False False) pats
-                                                                                 liftIO $ putMVar patStatesMVar $ newPatS
+                                                                                 let newPatS = Map.insert name (HS pat (blockLineStart + ln) ch False False) pats
+                                                                                 liftIO $ putMVar highStatesMVar $ newPatS
                                                                              Nothing -> do
-                                                                                 let newPatS = Map.insert num (PS pat (blockLineStart + ln) ch False False) Map.empty
-                                                                                 liftIO $ putMVar patStatesMVar $ newPatS
+                                                                                 let newPatS = Map.insert name (HS pat (blockLineStart + ln) ch False False) Map.empty
+                                                                                 liftIO $ putMVar highStatesMVar $ newPatS
                                                      Right (Left e) -> do
                                                                      liftUI $ flashError blockLineStart blockLineEnd
                                                                      void $ liftUI $ element out # set UI.text (parseError e)
@@ -145,7 +158,7 @@ interpretCommands lineBool = do
                                                                      void $ liftUI $ element out # set UI.text (show e)
                                          (Hush)      -> do
                                                  liftUI $ flashSuccess blockLineStart blockLineEnd
-                                                 liftIO $ bigHush str (patS env)
+                                                 liftIO $ hush str patStatesMVar highStatesMVar
                                          (Cps x)     -> do
                                                  liftUI $ flashSuccess blockLineStart blockLineEnd
                                                  liftIO $ streamOnce str $ cps (pure x)
@@ -155,14 +168,11 @@ interpretCommands lineBool = do
                                                    Right "()" -> liftUI $ flashSuccess blockLineStart blockLineEnd
                                                    Right (['\"','d',num,'\"']) -> do
                                                                     liftUI $ flashSuccess blockLineStart blockLineEnd
-                                                                    patStates <- liftIO $ tryTakeMVar patStatesMVar
-                                                                    case patStates of
-                                                                          Just pats -> do
-                                                                              let newPatS = Map.insert (read [num]) (PS T.empty 0 0 False False) pats
-                                                                              liftIO $ putMVar patStatesMVar $ newPatS
-                                                                          Nothing -> do
-                                                                              let newPatS = Map.insert (read [num]) (PS T.empty 0 0 False False) Map.empty
-                                                                              liftIO $ putMVar patStatesMVar $ newPatS
+                                                                    void $ liftUI $ element out # set UI.text ""
+                                                                    patStates <- liftIO $ takeMVar patStatesMVar
+                                                                    let newPatS = Map.insert (read [num]) (PS (read [num]) False False) patStates
+                                                                    liftIO $ putMVar patStatesMVar $ newPatS
+
                                                    Right outputString -> do
                                                                 liftUI $ flashSuccess blockLineStart blockLineEnd
                                                                 void $ liftUI $ element out # C.set UI.text outputString

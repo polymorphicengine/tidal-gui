@@ -16,14 +16,14 @@ import Data.List  ((\\))
 --each event can be identified through it's whole, so it's drawn only when it first appears
 type Buffer = [((Int,Int,Int), Maybe Arc)]
 
-data PatternState = PS {sPat :: ControlPattern
+data HighlightState = HS {sPat :: ControlPattern
                        ,bShift :: Int
                        ,cShift :: Int
-                       ,muted :: Bool
-                       ,solo :: Bool
+                       ,hMuted :: Bool
+                       ,hSolo :: Bool
                        } deriving Show
 
-type PatternStates = Map Int PatternState
+type HighlightStates = Map String HighlightState
 
 highlight :: (Int, Int, Int) -> UI JSObject
 highlight (line, st, e) = callFunction $ ffi "(controlEditor.markText({line: %1, ch: %2}, {line: %1, ch: %3}, {css: \"background-color: red\"}))" line st e
@@ -42,7 +42,7 @@ locs t bSh cSh pat = concatMap (evToLocs bSh cSh) $ queryArc pat (Arc t t)
               toLoc blockSh colSh ((bx, by), (ex, _)) | by == 1 = (blockSh+by - 1, bx + colSh, ex + colSh)
                                                 | otherwise = (blockSh+by - 1, bx, ex)
 
-highlightLoop :: Buffer -> Stream -> Window -> MVar PatternStates -> IO ()
+highlightLoop :: Buffer -> Stream -> Window -> MVar HighlightStates -> IO ()
 highlightLoop buffer stream win patStatesMVar = do
                 patStates <- readMVar patStatesMVar
                 tempo <- readMVar $ sTempoMV stream
@@ -55,13 +55,13 @@ highlightLoop buffer stream win patStatesMVar = do
                 runUI win flushCallBuffer
                 highlightLoop buffer' stream win patStatesMVar
 
-highlightPats :: Rational -> Buffer -> Window -> [PatternState] -> IO ([JSObject],Buffer)
+highlightPats :: Rational -> Buffer -> Window -> [HighlightState] -> IO ([JSObject],Buffer)
 highlightPats _ buffer _ [] = return ([], buffer)
-highlightPats c buffer win ((PS pat bSh cSh True _):ps) = do
+highlightPats c buffer win ((HS pat bSh cSh True _):ps) = do
                                               let ls = locs c bSh cSh pat
                                               (marks,buffer') <- highlightPats c (buffer \\ ls) win ps
                                               return (marks, buffer')
-highlightPats c buffer win ((PS pat bSh cSh False _):ps) = do
+highlightPats c buffer win ((HS pat bSh cSh False _):ps) = do
                                               let ls = locs c bSh cSh pat
                                               (marks,buffer') <- highlightMany buffer ls win
                                               (marks',buffer'') <- highlightPats c buffer' win ps
