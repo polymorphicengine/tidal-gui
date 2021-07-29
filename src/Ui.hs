@@ -36,8 +36,8 @@ hush :: Stream -> MVar PatternStates -> MVar HighlightStates -> IO ()
 hush str patStatesMVar highStatesMVar = do
               _ <- takeMVar patStatesMVar
               _ <- putMVar patStatesMVar $ Map.empty
-              _ <- takeMVar highStatesMVar
-              _ <- putMVar highStatesMVar $ Map.empty
+              _ <- tryTakeMVar highStatesMVar
+              _ <- tryPutMVar highStatesMVar $ Map.empty
               streamHush str
 
 muteP :: Stream -> MVar PatternStates -> Int -> IO ()
