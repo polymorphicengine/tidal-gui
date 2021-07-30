@@ -1,0 +1,27 @@
+.left{
+      overflow: auto;
+      float: left;
+      margin:10px;
+      resize: horizontal;
+      height: 70vh;
+      width: 60vw;
+      }
+      
+.right{ 
+      overflow: auto;
+      float:left; 
+      margin:10px;
+      height: 70vh;
+      }
+      
+.editors{
+	overflow: hidden;
+	border: 1px solid black;
+	}
+	
+.outputBox{
+        height: 10vh;
+	border: 2px solid black;
+	resize: vertical;
+	overflow: auto;
+	}
