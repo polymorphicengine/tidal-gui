@@ -3,12 +3,12 @@
 import System.FilePath  (dropFileName)
 import System.Environment (getExecutablePath)
 
-import Control.Concurrent (forkIO)
-import Control.Concurrent.MVar  (newEmptyMVar, tryTakeMVar, MVar, putMVar, newMVar, takeMVar)
+import Control.Concurrent (forkIO, threadDelay)
+import Control.Concurrent.MVar  (newEmptyMVar, tryTakeMVar, MVar, putMVar, newMVar, takeMVar, readMVar)
 import Control.Monad  (void)
 import Control.Monad.Reader (ReaderT, runReaderT, ask)
 
-import Data.Map as Map (insert, empty)
+import Data.Map as Map (insert, empty, toList)
 
 import Sound.Tidal.Context as T hiding (mute,solo,(#),s)
 
@@ -43,12 +43,17 @@ setup :: Stream -> Window -> UI ()
 setup str win = void $ do
      --setup GUI
      void $ return win # set title "Tidal"
-     definitions <- UI.textarea
-                 # set (attr "id") "definitions-editor"
-     ctrl <- UI.textarea
-                 # set (attr "id") "control-editor"
 
-     output <- UI.pre #+ [ string "output goes here" ]
+     UI.addStyleSheet win "tidal.css"
+
+     definitions <- UI.textarea # set (attr "id") "definitions-editor"
+     ctrl <- UI.textarea # set (attr "id") "control-editor"
+
+     output <- UI.pre #. "outputBox"
+                      #+ [ string "output goes here" ]
+     display <- UI.pre #. "displayBox"
+                       #+ [ string "state display" ]
+
      load <- UI.input
                   # set (attr "type") "file"
                   # set (attr "id") "fileInput"
@@ -69,6 +74,7 @@ setup str win = void $ do
      high <- liftIO newEmptyMVar
      pats <- liftIO $ newMVar Map.empty
      void $ liftIO $ forkIO $ highlightLoop [] str win high
+     void $ liftIO $ forkIO $ displayLoop win display str
 
      let env = Env win str output high pats
          evaluateBlock = runReaderT (interpretCommands False) env
@@ -97,7 +103,18 @@ setup str win = void $ do
      createHaskellFunction "muteP8" (muteP str pats 8)
      createHaskellFunction "muteP9" (muteP str pats 9)
      -- put elements on body
-     UI.getBody win #+ [element definitions, element ctrl, element load, element save, element settings, element makeCtrlEditor, element makeDefsEditor, element output]
+     UI.getBody win #+ [element display
+                       ,UI.div #. "editors" #+ [UI.div #. "left"
+                                                      #+ [element ctrl]
+                                               ,UI.div #. "right" #+ [element definitions]
+                                               ]
+                       ,element load
+                       ,element save
+                       ,element output
+                       ,element settings
+                       ,element makeCtrlEditor
+                       ,element makeDefsEditor
+                       ]
 
 data Env = Env {windowE :: Window
                 ,streamE :: Stream
@@ -169,3 +186,12 @@ interpretCommands lineBool = do
             where successUI = liftUI $ flashSuccess blockLineStart blockLineEnd
                   errorUI string = (liftUI $ flashError blockLineStart blockLineEnd) >> (void $ liftUI $ element out # C.set UI.text string)
                   outputUI string = void $ liftUI $ element out # set UI.text string
+
+
+displayLoop :: Window -> Element -> Stream -> IO ()
+displayLoop win display stream = do
+                          valueMap <- liftIO $ readMVar (sStateMV stream)
+                          playMap <- liftIO $ readMVar (sPMapMV stream)
+                          runUI win $ element display # set UI.text (show valueMap ++ "\n")
+                          threadDelay 100000 -- seems to be a good value
+                          displayLoop win display stream
