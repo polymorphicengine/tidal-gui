@@ -46,3 +46,19 @@ function openDocs(cm){
 	var word = cm.getRange(loc.anchor, loc.head); 
 	window.open("https://tidalcycles.org/search?q=" + word,"_blank")
 }
+
+function increaseFontSize(cm){
+     ele = cm.getWrapperElement();
+     style = window.getComputedStyle(ele, null).getPropertyValue('font-size');
+     currentSize = parseFloat(style);
+     ele.style.fontSize = (currentSize + 2) + 'px';
+     cm.refresh();
+}
+
+function decreaseFontSize(cm){
+     ele = cm.getWrapperElement();
+     style = window.getComputedStyle(ele, null).getPropertyValue('font-size');
+     currentSize = parseFloat(style);
+     ele.style.fontSize = (currentSize - 2) + 'px';
+     cm.refresh();
+}

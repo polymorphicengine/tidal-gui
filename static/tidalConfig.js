@@ -1,7 +1,7 @@
 const controlExtraKeys = {"Ctrl-.": hush, 
 			   "Ctrl-Enter": evaluateBlock,
 			   "Shift-Enter": evaluateLine,
-			   "Ctrl-Up": upFocus, 
+			   "Ctrl-Right": upFocus, 
 			   "Ctrl-D": openDocs, 
 			   "Shift-Ctrl-1": muteH1, 
 			   "Shift-Ctrl-2": muteH2, 
@@ -23,12 +23,14 @@ const controlExtraKeys = {"Ctrl-.": hush,
 			   "Ctrl-9": muteP9,  
 			   "Ctrl-S": controlSaveFile, 
 			   "Ctrl-O": controlLoadFile, 
-			   "Ctrl-/": 'toggleComment'}
+			   "Ctrl-/": 'toggleComment',
+			   "Shift-Ctrl--": increaseFontSize,
+			   "Ctrl--": decreaseFontSize}
 			   
 const definitionsExtraKeys = {"Ctrl-.": hush, 
 			"Ctrl-Enter": evaluateBlock, 
 			"Shift-Enter": evaluateLine,
-			"Ctrl-Down": downFocus, 
+			"Ctrl-Left": downFocus, 
 			"Ctrl-D": openDocs, 
 		   	"Shift-Ctrl-1": muteH1, 
 		   	"Shift-Ctrl-2": muteH2, 
@@ -48,7 +50,9 @@ const definitionsExtraKeys = {"Ctrl-.": hush,
 			"Ctrl-7": muteP7, 
 			"Ctrl-8": muteP8, 
 			"Ctrl-9": muteP9,  
-			"Ctrl-/": 'toggleComment'}
+			"Ctrl-/": 'toggleComment',
+			"Shift-Ctrl--": increaseFontSize,
+			"Ctrl--": decreaseFontSize}
 
 const controlEditorSettings = {lineNumbers: true, 
 			 	mode: "haskell", 
