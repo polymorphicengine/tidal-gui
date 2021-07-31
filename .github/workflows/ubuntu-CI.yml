@@ -92,12 +92,16 @@ jobs:
       run: |
             cd /home/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/ghc-packages
             rm -r ghc-${{ matrix.ghc }}
+            rm -r Cabal-*
             
     - name: fake gcc
       run: |
             mkdir binary/bin
             cp -r fake_gcc.sh binary/bin/fake_gcc.sh
             sed -i 's/cc/bin\/fake_gcc.sh/g' /home/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/settings
+   
+    - name: move static
+      run: cp -r static binary/static
    
     - name: move executable
       run: cp -r dist-newstyle/build/x86_64-linux/ghc-${{ matrix.ghc }}/tidal-gui-0.1.0.0/x/tidal-gui/build/tidal-gui/tidal-gui binary/tidal-gui
