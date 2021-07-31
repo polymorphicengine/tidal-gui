@@ -64,11 +64,14 @@ jobs:
     - name: move installed packages
       run: Copy-Item -Path 'C:\sr\ghc-${{ matrix.ghc }}\' -Recurse -Destination 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\packages'
    
-    - name: change paths in config files
+    - name: change paths in config files (packages)
       run: |
             Move-Item -Path 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\packages\package.db\' -Destination 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\package.db\'
             $configs = Get-ChildItem 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\package.db\' -Recurse
             $configs | %{ (gc $_) -replace "C:\\sr\\ghc-${{ matrix.ghc }}", '${pkgroot}\packages' | Set-Content $_.fullname}
+   
+    - name: move ghc package config
+      run: Move-Item -Path 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\ghc-packages\package.conf.d\' -Destination 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\package.conf.d\'
    
     - name: ghc-pkg recache
       run: | 
