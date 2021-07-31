@@ -49,20 +49,14 @@ jobs:
     - name: test
       run: ls C:\tools\ghc-8.10.5\lib\
       
-#     - name: remove unneccessary libs 
-#       run: | 
-#             Remove-Item 'C:\tools\ghc-${{ matrix.ghc }}\lib\x86_64-windows-ghc-${{ matrix.ghc }}\ghc-${{ matrix.ghc }}' -Recurse
-#             Remove-Item 'C:\tools\ghc-${{ matrix.ghc }}\lib\x86_64-windows-ghc-${{ matrix.ghc }}\Cabal-${{ matrix.cabal }}' -Recurse
-#             Remove-Item 'C:\tools\ghc-${{ matrix.ghc }}\lib\x86_64-windows-ghc-${{ matrix.ghc }}\rts-1.0' -Recurse
+    - name: remove unneccessary libs 
+      run: | 
+            Remove-Item 'C:\tools\ghc-${{ matrix.ghc }}\lib\ghc-${{ matrix.ghc }}' -Recurse
+            Remove-Item 'C:\tools\ghc-${{ matrix.ghc }}\lib\Cabal-*' -Recurse
+            Remove-Item 'C:\tools\ghc-${{ matrix.ghc }}\lib\rts' -Recurse
             
     - name: move GHC libs and configs
-      run: |
-           Copy-Item -Path 'C:\tools\ghc-${{ matrix.ghc }}\lib\x86_64-windows-ghc-${{ matrix.ghc }}\' -Recurse -Destination 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\x86_64-windows-ghc-${{ matrix.ghc }}\'
-            Copy-Item -Path 'C:\tools\ghc-${{ matrix.ghc }}\lib\package.conf.d' -Recurse -Destination 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\package.conf.d\'
-            Copy-Item -Path 'C:\tools\ghc-${{ matrix.ghc }}\lib\llvm-passes' -Destination 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\llvm-passes'
-            Copy-Item -Path 'C:\tools\ghc-${{ matrix.ghc }}\lib\llvm-targets' -Destination 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\llvm-targets'
-            Copy-Item -Path 'C:\tools\ghc-${{ matrix.ghc }}\lib\platformConstants' -Destination 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\platformConstants'
-            Copy-Item -Path 'C:\tools\ghc-${{ matrix.ghc }}\lib\settings' -Destination 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\settings'
+      run: Copy-Item -Path 'C:\tools\ghc-${{ matrix.ghc }}\lib\' -Recurse -Destination 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\ghc-packages'
             
     - name: move mingw
       run: Copy-Item -Path 'C:\tools\ghc-${{ matrix.ghc }}\mingw\' -Recurse -Destination 'D:\a\tidal-gui\tidal-gui\binary\mingw'
