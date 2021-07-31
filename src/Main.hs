@@ -52,7 +52,6 @@ setup str win = void $ do
      output <- UI.pre #. "outputBox"
                       #+ [ string "output goes here" ]
      display <- UI.pre #. "displayBox"
-                       #+ [ string "state display" ]
 
      load <- UI.input
                   # set (attr "type") "file"
@@ -192,6 +191,21 @@ displayLoop :: Window -> Element -> Stream -> IO ()
 displayLoop win display stream = do
                           valueMap <- liftIO $ readMVar (sStateMV stream)
                           playMap <- liftIO $ readMVar (sPMapMV stream)
-                          runUI win $ element display # set UI.text (show valueMap ++ "\n")
+                          let contents = toList valueMap
+                          runUI win $ element display # set UI.text (show $ map (\(x,y) -> (x,show y) ) contents)
                           threadDelay 100000 -- seems to be a good value
                           displayLoop win display stream
+
+showVal :: Value -> String
+showVal (VS s)  = ('"':s) ++ "\""
+showVal (VI i)  = show i
+showVal (VF f)  = show f ++ "f"
+showVal (VN n)  = show n ++ "n"
+showVal (VR r)  = show r ++ "r"
+showVal (VB b)  = show b
+showVal (VX xs) = show xs
+showVal (VPattern pat) = "(" ++ show pat ++ ")"
+showVal (VState f) = show $ f Map.empty
+showVal (VList vs) = saveLastShow vs
+              where saveLastShow ls | ls == [] = ""
+                                    | otherwise = show $ last ls

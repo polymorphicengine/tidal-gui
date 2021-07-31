@@ -42,7 +42,7 @@ libsU' :: [ModuleImport]
 libsU' = [ModuleImport x NotQualified NoImportList | x <- libsU]
 
 libs :: [ModuleImport]
-libs = [ModuleImport "Data.Map" (NotQualified) (HidingList ["size"]), ModuleImport "Text.Parsec" NotQualified (HidingList ["Stream"])] ++ libsU'
+libs = [ModuleImport "Data.Map" (NotQualified) (HidingList ["size"])] ++ libsU'
 
 exts :: [Extension]
 exts = [OverloadedStrings]
