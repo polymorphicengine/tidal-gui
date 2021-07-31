@@ -92,8 +92,6 @@ jobs:
       run: |
             cd /home/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/ghc-packages
             rm -r ghc-${{ matrix.ghc }}
-            rm -r Cabal-${{ matrix.cabal }}
-            rm -r rts
             
     - name: fake gcc
       run: |
