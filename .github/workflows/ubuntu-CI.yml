@@ -106,11 +106,7 @@ jobs:
     - name: move executable
       run: cp -r dist-newstyle/build/x86_64-linux/ghc-${{ matrix.ghc }}/tidal-gui-0.1.0.0/x/tidal-gui/build/tidal-gui/tidal-gui binary/tidal-gui
   
-    - name: zip files
-      run: |
-            cd /home/runner/work/tidal-gui/tidal-gui/
-            tar cvfj binary.tar binary/*
     - uses: actions/upload-artifact@v2
       with:
         name: tidal-gui
-        path: /home/runner/work/tidal-gui/tidal-gui/binary.tar
+        path: /home/runner/work/tidal-gui/tidal-gui/binary
