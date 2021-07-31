@@ -100,7 +100,7 @@ jobs:
             sed -i 's/cc/bin\/fake_gcc.sh/g' /home/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/settings
    
     - name: move executable
-      run: cp -r dist-newstyle/build/x86_64-linux/ghc-9.0.1/tidal-gui-0.1.0.0/x/tidal-gui/build/tidal-gui/tidal-gui binary/tidal-gui
+      run: cp -r dist-newstyle/build/x86_64-linux/ghc-${{ matrix.ghc }}/tidal-gui-0.1.0.0/x/tidal-gui/build/tidal-gui/tidal-gui binary/tidal-gui
   
     - name: zip files
       run: |
