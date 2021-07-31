@@ -12,7 +12,7 @@ jobs:
     runs-on: windows-latest
     strategy:
       matrix:
-        ghc: ['8.10.1']
+        ghc: ['8.10.5']
         cabal: ['3.4.0.0']
         
     steps:
@@ -46,45 +46,45 @@ jobs:
     - name: cabal build
       run: cabal v2-build --enable-tests
     
-#     - name: remove unneccessary libs 
-#       run: | 
-#             Remove-Item 'C:\tools\ghc-${{ matrix.ghc }}\lib\x86_64-windows-ghc-${{ matrix.ghc }}\ghc-${{ matrix.ghc }}' -Recurse
-#             Remove-Item 'C:\tools\ghc-${{ matrix.ghc }}\lib\x86_64-windows-ghc-${{ matrix.ghc }}\Cabal-${{ matrix.cabal }}' -Recurse
-#             Remove-Item 'C:\tools\ghc-${{ matrix.ghc }}\lib\x86_64-windows-ghc-${{ matrix.ghc }}\rts-1.0' -Recurse
+    - name: remove unneccessary libs 
+      run: | 
+            Remove-Item 'C:\tools\ghc-${{ matrix.ghc }}\lib\x86_64-windows-ghc-${{ matrix.ghc }}\ghc-${{ matrix.ghc }}' -Recurse
+            Remove-Item 'C:\tools\ghc-${{ matrix.ghc }}\lib\x86_64-windows-ghc-${{ matrix.ghc }}\Cabal-${{ matrix.cabal }}' -Recurse
+            Remove-Item 'C:\tools\ghc-${{ matrix.ghc }}\lib\x86_64-windows-ghc-${{ matrix.ghc }}\rts-1.0' -Recurse
             
     - name: move GHC libs and configs
-      run: ls C:\tools\
-#            Copy-Item -Path 'C:\tools\ghc-${{ matrix.ghc }}\lib\x86_64-windows-ghc-${{ matrix.ghc }}\' -Recurse -Destination 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\x86_64-windows-ghc-${{ matrix.ghc }}\'
-#             Copy-Item -Path 'C:\tools\ghc-${{ matrix.ghc }}\lib\package.conf.d' -Recurse -Destination 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\package.conf.d\'
-#             Copy-Item -Path 'C:\tools\ghc-${{ matrix.ghc }}\lib\llvm-passes' -Destination 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\llvm-passes'
-#             Copy-Item -Path 'C:\tools\ghc-${{ matrix.ghc }}\lib\llvm-targets' -Destination 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\llvm-targets'
-#             Copy-Item -Path 'C:\tools\ghc-${{ matrix.ghc }}\lib\platformConstants' -Destination 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\platformConstants'
-#             Copy-Item -Path 'C:\tools\ghc-${{ matrix.ghc }}\lib\settings' -Destination 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\settings'
+      run: |
+           Copy-Item -Path 'C:\tools\ghc-${{ matrix.ghc }}\lib\x86_64-windows-ghc-${{ matrix.ghc }}\' -Recurse -Destination 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\x86_64-windows-ghc-${{ matrix.ghc }}\'
+            Copy-Item -Path 'C:\tools\ghc-${{ matrix.ghc }}\lib\package.conf.d' -Recurse -Destination 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\package.conf.d\'
+            Copy-Item -Path 'C:\tools\ghc-${{ matrix.ghc }}\lib\llvm-passes' -Destination 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\llvm-passes'
+            Copy-Item -Path 'C:\tools\ghc-${{ matrix.ghc }}\lib\llvm-targets' -Destination 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\llvm-targets'
+            Copy-Item -Path 'C:\tools\ghc-${{ matrix.ghc }}\lib\platformConstants' -Destination 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\platformConstants'
+            Copy-Item -Path 'C:\tools\ghc-${{ matrix.ghc }}\lib\settings' -Destination 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\settings'
             
-#     - name: move mingw
-#       run: Copy-Item -Path 'C:\tools\ghc-${{ matrix.ghc }}\mingw\' -Recurse -Destination 'D:\a\tidal-gui\tidal-gui\binary\mingw'
+    - name: move mingw
+      run: Copy-Item -Path 'C:\tools\ghc-${{ matrix.ghc }}\mingw\' -Recurse -Destination 'D:\a\tidal-gui\tidal-gui\binary\mingw'
    
-#     - name: move installed packages
-#       run: Copy-Item -Path 'C:\sr\ghc-${{ matrix.ghc }}\' -Recurse -Destination 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\packages'
+    - name: move installed packages
+      run: Copy-Item -Path 'C:\sr\ghc-${{ matrix.ghc }}\' -Recurse -Destination 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\packages'
    
-#     - name: change paths in config files
-#       run: |
-#             Move-Item -Path 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\packages\package.db\' -Destination 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\package.db\'
-#             $configs = Get-ChildItem 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\package.db\' -Recurse
-#             $configs | %{ (gc $_) -replace "C:\\sr\\ghc-${{ matrix.ghc }}", '${pkgroot}\packages' | Set-Content $_.fullname}
+    - name: change paths in config files
+      run: |
+            Move-Item -Path 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\packages\package.db\' -Destination 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\package.db\'
+            $configs = Get-ChildItem 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\package.db\' -Recurse
+            $configs | %{ (gc $_) -replace "C:\\sr\\ghc-${{ matrix.ghc }}", '${pkgroot}\packages' | Set-Content $_.fullname}
    
-#     - name: ghc-pkg recache
-#       run: | 
-#             $ENV:GHC_PACKAGE_PATH="D:\a\tidal-gui\tidal-gui\binary\haskell-libs\package.conf.d;D:\a\tidal-gui\tidal-gui\binary\haskell-libs\package.db"
-#             ghc-pkg recache
+    - name: ghc-pkg recache
+      run: | 
+            $ENV:GHC_PACKAGE_PATH="D:\a\tidal-gui\tidal-gui\binary\haskell-libs\package.conf.d;D:\a\tidal-gui\tidal-gui\binary\haskell-libs\package.db"
+            ghc-pkg recache
    
-#     - name: move executable
-#       run: Copy-Item -Path 'D:\a\tidal-gui\tidal-gui\dist-newstyle\build\x86_64-windows\ghc-${{ matrix.ghc }}\tidal-gui-0.1.0.0\x\tidal-gui\build\tidal-gui\tidal-gui.exe' -Recurse -Destination 'D:\a\tidal-gui\tidal-gui\binary\tidal-gui.exe'
+    - name: move executable
+      run: Copy-Item -Path 'D:\a\tidal-gui\tidal-gui\dist-newstyle\build\x86_64-windows\ghc-${{ matrix.ghc }}\tidal-gui-0.1.0.0\x\tidal-gui\build\tidal-gui\tidal-gui.exe' -Recurse -Destination 'D:\a\tidal-gui\tidal-gui\binary\tidal-gui.exe'
       
-#     - name: zip files
-#       run: Compress-Archive -LiteralPath 'D:\a\tidal-gui\tidal-gui\binary\' -DestinationPath 'D:\a\tidal-gui\tidal-gui\binary.zip'
+    - name: zip files
+      run: Compress-Archive -LiteralPath 'D:\a\tidal-gui\tidal-gui\binary\' -DestinationPath 'D:\a\tidal-gui\tidal-gui\binary.zip'
 
-#     - uses: actions/upload-artifact@v2
-#       with:
-#         name: tidal-gui
-#         path: 'D:\a\tidal-gui\tidal-gui\binary.zip'
+    - uses: actions/upload-artifact@v2
+      with:
+        name: tidal-gui
+        path: 'D:\a\tidal-gui\tidal-gui\binary.zip'
