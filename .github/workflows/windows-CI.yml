@@ -47,7 +47,7 @@ jobs:
       run: cabal v2-build --enable-tests
     
     - name: test
-      run: ls C:\tools\
+      run: ls C:\tools\ghc-8.10.5\
       
 #     - name: remove unneccessary libs 
 #       run: | 
