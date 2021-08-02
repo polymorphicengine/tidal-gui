@@ -12,7 +12,7 @@ jobs:
     runs-on: macOS-latest
     strategy:
       matrix:
-        ghc: ['8.10.5']
+        ghc: ['8.10.1']
         cabal: ['3.4.0.0']
         
     steps:
@@ -83,7 +83,7 @@ jobs:
             export LC_ALL=C
             mv /Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/packages/package.db /Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/package.db
             cd /Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/package.db/
-            sed -i '' 's+/Users/runner/.cabal/store/ghc-8.10.5+${pkgroot}/packages+g' *
+            sed -i '' 's+/Users/runner/.cabal/store/ghc-8.10.1+${pkgroot}/packages+g' *
    
     - name: move ghc settings etc
       run: |
