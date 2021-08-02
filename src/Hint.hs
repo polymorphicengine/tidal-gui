@@ -15,8 +15,11 @@ import Data.IORef
 
 import Configure
 
+args:: String -> [String]
+args lib = ["-clear-package-db", "-package-db", lib ++ "/package.conf.d", "-package-db", lib ++ "/package.db", "-v"]
+
 unsafeInterpreter :: Interpreter a -> IO (Either InterpreterError a)
-unsafeInterpreter = Hint.unsafeRunInterpreterWithArgsLibdir ["-v"] "haskell-libs"
+unsafeInterpreter = Hint.unsafeRunInterpreterWithArgsLibdir (args "haskell-lib") "haskell-libs"
 
 patternInterpreter :: String -> String -> Interpreter ControlPattern
 patternInterpreter input stmts  = do
