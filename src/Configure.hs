@@ -1,14 +1,13 @@
 module Configure where
 
-import Language.Haskell.Interpreter 
+import Language.Haskell.Interpreter
 import Sound.Tidal.Context(Schedule(Live))
 import Sound.Tidal.Stream (Target(..))
 import Data.List
 
 libsU :: [String]
 libsU = [
-    "Sound.Tidal.Pattern"
-  , "Sound.Tidal.Transition"
+    "Sound.Tidal.Transition"
   , "Sound.Tidal.Context"
   , "Sound.Tidal.Simple"
   , "Control.Applicative"
