@@ -4,6 +4,9 @@ module Hint where
 
 import Control.Exception  (SomeException,try)
 
+import System.FilePath  (dropFileName)
+import System.Environment (getExecutablePath)
+
 import Sound.Tidal.Context (ControlPattern,Stream)
 import Sound.Tidal.Utils (deltaMini)
 
@@ -19,7 +22,9 @@ args:: String -> [String]
 args lib = ["-clear-package-db", "-package-db", lib ++ "/package.conf.d", "-package-db", lib ++ "/package.db", "-v"]
 
 unsafeInterpreter :: Interpreter a -> IO (Either InterpreterError a)
-unsafeInterpreter = Hint.unsafeRunInterpreterWithArgsLibdir (args "haskell-lib") "haskell-libs"
+unsafeInterpreter interpreter = do
+  execPath <- dropFileName <$> getExecutablePath
+  Hint.unsafeRunInterpreterWithArgsLibdir (args $ execPath ++ "haskell-lib") "haskell-libs" interpreter
 
 patternInterpreter :: String -> String -> Interpreter ControlPattern
 patternInterpreter input stmts  = do
