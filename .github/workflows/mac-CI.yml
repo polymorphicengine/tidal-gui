@@ -102,7 +102,7 @@ jobs:
       run: |
             cd /Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/ghc-packages
             rm -R ghc-${{ matrix.ghc }}
-            rm -R Cabal-${{ matrix.cabal }}
+            rm -R Cabal-*
             rm -R rts
             
     - name: fake gcc
@@ -117,6 +117,8 @@ jobs:
     - name: move executable
       run: cp -R dist-newstyle/build/x86_64-osx/ghc-${{ matrix.ghc }}/tidal-gui-0.1.0.0/x/tidal-gui/build/tidal-gui/tidal-gui binary/tidal-gui
   
+    - name: move static
+      run : cp -R static binary/static
   
     - name: zip files
       run: |
