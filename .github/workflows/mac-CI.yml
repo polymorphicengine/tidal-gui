@@ -113,6 +113,7 @@ jobs:
             mkdir binary/bin
             cp -R fake_gcc.sh binary/bin/fake_gcc.sh
             sed -i '' 's+gcc+bin/fake_gcc.sh+g' /Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/settings
+            chmod 755 binary/bin/fake_gcc.sh
    
     - name: move executable
       run: cp -R dist-newstyle/build/x86_64-osx/ghc-${{ matrix.ghc }}/tidal-gui-0.1.0.0/x/tidal-gui/build/tidal-gui/tidal-gui binary/tidal-gui
