@@ -16,7 +16,7 @@ import Data.IORef
 import Configure
 
 unsafeInterpreter :: Interpreter a -> IO (Either InterpreterError a)
-unsafeInterpreter = Hint.unsafeRunInterpreterWithArgsLibdir [] "haskell-libs"
+unsafeInterpreter = Hint.unsafeRunInterpreterWithArgsLibdir ["-v"] "haskell-libs"
 
 patternInterpreter :: String -> String -> Interpreter ControlPattern
 patternInterpreter input stmts  = do
