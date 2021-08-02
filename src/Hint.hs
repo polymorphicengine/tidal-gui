@@ -24,7 +24,7 @@ args lib = ["-clear-package-db", "-package-db", lib ++ "/package.conf.d", "-pack
 unsafeInterpreter :: Interpreter a -> IO (Either InterpreterError a)
 unsafeInterpreter interpreter = do
   execPath <- dropFileName <$> getExecutablePath
-  Hint.unsafeRunInterpreterWithArgsLibdir (args $ execPath ++ "haskell-libs") "haskell-libs" interpreter
+  Hint.unsafeRunInterpreterWithArgsLibdir (args $ execPath ++ "haskell-libs") (execPath ++ "haskell-libs") interpreter
 
 patternInterpreter :: String -> String -> Interpreter ControlPattern
 patternInterpreter input stmts  = do
