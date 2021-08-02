@@ -117,6 +117,8 @@ jobs:
     - name: move executable
       run: cp -R dist-newstyle/build/x86_64-osx/ghc-${{ matrix.ghc }}/tidal-gui-0.1.0.0/x/tidal-gui/build/tidal-gui/tidal-gui binary/tidal-gui
   
+    - name: move static
+      run : cp -R static binary/static
   
     - name: zip files
       run: |
