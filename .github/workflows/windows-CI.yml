@@ -12,7 +12,7 @@ jobs:
     runs-on: windows-latest
     strategy:
       matrix:
-        ghc: ['9.0.1']
+        ghc: ['8.10.5']
         cabal: ['3.4.0.0']
         
     steps:
@@ -53,15 +53,15 @@ jobs:
             Remove-Item 'C:\tools\ghc-${{ matrix.ghc }}\lib\rts' -Recurse
             
     - name: move GHC libs and configs
-      run: Copy-Item -Path 'C:\tools\ghc-${{ matrix.ghc }}\lib\' -Recurse -Destination 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\ghc-packages'
-            
-    - name: move mingw
       run: |
-            Copy-Item -Path 'C:\tools\ghc-${{ matrix.ghc }}\mingw\' -Recurse -Destination 'D:\a\tidal-gui\tidal-gui\binary\mingw'
+            Copy-Item -Path 'C:\tools\ghc-${{ matrix.ghc }}\lib\' -Recurse -Destination 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\ghc-packages'
             Move-Item -Path 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\ghc-packages\settings' -Destination 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\settings'
             Move-Item -Path 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\ghc-packages\llvm-passes' -Destination 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\llvm-passes'
             Move-Item -Path 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\ghc-packages\llvm-targets' -Destination 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\llvm-targets'
             Move-Item -Path 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\ghc-packages\platformConstants' -Destination 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\platformConstants'
+            
+    - name: move mingw
+      run: Copy-Item -Path 'C:\tools\ghc-${{ matrix.ghc }}\mingw\' -Recurse -Destination 'D:\a\tidal-gui\tidal-gui\binary\mingw'
             
             
     - name: move installed packages
@@ -71,13 +71,13 @@ jobs:
       run: |
             Move-Item -Path 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\packages\package.db\' -Destination 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\package.db\'
             $configs = Get-ChildItem 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\package.db\' -Recurse
-            $configs | %{ (gc $_) -replace "C:\\sr\\ghc-${{ matrix.ghc }}", '${pkgroot}\packages' | Set-Content $_.fullname}
+            $configs | %{ (gc $_) -replace "C:\\sr\\ghc-${{ matrix.ghc }}", '$topdir' | Set-Content $_.fullname}
    
     - name: move ghc package config
       run: |
             Move-Item -Path 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\ghc-packages\package.conf.d\' -Destination 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\package.conf.d\'
             $configs = Get-ChildItem 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\package.conf.d\' -Recurse
-            $configs | %{ (gc $_) -replace 'topdir', '{pkgroot}\ghc-packages' | Set-Content $_.fullname}
+            $configs | %{ (gc $_) -replace 'topdir', 'topdir\ghc-packages' | Set-Content $_.fullname}
    
     - name: ghc-pkg recache
       run: | 
