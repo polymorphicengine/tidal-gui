@@ -82,9 +82,10 @@ jobs:
     - name: ghc-pkg recache
       run: | 
             $ENV:GHC_PACKAGE_PATH="D:\a\tidal-gui\tidal-gui\binary\haskell-libs\package.conf.d;D:\a\tidal-gui\tidal-gui\binary\haskell-libs\package.db"
+            ghc-pkg list
             ghc-pkg recache 
             ghc-pkg check
-            ghc-pkg list
+            ghc-pkg recache
    
     - name: move executable
       run: Copy-Item -Path 'D:\a\tidal-gui\tidal-gui\dist-newstyle\build\x86_64-windows\ghc-${{ matrix.ghc }}\tidal-gui-0.1.0.0\x\tidal-gui\build\tidal-gui\tidal-gui.exe' -Recurse -Destination 'D:\a\tidal-gui\tidal-gui\binary\tidal-gui.exe'
