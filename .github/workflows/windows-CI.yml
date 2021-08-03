@@ -71,7 +71,7 @@ jobs:
       run: |
             Move-Item -Path 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\packages\package.db\' -Destination 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\package.db\'
             $configs = Get-ChildItem 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\package.db\' -Recurse
-            $configs | %{ (gc $_) -replace "C:\\sr\\ghc-${{ matrix.ghc }}", '$topdir' | Set-Content $_.fullname}
+            $configs | %{ (gc $_) -replace "C:\\sr\\ghc-${{ matrix.ghc }}", '$topdir\packages' | Set-Content $_.fullname}
    
     - name: move ghc package config
       run: |
