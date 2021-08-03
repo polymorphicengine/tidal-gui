@@ -45,9 +45,6 @@ jobs:
     
     - name: cabal build
       run: cabal v2-build --enable-tests
-    
-    - name: test
-      run: ls C:\tools\ghc-8.10.5\lib\
       
     - name: remove unneccessary libs 
       run: | 
@@ -83,6 +80,9 @@ jobs:
    
     - name: move executable
       run: Copy-Item -Path 'D:\a\tidal-gui\tidal-gui\dist-newstyle\build\x86_64-windows\ghc-${{ matrix.ghc }}\tidal-gui-0.1.0.0\x\tidal-gui\build\tidal-gui\tidal-gui.exe' -Recurse -Destination 'D:\a\tidal-gui\tidal-gui\binary\tidal-gui.exe'
+    
+    - name: move static
+      run: Copy-Item -Path 'D:\a\tidal-gui\tidal-gui\static\' -Recurse -Destination 'D:\a\tidal-gui\tidal-gui\binary\tidal-gui.exe'
     
     - name: zip files
       run: Compress-Archive -LiteralPath 'D:\a\tidal-gui\tidal-gui\binary\' -DestinationPath 'D:\a\tidal-gui\tidal-gui\binary.zip'
