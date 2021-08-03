@@ -81,6 +81,7 @@ jobs:
    
     - name: ghc-pkg recache
       run: | 
+            $ErrorView = 'NormalView'
             $ENV:GHC_PACKAGE_PATH="D:\a\tidal-gui\tidal-gui\binary\haskell-libs\package.conf.d;D:\a\tidal-gui\tidal-gui\binary\haskell-libs\package.db"
             ghc-pkg recache
    
