@@ -56,8 +56,14 @@ jobs:
       run: Copy-Item -Path 'C:\tools\ghc-${{ matrix.ghc }}\lib\' -Recurse -Destination 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\ghc-packages'
             
     - name: move mingw
-      run: Copy-Item -Path 'C:\tools\ghc-${{ matrix.ghc }}\mingw\' -Recurse -Destination 'D:\a\tidal-gui\tidal-gui\binary\mingw'
-   
+      run: |
+            Copy-Item -Path 'C:\tools\ghc-${{ matrix.ghc }}\mingw\' -Recurse -Destination 'D:\a\tidal-gui\tidal-gui\binary\mingw'
+            Move-Item -Path 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\ghc-packages\settings' -Destination 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\settings'
+            Move-Item -Path 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\ghc-packages\llvm-passes' -Destination 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\llvm-passes'
+            Move-Item -Path 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\ghc-packages\llvm-targets' -Destination 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\llvm-targets'
+            Move-Item -Path 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\ghc-packages\platformConstants' -Destination 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\platformConstants'
+            
+            
     - name: move installed packages
       run: Copy-Item -Path 'C:\sr\ghc-${{ matrix.ghc }}\' -Recurse -Destination 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\packages'
    
