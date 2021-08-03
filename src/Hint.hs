@@ -19,12 +19,12 @@ import Data.IORef
 import Configure
 
 args:: String -> [String]
-args lib = ["-clear-package-db", "-package-db", lib ++ "/package.conf.d", "-package-db", lib ++ "/package.db", "-v"]
+args lib = ["-clear-package-db", "-package-db", lib ++ "haskell-libs/package.conf.d", "-package-db", lib ++ "haskell-libs/package.db", "-v"]
 
 unsafeInterpreter :: Interpreter a -> IO (Either InterpreterError a)
 unsafeInterpreter interpreter = do
   execPath <- dropFileName <$> getExecutablePath
-  Hint.unsafeRunInterpreterWithArgsLibdir ["-v"] (execPath ++ "haskell-libs") interpreter
+  Hint.unsafeRunInterpreterWithArgsLibdir (args execPath) (execPath ++ "haskell-libs") interpreter
 
 patternInterpreter :: String -> String -> Interpreter ControlPattern
 patternInterpreter input stmts  = do
