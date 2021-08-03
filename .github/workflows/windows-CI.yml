@@ -12,7 +12,7 @@ jobs:
     runs-on: windows-latest
     strategy:
       matrix:
-        ghc: ['8.10.5']
+        ghc: ['9.0.1']
         cabal: ['3.4.0.0']
         
     steps:
