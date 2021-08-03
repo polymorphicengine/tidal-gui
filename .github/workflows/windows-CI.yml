@@ -82,8 +82,8 @@ jobs:
     - name: ghc-pkg recache
       run: | 
             $ENV:GHC_PACKAGE_PATH="D:\a\tidal-gui\tidal-gui\binary\haskell-libs\package.conf.d;D:\a\tidal-gui\tidal-gui\binary\haskell-libs\package.db"
-            ghc-pkg recache --package-db="D:\a\tidal-gui\tidal-gui\binary\haskell-libs\package.conf.d"
-            ghc-pkg recache --package-db="D:\a\tidal-gui\tidal-gui\binary\haskell-libs\package.db"
+            ghc-pkg -v2 recache --package-db="D:\a\tidal-gui\tidal-gui\binary\haskell-libs\package.conf.d"
+            ghc-pkg -v2 recache --package-db="D:\a\tidal-gui\tidal-gui\binary\haskell-libs\package.db"
 #            ghc-pkg --help
 #            Remove-Item -Path 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\package.conf.d\package.cache'
 #            Remove-Item -Path 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\package.db\package.cache'
