@@ -82,6 +82,8 @@ jobs:
     - name: ghc-pkg recache
       run: | 
             $ENV:GHC_PACKAGE_PATH="D:\a\tidal-gui\tidal-gui\binary\haskell-libs\package.conf.d;D:\a\tidal-gui\tidal-gui\binary\haskell-libs\package.db"
+            Remove-Item -Path 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\package.conf.d\package.cache'
+            Remove-Item -Path 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\package.db\package.cache'
             ghc-pkg list
             ghc-pkg recache 
             ghc-pkg check
