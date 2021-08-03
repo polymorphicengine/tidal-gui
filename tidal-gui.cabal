@@ -36,6 +36,5 @@ executable tidal-gui
                        containers
   hs-source-dirs:      src
   default-language:    Haskell2010
-
-if os(darwin)
+  if os(darwin)
      ld-options: -mmacosx-version-min=10.9
