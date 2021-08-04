@@ -44,7 +44,7 @@ libs :: [ModuleImport]
 libs = [ModuleImport "Data.Map" (NotQualified) (HidingList ["size"])] ++ libsU'
 
 exts :: [Extension]
-exts = [OverloadedStrings]
+exts = [OverloadedStrings, BangPatterns]
 
 listenPort,remotePort :: Int
 listenPort = 6011
@@ -63,15 +63,22 @@ remoteTarget = Target {oName = "threepenny"
 
 bootTidal' :: [String]
 bootTidal' = [ "p = streamReplace tidal"
-              ,"d1 pat = do p 1 $ pat |< orbit 0; return \"d1\""
-              ,"d2 pat = do p 2 $ pat |< orbit 1; return \"d2\""
-              ,"d3 pat = do p 3 $ pat |< orbit 2; return \"d3\""
-              ,"d4 pat = do p 4 $ pat |< orbit 3; return \"d4\""
-              ,"d5 pat = do p 5 $ pat |< orbit 4; return \"d5\""
-              ,"d6 pat = do p 6 $ pat |< orbit 5; return \"d6\""
-              ,"d7 pat = do p 7 $ pat |< orbit 6; return \"d7\""
-              ,"d8 pat = do p 8 $ pat |< orbit 7; return \"d8\""
-              ,"d9 pat = do p 9 $ pat |< orbit 8; return \"d9\""
+              ,"d1 !pat = do p 1 $ pat |< orbit 0; return \"d1\""
+              ,"d2 !pat = do p 2 $ pat |< orbit 1; return \"d2\""
+              ,"d3 !pat = do p 3 $ pat |< orbit 2; return \"d3\""
+              ,"d4 !pat = do p 4 $ pat |< orbit 3; return \"d4\""
+              ,"d5 !pat = do p 5 $ pat |< orbit 4; return \"d5\""
+              ,"d6 !pat = do p 6 $ pat |< orbit 5; return \"d6\""
+              ,"d7 !pat = do p 7 $ pat |< orbit 6; return \"d7\""
+              ,"d8 !pat = do p 8 $ pat |< orbit 7; return \"d8\""
+              ,"d9 !pat = do p 9 $ pat |< orbit 8; return \"d9\""
+              ,"d10 !pat = do p 10 $ pat |< orbit 9; return \"d10\""
+              ,"d11 !pat = do p 11 $ pat |< orbit 10; return \"d11\""
+              ,"d12 !pat = do p 12 $ pat |< orbit 11; return \"d12\""
+              ,"d13 !pat = do p 13 $ pat; return \"d13\""
+              ,"d14 !pat = do p 14 $ pat; return \"d14\""
+              ,"d15 !pat = do p 15 $ pat; return \"d15\""
+              ,"d16 !pat = do p 16 $ pat; return \"d16\""
               ,"hush = streamHush tidal"
               ,"panic = do hush; once $ sound \"superpanic\""
               ,"list = streamList tidal"
