@@ -26,7 +26,7 @@ data HighlightState = HS {sPat :: ControlPattern
 type HighlightStates = Map String HighlightState
 
 highlight :: (Int, Int, Int) -> UI JSObject
-highlight (line, st, e) = callFunction $ ffi "(controlEditor.markText({line: %1, ch: %2}, {line: %1, ch: %3}, {css: \"background-color: red\"}))" line st e
+highlight (line, st, e) = callFunction $ ffi "(controlEditor.markText({line: %1, ch: %2}, {line: %1, ch: %3}, {css: \"background-color: blue\"}))" line st e
 
 --safer but might leave some objects
 unHighlight :: JSObject -> UI ()
@@ -52,7 +52,6 @@ highlightLoop buffer stream win patStatesMVar = do
                 (marks,buffer') <- highlightPats c buffer win pats
                 threadDelay 100000 --works pretty well, might have to be adjusted
                 unhighlightMany marks win
-                runUI win flushCallBuffer
                 highlightLoop buffer' stream win patStatesMVar
 
 highlightPats :: Rational -> Buffer -> Window -> [HighlightState] -> IO ([JSObject],Buffer)
