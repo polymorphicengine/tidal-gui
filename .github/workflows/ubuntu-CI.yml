@@ -89,24 +89,24 @@ jobs:
    
     - name: move c-libs
       run: |
-            cp /user/lib/x86_64-linux-gnu/libz.so.1             /home/runner/work/tidal-gui/tidal-gui/binary/c-libs/libz.so.1 
-            cp /user/lib/x86_64-linux-gnu/libtinfo.so.6         /home/runner/work/tidal-gui/tidal-gui/binary/c-libs/libtinfo.so.6  
-            cp /user/lib/x86_64-linux-gnu/librt.so.1            /home/runner/work/tidal-gui/tidal-gui/binary/c-libs/librt.so.1  
-            cp /user/lib/x86_64-linux-gnu/libutil.so.1          /home/runner/work/tidal-gui/tidal-gui/binary/c-libs/libutil.so.1
-            cp /user/lib/x86_64-linux-gnu/libpthread.so.0       /home/runner/work/tidal-gui/tidal-gui/binary/c-libs/libpthread.so.0 
-            cp /user/lib/x86_64-linux-gnu/libm.so.6             /home/runner/work/tidal-gui/tidal-gui/binary/c-libs/libm.so.6
-            cp /user/lib/x86_64-linux-gnu/libgmp.so.10          /home/runner/work/tidal-gui/tidal-gui/binary/c-libs/libgmp.so.10 
-            cp /user/lib/x86_64-linux-gnu/libc.so.6             /home/runner/work/tidal-gui/tidal-gui/binary/c-libs/libc.so.6 
-            cp /user/lib/x86_64-linux-gnu/libdl.so.2            /home/runner/work/tidal-gui/tidal-gui/binary/c-libs/libdl.so.2  
-            ln -s /user/lib/x86_64-linux-gnu/libz.so.1          /home/runner/work/tidal-gui/tidal-gui/binary/c-libs/libz.so
-            ln -s /user/lib/x86_64-linux-gnu/libtinfo.so.6      /home/runner/work/tidal-gui/tidal-gui/binary/c-libs/libtinfo.so
-            ln -s /user/lib/x86_64-linux-gnu/librt.so.1         /home/runner/work/tidal-gui/tidal-gui/binary/c-libs/librt.so
-            ln -s /user/lib/x86_64-linux-gnu/libutil.so.1       /home/runner/work/tidal-gui/tidal-gui/binary/c-libs/libutil.so
-            ln -s /user/lib/x86_64-linux-gnu/libpthread.so.0    /home/runner/work/tidal-gui/tidal-gui/binary/c-libs/libpthread.so
-            ln -s /user/lib/x86_64-linux-gnu/libm.so.6          /home/runner/work/tidal-gui/tidal-gui/binary/c-libs/libm.so
-            ln -s /user/lib/x86_64-linux-gnu/libgmp.so.10       /home/runner/work/tidal-gui/tidal-gui/binary/c-libs/libgmp.so
-            ln -s /user/lib/x86_64-linux-gnu/libc.so.6          /home/runner/work/tidal-gui/tidal-gui/binary/c-libs/libc.so
-            ln -s /user/lib/x86_64-linux-gnu/libdl.so.2         /home/runner/work/tidal-gui/tidal-gui/binary/c-libs/libdl.so
+            cp /usr/lib/x86_64-linux-gnu/libz.so.1             /home/runner/work/tidal-gui/tidal-gui/binary/c-libs/libz.so.1 
+            cp /usr/lib/x86_64-linux-gnu/libtinfo.so.6         /home/runner/work/tidal-gui/tidal-gui/binary/c-libs/libtinfo.so.6  
+            cp /usr/lib/x86_64-linux-gnu/librt.so.1            /home/runner/work/tidal-gui/tidal-gui/binary/c-libs/librt.so.1  
+            cp /usr/lib/x86_64-linux-gnu/libutil.so.1          /home/runner/work/tidal-gui/tidal-gui/binary/c-libs/libutil.so.1
+            cp /usr/lib/x86_64-linux-gnu/libpthread.so.0       /home/runner/work/tidal-gui/tidal-gui/binary/c-libs/libpthread.so.0 
+            cp /usr/lib/x86_64-linux-gnu/libm.so.6             /home/runner/work/tidal-gui/tidal-gui/binary/c-libs/libm.so.6
+            cp /usr/lib/x86_64-linux-gnu/libgmp.so.10          /home/runner/work/tidal-gui/tidal-gui/binary/c-libs/libgmp.so.10 
+            cp /usr/lib/x86_64-linux-gnu/libc.so.6             /home/runner/work/tidal-gui/tidal-gui/binary/c-libs/libc.so.6 
+            cp /usr/lib/x86_64-linux-gnu/libdl.so.2            /home/runner/work/tidal-gui/tidal-gui/binary/c-libs/libdl.so.2  
+            ln -s /usr/lib/x86_64-linux-gnu/libz.so.1          /home/runner/work/tidal-gui/tidal-gui/binary/c-libs/libz.so
+            ln -s /usr/lib/x86_64-linux-gnu/libtinfo.so.6      /home/runner/work/tidal-gui/tidal-gui/binary/c-libs/libtinfo.so
+            ln -s /usr/lib/x86_64-linux-gnu/librt.so.1         /home/runner/work/tidal-gui/tidal-gui/binary/c-libs/librt.so
+            ln -s /usr/lib/x86_64-linux-gnu/libutil.so.1       /home/runner/work/tidal-gui/tidal-gui/binary/c-libs/libutil.so
+            ln -s /usr/lib/x86_64-linux-gnu/libpthread.so.0    /home/runner/work/tidal-gui/tidal-gui/binary/c-libs/libpthread.so
+            ln -s /usr/lib/x86_64-linux-gnu/libm.so.6          /home/runner/work/tidal-gui/tidal-gui/binary/c-libs/libm.so
+            ln -s /usr/lib/x86_64-linux-gnu/libgmp.so.10       /home/runner/work/tidal-gui/tidal-gui/binary/c-libs/libgmp.so
+            ln -s /usr/lib/x86_64-linux-gnu/libc.so.6          /home/runner/work/tidal-gui/tidal-gui/binary/c-libs/libc.so
+            ln -s /usr/lib/x86_64-linux-gnu/libdl.so.2         /home/runner/work/tidal-gui/tidal-gui/binary/c-libs/libdl.so
    
     - name: remove unneccessary libs 
       run: |
