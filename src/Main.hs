@@ -39,6 +39,8 @@ setup str win = void $ do
 
      UI.addStyleSheet win "tidal.css"
 
+     setCallBufferMode NoBuffering
+
      definitions <- UI.textarea # set (attr "id") "definitions-editor"
      ctrl <- UI.textarea # set (attr "id") "control-editor"
 
@@ -65,10 +67,13 @@ setup str win = void $ do
      --highlight (experimental)
      high <- liftIO newEmptyMVar
      pats <- liftIO $ newMVar Map.empty
+     mMV <- liftIO newEmptyMVar
+     rMV <- liftIO newEmptyMVar
      void $ liftIO $ forkIO $ highlightLoop [] str win high
      void $ liftIO $ forkIO $ displayLoop win display str
+     void $ liftIO $ forkIO $ startHintJob True str mMV rMV -- True = safe
 
-     let env = Env win str output high pats
+     let env = Env win str output high pats mMV rMV
          evaluateBlock = runReaderT (interpretCommands False) env
          evaluateLine = runReaderT (interpretCommands True) env
 
@@ -109,11 +114,13 @@ setup str win = void $ do
                        ]
 
 data Env = Env {windowE :: Window
-                ,streamE :: Stream
-                ,outputE :: Element
-                ,patH :: MVar HighlightStates
-                ,patS :: MVar PatternStates
-                }
+               ,streamE :: Stream
+               ,outputE :: Element
+               ,patH :: MVar HighlightStates
+               ,patS :: MVar PatternStates
+               ,hintM :: MVar InterpreterMessage
+               ,hintR :: MVar InterpreterResponse
+               }
 
 -- to combine UI and IO actions with an environment
 instance MonadUI (ReaderT Env IO) where
@@ -129,6 +136,8 @@ interpretCommands lineBool = do
            str = streamE env
            highStatesMVar = patH env
            patStatesMVar = patS env
+           mMV = hintM env
+           rMV = hintR env
            p = streamReplace str
        contentsControl <- liftUI editorValueControl
        contentsDef <- liftUI editorValueDefinitions
@@ -141,73 +150,51 @@ interpretCommands lineBool = do
                    case parse parseCommand "" block of
                          Left e -> errorUI $ show e
                          Right command -> case command of
+
                                          (H name s (ln,ch)) -> do
-                                                 res <- liftIO $ runHintPattern False s contentsDef
+                                                 liftIO $ putMVar mMV $ MHigh s contentsDef
+                                                 res <- liftIO $ takeMVar rMV
                                                  case res of
-                                                     Right (Right pat) -> do
-                                                                       successUI >> (outputUI "")
-                                                                       liftIO $ p name $ pat
-                                                                       highStates <- liftIO $ tryTakeMVar highStatesMVar
-                                                                       case highStates of
-                                                                             Just pats -> do
-                                                                                 let newPatS = Map.insert name (HS pat (blockLineStart + ln) ch False False) pats
-                                                                                 liftIO $ putMVar highStatesMVar $ newPatS
-                                                                             Nothing -> do
-                                                                                 let newPatS = Map.insert name (HS pat (blockLineStart + ln) ch False False) Map.empty
-                                                                                 liftIO $ putMVar highStatesMVar $ newPatS
-                                                     Right (Left e) -> errorUI $ parseError e
-                                                     Left e -> errorUI $ show e
-                                         (Hush)      -> successUI >> (liftIO $ hush str patStatesMVar highStatesMVar)
-                                         (Cps x)     -> successUI >> (liftIO $ streamOnce str $ cps (pure x))
+                                                     RHigh pat -> do
+                                                             successUI >> (outputUI "")
+                                                             liftIO $ p name $ pat
+                                                             highStates <- liftIO $ tryTakeMVar highStatesMVar
+                                                             case highStates of
+                                                                   Just pats -> do
+                                                                       let newPatS = Map.insert name (HS pat (blockLineStart + ln) ch False False) pats
+                                                                       liftIO $ putMVar highStatesMVar $ newPatS
+                                                                   Nothing -> do
+                                                                       let newPatS = Map.insert name (HS pat (blockLineStart + ln) ch False False) Map.empty
+                                                                       liftIO $ putMVar highStatesMVar $ newPatS
+                                                     RError e -> errorUI e
+                                                     _ -> return ()
+
                                          (Other s)   -> do
-                                                 res <- liftIO $ runHintStatement False s contentsDef str
+                                                 liftIO $ putMVar mMV $ MStat s contentsDef
+                                                 res <- liftIO $ takeMVar rMV
                                                  case res of
-                                                   Right "()" -> successUI
-                                                   Right (['\"','d',num,'\"']) -> do
+                                                   RStat "()" -> successUI
+                                                   RStat (['\"','d',num,'\"']) -> do
                                                                     successUI >> (outputUI "")
                                                                     patStates <- liftIO $ takeMVar patStatesMVar
                                                                     let newPatS = Map.insert (read [num]) (PS (read [num]) False False) patStates
                                                                     liftIO $ putMVar patStatesMVar $ newPatS
-                                                   Right outputString -> successUI >> (outputUI outputString)
-                                                   Left e -> errorUI $ parseError e
+                                                   RStat outputString -> successUI >> (outputUI outputString)
+                                                   RError e -> errorUI e
+                                                   _ -> return ()
+
                                          (T s)        -> do
-                                                  res <- liftIO $ getType False s contentsDef str
-                                                  case res of
-                                                    (Right t) -> successUI >> (outputUI t)
-                                                    (Left e) -> errorUI $ parseError e
+                                                    liftIO $ putMVar mMV $ MType s contentsDef
+                                                    res <- liftIO $ takeMVar rMV
+                                                    case res of
+                                                      (RType t) -> successUI >> (outputUI t)
+                                                      (RError e) -> errorUI e
+                                                      _ -> return ()
+
+                                         (Hush)      -> successUI >> (liftIO $ hush str patStatesMVar highStatesMVar)
+
+                                         (Cps x)     -> successUI >> (liftIO $ streamOnce str $ cps (pure x))
+
             where successUI = liftUI $ flashSuccess blockLineStart blockLineEnd
                   errorUI err = (liftUI $ flashError blockLineStart blockLineEnd) >> (void $ liftUI $ element out # C.set UI.text err)
                   outputUI o = void $ liftUI $ element out # set UI.text o
-
-
-displayLoop :: Window -> Element -> Stream -> IO ()
-displayLoop win display stream = do
-                          valueMap <- liftIO $ readMVar (sStateMV stream)
-                          playMap <- liftIO $ readMVar (sPMapMV stream)
-                          void $ runUI win $ element display # set UI.text ("cps: " ++ (show $ Map.lookup "_cps" valueMap) ++ "\n" ++ showPlayMap playMap)
-                          threadDelay 100000 -- seems to be a good value
-                          displayLoop win display stream
-
-
-showVal :: Value -> String
-showVal (VS s)  = ('"':s) ++ "\""
-showVal (VI i)  = show i
-showVal (VF f)  = show f ++ "f"
-showVal (VN nn)  = show nn ++ "n"
-showVal (VR r)  = show r ++ "r"
-showVal (VB b)  = show b
-showVal (VX xs) = show xs
-showVal (VPattern pat) = "(" ++ show pat ++ ")"
-showVal (VState f) = show $ f Map.empty
-showVal (VList vs) = saveLastShow vs
-              where saveLastShow ls | ls == [] = ""
-                                    | otherwise = show $ last ls
-
-showPlayState :: PlayState -> String
-showPlayState (PlayState _ mute solo _) | mute = "muted"
-                                        | solo = "solo"
-                                        | otherwise = "playing"
-
-showPlayMap :: PlayMap -> String
-showPlayMap pMap = concat [ i ++ ": " ++ showPlayState ps ++ " " | (i,ps) <- pList]
-                where pList = toList pMap
