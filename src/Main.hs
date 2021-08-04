@@ -20,20 +20,13 @@ import Graphics.UI.Threepenny.Core as C hiding (text)
 import Parse
 import Highlight
 import Ui
-import Configure
 import Hint
 
 
 main :: IO ()
 main = do
     execPath <- dropFileName <$> getExecutablePath
-    str <- T.startStream T.defaultConfig [(T.superdirtTarget {T.oLatency = 0.1},
-                                              [T.superdirtShape]
-                                             ),
-                                             (remoteTarget,
-                                              [T.OSCContext "/code/highlight"]
-                                             )
-                                            ]
+    str <- T.startTidal T.superdirtTarget T.defaultConfig
     startGUI C.defaultConfig {
           jsStatic = Just $ execPath ++ "static",
           jsCustomHTML     = Just "tidal.html"
