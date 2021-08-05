@@ -26,7 +26,7 @@ import Hint
 main :: IO ()
 main = do
     execPath <- dropFileName <$> getExecutablePath
-    str <- T.startTidal T.superdirtTarget (T.defaultConfig {cCtrlAddr = "0.0.0.0"})
+    str <- T.startTidal (T.superdirtTarget {oLatency = 0.1, oAddress = "127.0.0.1", oPort = 57120}) (T.defaultConfig {cVerbose = True, cFrameTimespan = 1/20})
     startGUI C.defaultConfig {
           jsStatic = Just $ execPath ++ "static",
           jsCustomHTML     = Just "tidal.html"
