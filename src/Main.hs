@@ -73,7 +73,7 @@ setup str win = void $ do
      void $ liftIO $ forkIO $ highlightLoop [] str win high
      void $ liftIO $ forkIO $ displayLoop win display str
 
-     if ghcMode == "WITH_GHC=TRUE"
+     if ghcMode == "WITH_GHC=TRUE\n"
         then void $ liftIO $ forkIO $ startHintJob True str mMV rMV -- True = safe
         else void $ liftIO $ forkIO $ startHintJob False str mMV rMV
 
