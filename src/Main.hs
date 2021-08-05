@@ -71,7 +71,7 @@ setup str win = void $ do
      rMV <- liftIO newEmptyMVar
      void $ liftIO $ forkIO $ highlightLoop [] str win high
      void $ liftIO $ forkIO $ displayLoop win display str
-     void $ liftIO $ forkIO $ startHintJob True str mMV rMV -- True = safe
+     void $ liftIO $ forkIO $ startHintJob False str mMV rMV -- True = safe
 
      let env = Env win str output high pats mMV rMV
          evaluateBlock = runReaderT (interpretCommands False) env
