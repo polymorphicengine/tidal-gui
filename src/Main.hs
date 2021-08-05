@@ -3,12 +3,12 @@
 import System.FilePath  (dropFileName)
 import System.Environment (getExecutablePath)
 
-import Control.Concurrent (forkIO, threadDelay)
-import Control.Concurrent.MVar  (newEmptyMVar, tryTakeMVar, MVar, putMVar, newMVar, takeMVar, readMVar)
+import Control.Concurrent (forkIO)
+import Control.Concurrent.MVar  (newEmptyMVar, tryTakeMVar, MVar, putMVar, newMVar, takeMVar)
 import Control.Monad  (void)
 import Control.Monad.Reader (ReaderT, runReaderT, ask)
 
-import Data.Map as Map (insert, empty, toList, lookup)
+import Data.Map as Map (insert, empty)
 
 import Sound.Tidal.Context as T hiding (mute,solo,(#),s)
 
@@ -31,6 +31,7 @@ main = do
           jsStatic = Just $ execPath ++ "static",
           jsCustomHTML     = Just "tidal.html"
         } $ setup str
+
 
 setup :: Stream -> Window -> UI ()
 setup str win = void $ do

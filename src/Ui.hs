@@ -1,15 +1,13 @@
 module Ui where
 
 import Graphics.UI.Threepenny.Core as C hiding (text)
-import qualified Graphics.UI.Threepenny as UI
 
-import Sound.Tidal.Context hiding (solo)
+import Sound.Tidal.Context hiding (solo, (#))
 
-import Control.Concurrent (threadDelay)
-import Control.Concurrent.MVar  (tryTakeMVar, MVar, tryPutMVar, takeMVar, putMVar, readMVar)
+import Control.Concurrent.MVar  (tryTakeMVar, MVar, tryPutMVar, takeMVar, putMVar)
 import Control.Monad (void)
 
-import Data.Map as Map  (Map, insert, fromList, assocs, lookup, empty, toList)
+import Data.Map as Map  (Map, insert, fromList, assocs, lookup, empty)
 
 import Highlight
 
@@ -25,12 +23,12 @@ displayLoop :: Window -> Element -> Stream -> IO ()
 displayLoop win display stream = do
                           valueMap <- liftIO $ readMVar (sStateMV stream)
                           playMap <- liftIO $ readMVar (sPMapMV stream)
-                          void $ runUI win $ element display C.# set UI.text ("cps: " ++ (show $ Map.lookup "_cps" valueMap) ++ "\n" ++ showPlayMap playMap)
+                          void $ runUI win $ element display # set UI.text ("cps: " ++ (show $ Map.lookup "_cps" valueMap) ++ "\n" ++ showPlayMap playMap)
                           threadDelay 100000 -- seems to be a good value
                           displayLoop win display stream
 
 showPlayState :: PlayState -> String
-showPlayState (PlayState _ muted solo _) | muted = "muted"
+showPlayState (PlayState _ mute solo _) | mute = "muted"
                                         | solo = "solo"
                                         | otherwise = "playing"
 

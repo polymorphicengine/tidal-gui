@@ -2,8 +2,8 @@
 
 module Hint where
 
-import Control.Exception  (SomeException, try, catch)
-import Control.Concurrent.MVar  (newEmptyMVar, tryTakeMVar, MVar, putMVar, newMVar, takeMVar, readMVar)
+import Control.Exception  (SomeException, catch)
+import Control.Concurrent.MVar  (MVar, putMVar, takeMVar)
 
 import System.FilePath  (dropFileName)
 import System.Environment (getExecutablePath)
