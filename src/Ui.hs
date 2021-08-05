@@ -1,13 +1,15 @@
 module Ui where
 
 import Graphics.UI.Threepenny.Core as C hiding (text)
+import qualified Graphics.UI.Threepenny as UI
 
 import Sound.Tidal.Context hiding (solo, (#))
 
-import Control.Concurrent.MVar  (tryTakeMVar, MVar, tryPutMVar, takeMVar, putMVar)
+import Control.Concurrent (threadDelay)
+import Control.Concurrent.MVar  (MVar, tryPutMVar, tryTakeMVar, readMVar, takeMVar, putMVar)
 import Control.Monad (void)
 
-import Data.Map as Map  (Map, insert, fromList, assocs, lookup, empty)
+import Data.Map as Map  (Map, insert, fromList, assocs, lookup, empty, toList)
 
 import Highlight
 
@@ -28,9 +30,9 @@ displayLoop win display stream = do
                           displayLoop win display stream
 
 showPlayState :: PlayState -> String
-showPlayState (PlayState _ mute solo _) | mute = "muted"
-                                        | solo = "solo"
-                                        | otherwise = "playing"
+showPlayState (PlayState _ mt solo _) | mt = "muted"
+                                      | solo = "solo"
+                                      | otherwise = "playing"
 
 showPlayMap :: PlayMap -> String
 showPlayMap pMap = concat [ i ++ ": " ++ showPlayState ps ++ " " | (i,ps) <- pList]
