@@ -106,7 +106,7 @@ setup str win = void $ do
      createHaskellFunction "muteP8" (muteP str pats 8)
      createHaskellFunction "muteP9" (muteP str pats 9)
      -- put elements on body
-     UI.getBody win #+ [element display
+     UI.getBody win #. "CodeMirror cm-s-theme" #+ [element display
                        ,UI.div #. "editors" #+ [UI.div #. "left"
                                                       #+ [element ctrl]
                                                ,UI.div #. "right" #+ [element definitions]
