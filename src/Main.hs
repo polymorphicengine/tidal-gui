@@ -39,6 +39,7 @@ setup str win = void $ do
      void $ return win # set title "Tidal"
 
      UI.addStyleSheet win "tidal.css"
+     UI.addStyleSheet win "theme.css"
 
      setCallBufferMode NoBuffering
 
