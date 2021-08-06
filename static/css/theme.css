@@ -1,29 +1,29 @@
 ﻿/*theme
 CodeMirror theme file created with CodeMirror-Themes
 https://github.com/mkaminsky11/codemirror-themes*/
-.cm-s-theme.CodeMirror{background:rgba(0,0,0,1) !important;}
-.cm-s-theme.CodeMirror{color:rgba(255,255,255,1) !important;}
-.cm-s-theme div.CodeMirror-selected{background:rgba(255,0,0,0.25) !important;}
-.cm-s-theme .CodeMirror-gutters{background:rgba(38,38,38,1) !important;}
+.cm-s-theme.CodeMirror{background:rgba(255,255,255,1) !important;}
+.cm-s-theme.CodeMirror{color:rgba(153,153,153,1) !important;}
+.cm-s-theme div.CodeMirror-selected{background:rgba(204,255,204,1) !important;}
+.cm-s-theme .CodeMirror-gutters{background:rgba(248,248,248,1) !important;}
 .cm-s-theme .CodeMirror-guttermarker{color:rgba(0,0,0,1) !important;}
 .cm-s-theme .CodeMirror-guttermarker-subtle{color:rgba(153,153,153,1) !important;}
-.cm-s-theme .CodeMirror-linenumber{color:rgba(96,96,96,1) !important;}
-.cm-s-theme .CodeMirror-cursor{border-color:rgba(255,255,255,1) !important;}
-.cm-s-theme span.cm-comment{color:rgba(0,128,0,1) !important;}
-.cm-s-theme span.cm-atom{color:rgba(191,48,48,1) !important;}
-.cm-s-theme span.cm-number{color:rgba(0,255,0,1) !important;}
-.cm-s-theme span.cm-property{color:rgba(153,153,153,1) !important;}
-.cm-s-theme span.cm-attribute{color:rgba(192,128,255,1) !important;}
-.cm-s-theme span.cm-keyword{color:rgba(192,128,255,1) !important;}
-.cm-s-theme span.cm-string{color:rgba(255,128,0,1) !important;}
-.cm-s-theme span.cm-string-2{color:rgba(255,255,255,1) !important;}
-.cm-s-theme span.cm-variable{color:rgba(89,103,255,1) !important;}
-.cm-s-theme span.cm-variable-2{color:rgba(0,127,127,1) !important;}
-.cm-s-theme span.cm-def{color:rgba(255,175,64,1) !important;}
-.cm-s-theme span.cm-bracket{color:rgba(204,204,119,1) !important;}
-.cm-s-theme span.cm-tag{color:rgba(255,255,0,1) !important;}
-.cm-s-theme span.cm-link{color:rgba(255,255,255,1) !important;}
+.cm-s-theme .CodeMirror-linenumber{color:rgba(170,170,170,1) !important;}
+.cm-s-theme .CodeMirror-cursor{border-color:rgba(153,153,153,1) !important;}
+.cm-s-theme span.cm-comment{color:rgba(119,119,119,1) !important;}
+.cm-s-theme span.cm-atom{color:rgba(255,153,0,1) !important;}
+.cm-s-theme span.cm-number{color:rgba(202,120,65,1) !important;}
+.cm-s-theme span.cm-property{color:rgba(153,0,85,1) !important;}
+.cm-s-theme span.cm-attribute{color:rgba(214,187,109,1) !important;}
+.cm-s-theme span.cm-keyword{color:rgba(98,98,255,1) !important;}
+.cm-s-theme span.cm-string{color:rgba(0,119,170,1) !important;}
+.cm-s-theme span.cm-string-2{color:rgba(189,107,24,1) !important;}
+.cm-s-theme span.cm-variable{color:rgba(0,119,170,1) !important;}
+.cm-s-theme span.cm-variable-2{color:rgba(102,153,0,1) !important;}
+.cm-s-theme span.cm-def{color:rgba(0,119,170,1) !important;}
+.cm-s-theme span.cm-bracket{color:rgba(153,153,153,1) !important;}
+.cm-s-theme span.cm-tag{color:rgba(102,153,0,1) !important;}
+.cm-s-theme span.cm-link{color:rgba(173,147,97,1) !important;}
 .cm-s-theme span.cm-error{background:rgba(0,0,0,0) !important;}
-.cm-s-theme span.cm-error{color:rgba(255,0,0,1) !important;}
-.cm-s-theme .CodeMirror-activeline-background{color:rgba(255,255,255,1) !important;}
-.cm-s-theme .CodeMirror-matchingbracket{color:rgba(0,255,0,1) !important;}
+.cm-s-theme span.cm-error{color:rgba(153,153,153,1) !important;}
+.cm-s-theme .CodeMirror-activeline-background{color:rgba(153,153,153,1) !important;}
+.cm-s-theme .CodeMirror-matchingbracket{color:rgba(153,153,153,1) !important;}
