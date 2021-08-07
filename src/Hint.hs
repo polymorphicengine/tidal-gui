@@ -76,7 +76,7 @@ interpretPat cont defs rMV = do
                   Hint.runStmt defs
                   t <- Hint.typeChecksWithDetails munged
                   case t of
-                    Left errors -> liftIO $ putMVar rMV $ RError $ "Didn't typecheck " ++ concatMap show errors
+                    Left errors -> liftIO $ putMVar rMV $ RError $ intercalate "\n" $ map errMsg errors
                     Right _ -> do
                       !pat <- Hint.interpret munged (Hint.as :: ControlPattern)
                       liftIO $ putMVar rMV $ RHigh pat
@@ -86,7 +86,7 @@ interpretStat cont defs rMV = do
                   Hint.runStmt defs
                   t <- Hint.typeChecksWithDetails cont
                   case t of
-                    Left errors -> liftIO $ putMVar rMV $ RError $ "Didn't typecheck " ++ concatMap show errors
+                    Left errors -> liftIO $ putMVar rMV $ RError $ intercalate "\n" $ map errMsg errors
                     Right _ -> do
                       Hint.runStmt ("temp <- " ++ cont)
                       out <- Hint.eval "temp"
@@ -97,7 +97,7 @@ interpretType cont defs rMV = do
                   Hint.runStmt defs
                   !t <- Hint.typeChecksWithDetails cont
                   case t of
-                    Left errors -> liftIO $ putMVar rMV $ RError $ "Didn't typecheck " ++ concatMap show errors
+                    Left errors -> liftIO $ putMVar rMV $ RError $ intercalate "\n" $ map errMsg errors
                     Right out -> liftIO $ putMVar rMV $ RType out
 
 parseError:: InterpreterError -> String
