@@ -95,10 +95,10 @@ jobs:
       run: Copy-Item -Path 'D:\a\tidal-gui\tidal-gui\static\' -Recurse -Destination 'D:\a\tidal-gui\tidal-gui\binary\static'
     
     - name: zip files
-      run: Compress-Archive -LiteralPath 'D:\a\tidal-gui\tidal-gui\binary\' -DestinationPath 'D:\a\tidal-gui\tidal-gui\binary.zip'
+      run: Compress-Archive -LiteralPath 'D:\a\tidal-gui\tidal-gui\binary\' -DestinationPath 'D:\a\tidal-gui\tidal-gui\windows.zip'
 
     - name: Release
       uses: softprops/action-gh-release@v1
       if: startsWith(github.ref, 'refs/tags/')
       with:
-        files: 'D:\a\tidal-gui\tidal-gui\binary.zip'
+        files: 'D:\a\tidal-gui\tidal-gui\windows.zip'
