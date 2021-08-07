@@ -24,16 +24,17 @@ parsePat = do
         white1 <- many $ oneOf " \n\t"
         _ <- char 'h'
         h <- many1 digit
-        white2 <- many $ oneOf " \t"
         white3 <- many $ oneOf " \t\n"
         _ <- char '$'
         white4 <- many $ oneOf " \t\n"
         pat <- many anyToken
         case elem '\n' white3 of
           False -> case elem '\n' white4 of
-            False -> return $ H ("h"++h) (white4 ++ pat) (0,length white1 + length h + length white2 + length white3 + 2)
+            False -> return $ H ("h"++h) (white4 ++ pat) (0,length white1 + length h + length white3 + 2)
             True -> return $ H ("h"++h) (white4 ++ pat) (0,2)
-          True -> return $ H ("h"++h) (white4 ++ pat) (1,0)
+          True -> case elem '\n' white4 of
+            True -> return $ H ("h"++h) (white4 ++ pat) (1,0)
+            False -> return $ H ("h"++h) (white4 ++ pat) (1,1)
 
 parseHush :: Parser Command
 parseHush = do
