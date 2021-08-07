@@ -1,6 +1,9 @@
 name: Linux CI
 
-on: push
+on:
+  push:
+    tags:
+      - "v*.*.*"
 
 jobs:
   build:
@@ -132,7 +135,7 @@ jobs:
             cd /home/runner/work/tidal-gui/tidal-gui/
             tar cvfj binary.tar binary/*
   
-    - uses: actions/upload-artifact@v2
+    - name: Release
+      uses: softprops/action-gh-release@v1
       with:
-        name: tidal-gui
-        path: /home/runner/work/tidal-gui/tidal-gui/binary.tar
+          files: /home/runner/work/tidal-gui/tidal-gui/binary.tar
