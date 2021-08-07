@@ -2,9 +2,8 @@ name: Mac-CI
 
 on:
   push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+    tags:
+      - "v*.*.*"
 
 jobs:
   build:
@@ -127,8 +126,10 @@ jobs:
       run: |
             cd /Users/runner/work/tidal-gui/tidal-gui/
             tar cvfj binary.tar binary/*
-    - uses: actions/upload-artifact@v2
+    
+    - name: Release
+      uses: softprops/action-gh-release@v1
       with:
-        name: tidal-gui
-        path: /Users/runner/work/tidal-gui/tidal-gui/binary.tar
+        files: /Users/runner/work/tidal-gui/tidal-gui/binary.tar
+    
 
