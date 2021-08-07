@@ -125,11 +125,11 @@ jobs:
     - name: zip files
       run: |
             cd /Users/runner/work/tidal-gui/tidal-gui/
-            tar cvfj binary.tar binary/*
+            tar cvfj macOS.tar binary/*
     
     - name: Release
       uses: softprops/action-gh-release@v1
       with:
-        files: /Users/runner/work/tidal-gui/tidal-gui/binary.tar
+        files: /Users/runner/work/tidal-gui/tidal-gui/macOS.tar
     
 
