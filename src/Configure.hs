@@ -33,8 +33,8 @@ libsU = [
   , "Data.IORef"
   , "GHC.Float"
   , "GHC.Real"
-  , "GHC.Err"
   , "System.IO"
+  , "System.Directory"
   ]
 
 libsU' :: [ModuleImport]

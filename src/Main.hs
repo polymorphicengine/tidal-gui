@@ -61,7 +61,11 @@ setup str win = void $ do
      execPath <- liftIO $ dropFileName <$> getExecutablePath
      tidalKeys <- liftIO $ readFile $ execPath ++ "static/tidalConfig.js"
      ghcMode <- liftIO $ readFile $ execPath ++ "static/ghc_mode.txt"
+     --recorderScript <- liftIO $ readFile $ execPath ++ "static/codemirror/cm-record.js"
+     boot <- liftIO $ readFile $ execPath ++ "static/bootTidal.hs"
+
      settings <- mkElement "script" # set UI.text tidalKeys
+     --recorder <- mkElement "script" # set UI.text recorderScript
      makeCtrlEditor <- mkElement "script"
                        # set UI.text "const controlEditor = CodeMirror.fromTextArea(document.getElementById('control-editor'), controlEditorSettings);"
      makeDefsEditor <- mkElement "script"
@@ -76,8 +80,8 @@ setup str win = void $ do
      void $ liftIO $ forkIO $ displayLoop win display str
 
      if ghcMode == "WITH_GHC=TRUE\n"
-        then void $ liftIO $ forkIO $ startHintJob True str mMV rMV -- True = safe
-        else void $ liftIO $ forkIO $ startHintJob False str mMV rMV
+        then void $ liftIO $ forkIO $ startHintJob True str boot mMV rMV -- True = safe
+        else void $ liftIO $ forkIO $ startHintJob False str boot mMV rMV
 
      let env = Env win str output high pats mMV rMV
          evaluateBlock = runReaderT (interpretCommands False) env
@@ -117,6 +121,7 @@ setup str win = void $ do
                        ,element settings
                        ,element makeCtrlEditor
                        ,element makeDefsEditor
+                      -- ,element recorder
                        ]
 
 data Env = Env {windowE :: Window

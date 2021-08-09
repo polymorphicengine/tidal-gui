@@ -40,25 +40,26 @@ data InterpreterResponse = RHigh ControlPattern
                          | RType String
                          | RError String
 
-startHintJob :: Bool -> Stream -> MVar InterpreterMessage -> MVar InterpreterResponse -> IO ()
-startHintJob safe str mMV rMV | safe = hintJob Hint.runInterpreter str mMV rMV
-                              | otherwise = hintJob unsafeInterpreter str mMV rMV
+startHintJob :: Bool -> Stream -> String -> MVar InterpreterMessage -> MVar InterpreterResponse -> IO ()
+startHintJob safe str boot mMV rMV | safe = hintJob Hint.runInterpreter str boot mMV rMV
+                              | otherwise = hintJob unsafeInterpreter str boot mMV rMV
 
-hintJob :: (Interpreter () -> IO (Either InterpreterError ())) ->  Stream -> MVar InterpreterMessage -> MVar InterpreterResponse -> IO ()
-hintJob interpreter str mMV rMV = do
-                result <- catch (interpreter $ (staticInterpreter str) >> (interpreterLoop mMV rMV))
+hintJob :: (Interpreter () -> IO (Either InterpreterError ())) ->  Stream -> String -> MVar InterpreterMessage -> MVar InterpreterResponse -> IO ()
+hintJob interpreter str boot mMV rMV = do
+                result <- catch (interpreter $ (staticInterpreter str boot) >> (interpreterLoop mMV rMV))
                           (\e -> return (Left $ UnknownError $ "exception" ++ show (e :: SomeException)))
                 let response = case result of
                         Left err -> RError (parseError err)
                         Right p  -> RError (show p)
                 putMVar rMV response
-                hintJob interpreter str mMV rMV
+                hintJob interpreter str boot mMV rMV
 
-staticInterpreter :: Stream -> Interpreter ()
-staticInterpreter str = do
+staticInterpreter :: Stream -> String -> Interpreter ()
+staticInterpreter str boot = do
                     Hint.set [languageExtensions := exts]
                     Hint.setImportsF libs
                     bind "tidal" str
+                    Hint.runStmt boot
                     Hint.runStmt bootTidal
 
 interpreterLoop :: MVar InterpreterMessage -> MVar InterpreterResponse -> Interpreter ()
