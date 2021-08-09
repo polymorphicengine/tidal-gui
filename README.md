@@ -20,4 +20,4 @@ Lastly, it wasn't too difficult to combine the two things I worked on and implem
 
 During the realisation of the project I have learned a lot about 'real world' programming, like distribution of software across multiple platforms and writing a frontend and I was also able to advance my haskell skills, which is still my favorite language to program in.
 
-I'm really happy with the outcome of my project and look forward to developing it further!
+I'm really happy with the outcome and look forward to developing it further!
