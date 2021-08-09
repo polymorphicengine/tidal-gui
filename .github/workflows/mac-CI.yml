@@ -113,7 +113,7 @@ jobs:
             export LC_ALL=C
             mkdir binary/bin
             cp -R fake_gcc.sh binary/bin/fake_gcc.sh
-            sed -i '' 's+gcc+bin/fake_gcc.sh+g' /Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/settings
+            sed -i '' 's+gcc+$topdir/bin/fake_gcc.sh+g' /Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/settings
             chmod 755 binary/bin/fake_gcc.sh
    
     - name: move executable
