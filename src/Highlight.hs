@@ -90,14 +90,14 @@ highlightBlock lineStart lineEnd color = callFunction $ ffi "(controlEditor.mark
 
 flashSuccess :: Int -> Int -> UI ()
 flashSuccess lineStart lineEnd = do
-                            mark <- highlightBlock (max (lineStart - 1) 0) (lineEnd + 1) "background-color: green"
+                            mark <- highlightBlock lineStart (lineEnd + 1) "background-color: green"
                             liftIO $ threadDelay 100000
                             unHighlight mark
                             flushCallBuffer
 
 flashError :: Int -> Int -> UI ()
 flashError lineStart lineEnd = do
-                            mark <- highlightBlock (max (lineStart - 1) 0) (lineEnd + 1) "background-color: red"
+                            mark <- highlightBlock lineStart (lineEnd + 1) "background-color: red"
                             liftIO $ threadDelay 100000
                             unHighlight mark
                             flushCallBuffer
