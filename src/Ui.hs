@@ -52,6 +52,8 @@ getCursorLine = callFunction $ ffi "(controlEditor.getCursor()).line"
 
 hush :: Stream -> MVar PatternStates -> MVar HighlightStates -> IO ()
 hush str patStatesMVar highStatesMVar = do
+              _ <- takeMVar (sPMapMV str)
+              _ <- putMVar (sPMapMV str) Map.empty
               _ <- takeMVar patStatesMVar
               _ <- putMVar patStatesMVar $ Map.empty
               _ <- tryTakeMVar highStatesMVar
