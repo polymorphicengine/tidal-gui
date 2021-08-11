@@ -33,13 +33,6 @@ function destroyClickedElement(event)
     document.body.removeChild(event.target);
 }
 
-function upFocus(cm){
-	definitionsEditor.focus()
-} 
-
-function downFocus(cm){
-	controlEditor.focus()
-}
 	
 function openDocs(cm){
 	var loc = cm.findWordAt(cm.getCursor()); 

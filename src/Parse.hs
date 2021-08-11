@@ -6,7 +6,7 @@ import Control.Monad (void)
 
 type Position = (Int,Int)
 
-data Command = H String String Position | Hush | Cps Double | T String | Other String deriving Show
+data Command = H String String Position | Hush | T String | Other String | Def String  deriving Show
 
 data Block = Block {bStart :: Int
                    ,bEnd :: Int
@@ -19,8 +19,8 @@ data Block = Block {bStart :: Int
 whitespace :: Parser ()
 whitespace = void $ many $ oneOf " \n\t"
 
-parsePat :: Parser Command
-parsePat = do
+parseHighlight :: Parser Command
+parseHighlight = do
         white1 <- many $ oneOf " \n\t"
         _ <- char 'h'
         h <- many1 digit
@@ -42,40 +42,24 @@ parseHush = do
         _ <- string "hush"
         return Hush
 
-parseT :: Parser Command
-parseT = do
+parseType :: Parser Command
+parseType = do
         whitespace
         _ <- string ":t"
         s <- many anyChar
         return (T s)
 
-parseCps :: Parser Command
-parseCps = do
-            whitespace
-            _ <- string "setcps "
-            d <- parseDouble
-            return $ Cps d
-
-parseDoubleWP :: Parser Double
-parseDoubleWP = do
-        is <- many1 digit
-        _ <- char '.'
-        js <- many1 digit
-        return (read $ is ++ "." ++ js ::Double)
-
-parseDoubleWOP :: Parser Double
-parseDoubleWOP = do
-        is <- many1 digit
-        return (read is ::Double)
-
-parseDouble :: Parser Double
-parseDouble = try parseDoubleWP <|> parseDoubleWOP
-
 parseOther :: Parser Command
 parseOther = fmap Other $ many anyChar
 
+parseDef :: Parser Command
+parseDef = do
+        l <- string "let"
+        s <- many anyChar
+        return $ Def $ replaceTabs (l ++ s)
+
 parseCommand :: Parser Command
-parseCommand = try parsePat <|> try parseHush <|> try parseCps <|> try parseT <|> parseOther
+parseCommand = try parseHighlight <|> try parseHush <|> try parseType <|> try parseDef <|> parseOther
 
 --parsing blocks
 
@@ -115,3 +99,8 @@ getLineContent num ((n,s):ls) | n == num = Just $ Block n n s
                               | otherwise = getLineContent num ls
 
 -------
+
+replaceTabs :: String -> String
+replaceTabs "" = ""
+replaceTabs ('\t':xs) = "    " ++ replaceTabs xs
+replaceTabs (_:xs) = replaceTabs xs

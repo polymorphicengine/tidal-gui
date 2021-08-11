@@ -2,8 +2,8 @@
 
 module Hint where
 
-import Control.Exception  (SomeException, catch)
-import Control.Concurrent.MVar  (MVar, putMVar, takeMVar)
+import Control.Exception  (SomeException, catch, try)
+import Control.Concurrent.MVar  (MVar, putMVar, takeMVar, readMVar)
 
 import System.FilePath  (dropFileName)
 import System.Environment (getExecutablePath)
@@ -27,32 +27,34 @@ unsafeInterpreter interpreter = do
   execPath <- dropFileName <$> getExecutablePath
   Hint.unsafeRunInterpreterWithArgsLibdir (args execPath) (execPath ++ "haskell-libs") interpreter
 
-type Definitions = String
 type Contents = String
 
-data InterpreterMessage = MHigh Contents Definitions
-                        | MStat Contents Definitions
-                        | MType Contents Definitions
+data InterpreterMessage = MHigh Contents
+                        | MStat Contents
+                        | MType Contents
+                        | MDef Contents
                         deriving Show
 
 data InterpreterResponse = RHigh ControlPattern
                          | RStat String
                          | RType String
+                         | RDef String
                          | RError String
+                         deriving Show
 
-startHintJob :: Bool -> Stream -> String -> MVar InterpreterMessage -> MVar InterpreterResponse -> IO ()
-startHintJob safe str boot mMV rMV | safe = hintJob Hint.runInterpreter str boot mMV rMV
-                              | otherwise = hintJob unsafeInterpreter str boot mMV rMV
+startHintJob :: Bool -> Stream -> String -> MVar [String] -> MVar InterpreterMessage -> MVar InterpreterResponse -> IO ()
+startHintJob safe str boot defsMV mMV rMV | safe = hintJob Hint.runInterpreter str boot defsMV mMV rMV
+                                          | otherwise = hintJob unsafeInterpreter str boot defsMV mMV rMV
 
-hintJob :: (Interpreter () -> IO (Either InterpreterError ())) ->  Stream -> String -> MVar InterpreterMessage -> MVar InterpreterResponse -> IO ()
-hintJob interpreter str boot mMV rMV = do
-                result <- catch (interpreter $ (staticInterpreter str boot) >> (interpreterLoop mMV rMV))
+hintJob :: (Interpreter () -> IO (Either InterpreterError ())) ->  Stream -> String -> MVar [String] -> MVar InterpreterMessage -> MVar InterpreterResponse -> IO ()
+hintJob interpreter str boot defsMV mMV rMV = do
+                result <- catch (interpreter $ (staticInterpreter str boot) >> (interpreterLoop defsMV mMV rMV))
                           (\e -> return (Left $ UnknownError $ "exception" ++ show (e :: SomeException)))
                 let response = case result of
                         Left err -> RError (parseError err)
                         Right p  -> RError (show p)
                 putMVar rMV response
-                hintJob interpreter str boot mMV rMV
+                hintJob interpreter str boot defsMV mMV rMV
 
 staticInterpreter :: Stream -> String -> Interpreter ()
 staticInterpreter str boot = do
@@ -62,19 +64,21 @@ staticInterpreter str boot = do
                     Hint.runStmt boot
                     Hint.runStmt bootTidal
 
-interpreterLoop :: MVar InterpreterMessage -> MVar InterpreterResponse -> Interpreter ()
-interpreterLoop mMV rMV = do
+interpreterLoop :: MVar [String] -> MVar InterpreterMessage -> MVar InterpreterResponse -> Interpreter ()
+interpreterLoop defsMV mMV rMV = do
                     message <- liftIO $ takeMVar mMV
+                    ds <- liftIO $ readMVar defsMV
+                    runManyStmt ds
                     case message of
-                      MHigh cont defs -> interpretPat cont defs rMV
-                      MStat cont defs -> interpretStat cont defs rMV
-                      MType cont defs -> interpretType cont defs rMV
-                    interpreterLoop mMV rMV
+                      MHigh cont -> interpretPat cont rMV
+                      MStat cont -> interpretStat cont rMV
+                      MType cont -> interpretType cont rMV
+                      MDef cont  -> interpretDef cont rMV
+                    interpreterLoop defsMV mMV rMV
 
-interpretPat :: String -> String -> MVar InterpreterResponse -> Interpreter ()
-interpretPat cont defs rMV = do
+interpretPat :: String -> MVar InterpreterResponse -> Interpreter ()
+interpretPat cont rMV = do
                   let munged = deltaMini cont
-                  Hint.runStmt defs
                   t <- Hint.typeChecksWithDetails munged
                   case t of
                     Left errors -> liftIO $ putMVar rMV $ RError $ intercalate "\n" $ map errMsg errors
@@ -82,9 +86,8 @@ interpretPat cont defs rMV = do
                       !pat <- Hint.interpret munged (Hint.as :: ControlPattern)
                       liftIO $ putMVar rMV $ RHigh pat
 
-interpretStat :: String -> String -> MVar InterpreterResponse -> Interpreter ()
-interpretStat cont defs rMV = do
-                  Hint.runStmt defs
+interpretStat :: String -> MVar InterpreterResponse -> Interpreter ()
+interpretStat cont rMV = do
                   t <- Hint.typeChecksWithDetails cont
                   case t of
                     Left errors -> liftIO $ putMVar rMV $ RError $ intercalate "\n" $ map errMsg errors
@@ -93,13 +96,17 @@ interpretStat cont defs rMV = do
                       out <- Hint.eval "temp"
                       liftIO $ putMVar rMV $ RStat out
 
-interpretType :: String -> String -> MVar InterpreterResponse -> Interpreter ()
-interpretType cont defs rMV = do
-                  Hint.runStmt defs
+interpretType :: String -> MVar InterpreterResponse -> Interpreter ()
+interpretType cont rMV = do
                   !t <- Hint.typeChecksWithDetails cont
                   case t of
                     Left errors -> liftIO $ putMVar rMV $ RError $ intercalate "\n" $ map errMsg errors
                     Right out -> liftIO $ putMVar rMV $ RType out
+
+interpretDef :: String -> MVar InterpreterResponse -> Interpreter ()
+interpretDef cont rMV = do
+                  Hint.runStmt cont
+                  liftIO $ putMVar rMV $ RDef cont
 
 parseError:: InterpreterError -> String
 parseError (UnknownError s) = "Unknown error: " ++ s
@@ -113,3 +120,9 @@ bind var value = do
   tmpIORef <- Hint.interpret "tmpIORef" (Hint.as :: IORef Stream)
   liftIO $ writeIORef tmpIORef value
   Hint.runStmt (var ++ " <- readIORef tmpIORef")
+
+runManyStmt :: [String] -> Interpreter ()
+runManyStmt [] = return ()
+runManyStmt (x:xs) = do
+                runStmt x
+                runManyStmt xs

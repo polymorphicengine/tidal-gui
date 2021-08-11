@@ -1,20 +1,14 @@
-.left{
+.main{
       overflow: auto;
       float: left;
       margin:10px;
-      resize: horizontal;
+      resize: vertical;
       height: 70vh;
-      width: 60vw;
+      width: 90vw;
       }
       
-.right{ 
-      overflow: auto;
-      float:left; 
-      margin:10px;
-      height: 70vh;
-      }
-      
-.editors{
+
+.editor{
 	overflow: hidden;
 	border: 1px solid black;
 	}

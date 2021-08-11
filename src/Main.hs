@@ -33,6 +33,17 @@ main = do
         } $ setup str
 
 
+data Env = Env {windowE :: Window
+               ,streamE :: Stream
+               ,outputE :: Element
+               ,patH :: MVar HighlightStates
+               ,patS :: MVar PatternStates
+               ,hintM :: MVar InterpreterMessage
+               ,hintR :: MVar InterpreterResponse
+               ,eDefs :: MVar [String]
+               }
+
+
 setup :: Stream -> Window -> UI ()
 setup str win = void $ do
      --setup GUI
@@ -41,9 +52,8 @@ setup str win = void $ do
      UI.addStyleSheet win "tidal.css"
      UI.addStyleSheet win "theme.css"
 
-     setCallBufferMode NoBuffering
+     setCallBufferMode NoBuffering -- important for highlighting
 
-     definitions <- UI.textarea # set (attr "id") "definitions-editor"
      ctrl <- UI.textarea # set (attr "id") "control-editor"
 
      output <- UI.pre #. "outputBox"
@@ -54,6 +64,7 @@ setup str win = void $ do
                   # set (attr "type") "file"
                   # set (attr "id") "fileInput"
                   # set (attr "onchange") "controlLoadFile()"
+
      save <- UI.button
                   # set UI.text "Save file"
                   # set (attr "onclick") "controlSaveFile()"
@@ -66,24 +77,25 @@ setup str win = void $ do
 
      settings <- mkElement "script" # set UI.text tidalKeys
      --recorder <- mkElement "script" # set UI.text recorderScript
+
      makeCtrlEditor <- mkElement "script"
                        # set UI.text "const controlEditor = CodeMirror.fromTextArea(document.getElementById('control-editor'), controlEditorSettings);"
-     makeDefsEditor <- mkElement "script"
-                       # set UI.text "const definitionsEditor = CodeMirror.fromTextArea(document.getElementById('definitions-editor'), definitionsEditorSettings);"
 
      --highlight (experimental)
      high <- liftIO newEmptyMVar
      pats <- liftIO $ newMVar Map.empty
      mMV <- liftIO newEmptyMVar
      rMV <- liftIO newEmptyMVar
+     defsMV <- liftIO $ newMVar []
+
      void $ liftIO $ forkIO $ highlightLoop [] str win high
      void $ liftIO $ forkIO $ displayLoop win display str
 
      if ghcMode == "WITH_GHC=TRUE\n"
-        then void $ liftIO $ forkIO $ startHintJob True str boot mMV rMV -- True = safe
-        else void $ liftIO $ forkIO $ startHintJob False str boot mMV rMV
+        then void $ liftIO $ forkIO $ startHintJob True str boot defsMV mMV rMV -- True = safe
+        else void $ liftIO $ forkIO $ startHintJob False str boot defsMV mMV rMV
 
-     let env = Env win str output high pats mMV rMV
+     let env = Env win str output high pats mMV rMV defsMV
          evaluateBlock = runReaderT (interpretCommands False) env
          evaluateLine = runReaderT (interpretCommands True) env
 
@@ -110,28 +122,17 @@ setup str win = void $ do
      createHaskellFunction "muteP8" (muteP str pats 8)
      createHaskellFunction "muteP9" (muteP str pats 9)
      -- put elements on body
-     UI.getBody win #. "CodeMirror cm-s-theme" #+ [element display
-                       ,UI.div #. "editors" #+ [UI.div #. "left"
-                                                      #+ [element ctrl]
-                                               ,UI.div #. "right" #+ [element definitions]
-                                               ]
+     UI.getBody win #. "CodeMirror cm-s-theme" #+
+                       [element display
+                       ,UI.div #. "editor" #+ [UI.div #. "main" #+ [element ctrl]]
                        ,element load
                        ,element save
                        ,element output
                        ,element settings
                        ,element makeCtrlEditor
-                       ,element makeDefsEditor
                       -- ,element recorder
                        ]
 
-data Env = Env {windowE :: Window
-               ,streamE :: Stream
-               ,outputE :: Element
-               ,patH :: MVar HighlightStates
-               ,patS :: MVar PatternStates
-               ,hintM :: MVar InterpreterMessage
-               ,hintR :: MVar InterpreterResponse
-               }
 
 -- to combine UI and IO actions with an environment
 instance MonadUI (ReaderT Env IO) where
@@ -149,9 +150,9 @@ interpretCommands lineBool = do
            patStatesMVar = patS env
            mMV = hintM env
            rMV = hintR env
+           defsMV = eDefs env
            p = streamReplace str
        contentsControl <- liftUI editorValueControl
-       contentsDef <- liftUI editorValueDefinitions
        line <- liftUI getCursorLine
        let bs = getBlocks contentsControl
            blockMaybe = if lineBool then getLineContent line (linesNum contentsControl) else getBlock line bs
@@ -163,7 +164,7 @@ interpretCommands lineBool = do
                          Right command -> case command of
 
                                          (H name s (ln,ch)) -> do
-                                                 liftIO $ putMVar mMV $ MHigh s contentsDef
+                                                 liftIO $ putMVar mMV $ MHigh s
                                                  res <- liftIO $ takeMVar rMV
                                                  case res of
                                                      RHigh pat -> do
@@ -181,7 +182,7 @@ interpretCommands lineBool = do
                                                      _ -> return ()
 
                                          (Other s)   -> do
-                                                 liftIO $ putMVar mMV $ MStat s contentsDef
+                                                 liftIO $ putMVar mMV $ MStat s
                                                  res <- liftIO $ takeMVar rMV
                                                  case res of
                                                    RStat "()" -> successUI
@@ -194,17 +195,28 @@ interpretCommands lineBool = do
                                                    RError e -> errorUI e
                                                    _ -> return ()
 
-                                         (T s)        -> do
-                                                    liftIO $ putMVar mMV $ MType s contentsDef
+                                         (T s)       -> do
+                                                    liftIO $ putMVar mMV $ MType s
                                                     res <- liftIO $ takeMVar rMV
                                                     case res of
                                                       (RType t) -> successUI >> (outputUI t)
                                                       (RError e) -> errorUI e
                                                       _ -> return ()
 
+                                         (Def s)     -> do
+                                                 liftIO $ putMVar mMV $ MDef s
+                                                 res <- liftIO $ takeMVar rMV
+                                                 case res of
+                                                   (RDef d) -> do
+                                                     successUI
+                                                     outputUI ""
+                                                     defs <- liftIO $ takeMVar defsMV
+                                                     liftIO $ putMVar defsMV (defs ++ [d])
+                                                   (RError e) -> errorUI e
+                                                   _ -> return ()
+
                                          (Hush)      -> successUI >> (liftIO $ hush str patStatesMVar highStatesMVar)
 
-                                         (Cps x)     -> successUI >> (liftIO $ streamOnce str $ cps (pure x))
 
             where successUI = liftUI $ flashSuccess blockLineStart blockLineEnd
                   errorUI err = (liftUI $ flashError blockLineStart blockLineEnd) >> (void $ liftUI $ element out # C.set UI.text err)

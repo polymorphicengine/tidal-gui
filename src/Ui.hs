@@ -40,9 +40,6 @@ showPlayMap pMap = concat [ i ++ ": " ++ showPlayState ps ++ " " | (i,ps) <- pLi
 
 
 --get the contents of the codeMirror editor
-editorValueDefinitions :: UI String
-editorValueDefinitions = callFunction $ ffi "definitionsEditor.getValue()"
-
 editorValueControl :: UI String
 editorValueControl = callFunction $ ffi "controlEditor.getValue()"
 
