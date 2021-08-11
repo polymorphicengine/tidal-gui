@@ -25,9 +25,14 @@ displayLoop :: Window -> Element -> Stream -> IO ()
 displayLoop win display stream = do
                           valueMap <- liftIO $ readMVar (sStateMV stream)
                           playMap <- liftIO $ readMVar (sPMapMV stream)
-                          void $ runUI win $ element display # set UI.text ("cps: " ++ (show $ Map.lookup "_cps" valueMap) ++ "\n" ++ showPlayMap playMap)
+                          let cpsDisplay = case Map.lookup "_cps" valueMap of
+                                          Nothing -> ""
+                                          Just x -> show x
+                          void $ runUI win $ element display # set UI.text ("cps: " ++ cpsDisplay ++ "\n" ++ showPlayMap playMap)
                           threadDelay 100000 -- seems to be a good value
                           displayLoop win display stream
+
+
 
 showPlayState :: PlayState -> String
 showPlayState (PlayState _ mt solo _) | mt = "muted"
