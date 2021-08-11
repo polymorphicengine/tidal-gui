@@ -91,6 +91,10 @@ setup str win = void $ do
      void $ liftIO $ forkIO $ highlightLoop [] str win high
      void $ liftIO $ forkIO $ displayLoop win display str
 
+     _ <- if ghcMode == "WITH_GHC=TRUE\n"
+             then element output # set UI.text "Started interpreter using local GHC installation"
+             else element output # set UI.text "Started interpreter with packaged GHC"
+
      if ghcMode == "WITH_GHC=TRUE\n"
         then void $ liftIO $ forkIO $ startHintJob True str boot defsMV mMV rMV -- True = safe
         else void $ liftIO $ forkIO $ startHintJob False str boot defsMV mMV rMV
