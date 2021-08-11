@@ -4,7 +4,7 @@
       margin:10px;
       resize: vertical;
       height: 70vh;
-      width: 90vw;
+      width: 97vw;
       }
       
 
@@ -12,7 +12,7 @@
 	overflow: hidden;
 	border: 1px solid black;
 	}
-	
+
 .outputBox{
         height: 10vh;
 	border: 2px solid black;
