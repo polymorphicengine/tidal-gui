@@ -6,7 +6,12 @@ import Control.Monad (void)
 
 type Position = (Int,Int)
 
-data Command = H String String Position | Hush | T String | Other String | Def String  deriving Show
+data Command = H String String Position
+             | Hush
+             | T String
+             | Other String
+             | Def String
+             | Hoogle String  deriving Show
 
 data Block = Block {bStart :: Int
                    ,bEnd :: Int
@@ -58,8 +63,14 @@ parseDef = do
         s <- many anyChar
         return $ Def $ replaceTabs (l ++ s)
 
+parseHoogle :: Parser Command
+parseHoogle = do
+        _ <- string "hoogle"
+        i <- many anyChar
+        return $ Hoogle i
+
 parseCommand :: Parser Command
-parseCommand = try parseHighlight <|> try parseHush <|> try parseType <|> try parseDef <|> parseOther
+parseCommand = try parseHighlight <|> try parseHush <|> try parseType <|> try parseDef <|> try parseHoogle <|> parseOther
 
 --parsing blocks
 
