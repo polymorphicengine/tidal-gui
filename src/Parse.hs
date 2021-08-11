@@ -103,4 +103,4 @@ getLineContent num ((n,s):ls) | n == num = Just $ Block n n s
 replaceTabs :: String -> String
 replaceTabs "" = ""
 replaceTabs ('\t':xs) = "    " ++ replaceTabs xs
-replaceTabs (_:xs) = replaceTabs xs
+replaceTabs (x:xs) = x : replaceTabs xs
