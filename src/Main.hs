@@ -73,7 +73,7 @@ setup str win = void $ do
      tidalKeys <- liftIO $ readFile $ execPath ++ "static/tidalConfig.js"
      ghcMode <- liftIO $ readFile $ execPath ++ "static/ghc_mode.txt"
      --recorderScript <- liftIO $ readFile $ execPath ++ "static/codemirror/cm-record.js"
-     boot <- liftIO $ readFile $ execPath ++ "static/bootTidal.hs"
+     boot <- liftIO $ readFile $ execPath ++ "static/bootDefs.hs"
 
      settings <- mkElement "script" # set UI.text tidalKeys
      --recorder <- mkElement "script" # set UI.text recorderScript
