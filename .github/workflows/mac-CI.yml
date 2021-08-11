@@ -111,10 +111,10 @@ jobs:
             export LANG=C
             export LC_CTYPE=C
             export LC_ALL=C
-            mkdir binary/bin
-            cp -R fake_gcc.sh binary/bin/fake_gcc.sh
+            mkdir binary/haskell-libs/bin
+            cp -R fake_gcc.sh binary/haskell-libs/bin/fake_gcc.sh
             sed -i '' 's+gcc+$topdir/bin/fake_gcc.sh+g' /Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/settings
-            chmod 755 binary/bin/fake_gcc.sh
+            chmod 755 binary/haskell-libs/bin/fake_gcc.sh
    
     - name: move executable
       run: cp -R dist-newstyle/build/x86_64-osx/ghc-${{ matrix.ghc }}/tidal-gui-0.1.0.0/x/tidal-gui/build/tidal-gui/tidal-gui binary/tidal-gui
