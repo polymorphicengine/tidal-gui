@@ -119,10 +119,10 @@ jobs:
             
     - name: fake gcc
       run: |
-            mkdir binary/bin
-            cp -r fake_gcc.sh binary/bin/fake_gcc.sh
+            mkdir binary/haskell-libs/bin
+            cp -r fake_gcc.sh binary/haskell-libs/bin/fake_gcc.sh
             sed -i 's/cc/$topdir\/bin\/fake_gcc.sh/g' /home/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/settings
-            chmod 755 binary/bin/fake_gcc.sh
+            chmod 755 binary/haskell-libs/bin/fake_gcc.sh
    
     - name: move static
       run: cp -r static binary/static
