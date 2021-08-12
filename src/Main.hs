@@ -11,7 +11,7 @@ import Control.Monad.Reader (ReaderT, runReaderT, ask)
 import Data.Map as Map (insert, empty)
 
 
-import Sound.Tidal.Context as T hiding (mute,solo,(#))
+import Sound.Tidal.Context as T hiding (mute,solo,(#),s)
 
 import Text.Parsec  (parse)
 
@@ -40,6 +40,7 @@ main = do
 data Env = Env {windowE :: Window
                ,streamE :: Stream
                ,outputE :: Element
+               ,svgH :: Element
                ,patH :: MVar HighlightStates
                ,patS :: MVar PatternStates
                ,hintM :: MVar InterpreterMessage
@@ -73,6 +74,8 @@ setup str win = void $ do
                   # set UI.text "Save file"
                   # set (attr "onclick") "controlSaveFile()"
 
+     svg <- UI.div #. "svg-display"
+
      execPath <- liftIO $ dropFileName <$> getExecutablePath
      tidalKeys <- liftIO $ readFile $ execPath ++ "static/tidalConfig.js"
      ghcMode <- liftIO $ readFile $ execPath ++ "static/ghc_mode.txt"
@@ -94,6 +97,7 @@ setup str win = void $ do
 
      void $ liftIO $ forkIO $ highlightLoop [] str win high
      void $ liftIO $ forkIO $ displayLoop win display str
+     void $ liftIO $ forkIO $ visualizeStreamLoop win svg str
 
      _ <- if ghcMode == "WITH_GHC=TRUE\n"
              then element output # set UI.text "Started interpreter using local GHC installation"
@@ -103,7 +107,7 @@ setup str win = void $ do
         then void $ liftIO $ forkIO $ startHintJob True str boot defsMV mMV rMV -- True = safe
         else void $ liftIO $ forkIO $ startHintJob False str boot defsMV mMV rMV
 
-     let env = Env win str output high pats mMV rMV defsMV
+     let env = Env win str output svg high pats mMV rMV defsMV
          evaluateBlock = runReaderT (interpretCommands False) env
          evaluateLine = runReaderT (interpretCommands True) env
 
@@ -139,7 +143,7 @@ setup str win = void $ do
                        ,element settings
                        ,element makeCtrlEditor
                        ,element recorder
-                       --,patToSVG (stack $ [s "b b b b b", s "x(3,8)"])
+                       ,element svg
                        ]
 
 
@@ -160,6 +164,7 @@ interpretCommands lineBool = do
            mMV = hintM env
            rMV = hintR env
            defsMV = eDefs env
+           svg = svgH env
            p = streamReplace str
        contentsControl <- liftUI editorValueControl
        line <- liftUI getCursorLine
@@ -226,7 +231,7 @@ interpretCommands lineBool = do
 
                                          (Hush)      -> successUI >> (liftIO $ hush str patStatesMVar highStatesMVar)
 
-                                         (Hoogle s)  -> liftUI $ hoogleJob s out
+                                         (Hoogle s)  -> successUI >> (liftUI $ hoogleJob s out)
 
             where successUI = liftUI $ flashSuccess blockLineStart blockLineEnd
                   errorUI err = (liftUI $ flashError blockLineStart blockLineEnd) >> (void $ liftUI $ element out # C.set UI.text err)
