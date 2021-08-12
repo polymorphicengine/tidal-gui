@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleInstances, OverloadedStrings #-}
 
 import System.FilePath  (dropFileName)
 import System.Environment (getExecutablePath)
@@ -10,7 +10,8 @@ import Control.Monad.Reader (ReaderT, runReaderT, ask)
 
 import Data.Map as Map (insert, empty)
 
-import Sound.Tidal.Context as T hiding (mute,solo,(#),s)
+
+import Sound.Tidal.Context as T hiding (mute,solo,(#))
 
 import Text.Parsec  (parse)
 
@@ -23,6 +24,7 @@ import Parse
 import Highlight
 import Ui
 import Hint
+import Visual
 
 
 main :: IO ()
@@ -74,11 +76,11 @@ setup str win = void $ do
      execPath <- liftIO $ dropFileName <$> getExecutablePath
      tidalKeys <- liftIO $ readFile $ execPath ++ "static/tidalConfig.js"
      ghcMode <- liftIO $ readFile $ execPath ++ "static/ghc_mode.txt"
-     --recorderScript <- liftIO $ readFile $ execPath ++ "static/codemirror/cm-record.js"
+     recorderScript <- liftIO $ readFile $ execPath ++ "static/codemirror/cm-record.js"
      boot <- liftIO $ readFile $ execPath ++ "static/bootDefs.hs"
 
      settings <- mkElement "script" # set UI.text tidalKeys
-     --recorder <- mkElement "script" # set UI.text recorderScript
+     recorder <- mkElement "script" # set UI.text recorderScript
 
      makeCtrlEditor <- mkElement "script"
                        # set UI.text "const controlEditor = CodeMirror.fromTextArea(document.getElementById('control-editor'), controlEditorSettings);"
@@ -136,7 +138,8 @@ setup str win = void $ do
                        ,element output
                        ,element settings
                        ,element makeCtrlEditor
-                      -- ,element recorder
+                       ,element recorder
+                       --,patToSVG (stack $ [s "b b b b b", s "x(3,8)"])
                        ]
 
 
