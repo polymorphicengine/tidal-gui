@@ -2,7 +2,7 @@
 
 module Hint where
 
-import Control.Exception  (SomeException, catch, try)
+import Control.Exception  (SomeException, catch)
 import Control.Concurrent.MVar  (MVar, putMVar, takeMVar, readMVar)
 
 import System.FilePath  (dropFileName)
@@ -92,13 +92,13 @@ interpretStat cont rMV = do
                   case t of
                     Left errors -> liftIO $ putMVar rMV $ RError $ intercalate "\n" $ map errMsg errors
                     Right _ -> do
-                      Hint.runStmt ("temp <- " ++ cont)
+                      Hint.runStmt ("!temp <- " ++ cont)
                       out <- Hint.eval "temp"
                       liftIO $ putMVar rMV $ RStat out
 
 interpretType :: String -> MVar InterpreterResponse -> Interpreter ()
 interpretType cont rMV = do
-                  !t <- Hint.typeChecksWithDetails cont
+                  t <- Hint.typeChecksWithDetails cont
                   case t of
                     Left errors -> liftIO $ putMVar rMV $ RError $ intercalate "\n" $ map errMsg errors
                     Right out -> liftIO $ putMVar rMV $ RType out
