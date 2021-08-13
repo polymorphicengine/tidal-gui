@@ -1,6 +1,6 @@
 module Visual where
 
-import Sound.Tidal.Context as T hiding (mute,solo,(#))
+import Sound.Tidal.Context as T hiding (solo,(#))
 import Data.List (groupBy)
 import Data.Map as Map (Map,toList,lookup, insert)
 
@@ -105,7 +105,7 @@ makeSVG str cMV = do
             pMap <- liftIO $ readMVar $ sPMapMV str
             t <- time
             let c = timeToCycles tempo t
-                pats = map (pattern . snd) $ toList pMap
+                pats = map pattern $ filter (\x -> not (mute x)) (map snd $ toList pMap)
             patToSVGChan c cMV (groupByChan c pats)
 
 visualizeStreamLoop :: Window -> Element -> Stream -> MVar ColorMap -> IO ()
