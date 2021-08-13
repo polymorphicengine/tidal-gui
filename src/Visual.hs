@@ -26,7 +26,7 @@ type VisPat a = [VisEvent a]
 
 --map sample names to colors
 --might change first argument from Value to String, so users can write custom color mappings easyily
-type ColorMap = Map Value String
+type ColorMap = Map String String
 
 patToVis :: Time -> Pattern a -> VisPat a
 patToVis t pat = map evToVis evs
@@ -38,7 +38,7 @@ evToVis ev = VAt x y (T.value ev)
 
 evToSVGControl :: Int -> Time -> MVar ColorMap -> VisEvent ValueMap  -> UI Element
 evToSVGControl i t cMapMV (VAt st en valMap) = case Map.lookup "s" valMap of
-                                              Just samp -> do
+                                              Just (VS samp) -> do
                                                           cM <- liftIO $ takeMVar cMapMV
                                                           case Map.lookup samp cM of
                                                             Just col -> do
@@ -62,7 +62,7 @@ evToSVGControl i t cMapMV (VAt st en valMap) = case Map.lookup "s" valMap of
                                                                             # set SVG.stroke "black"
                                                                             # set SVG.stroke_width "2"
                                                                             # set SVG.fill c
-                                              Nothing -> SVG.rect
+                                              _ -> SVG.rect
                       where wi = show $ (fromRational (en - st)*widthScale :: Double)
                             stPos = show $ (fromRational (st - t)*widthScale :: Double)
                             yPos = show $ i*heightScale

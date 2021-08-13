@@ -93,7 +93,7 @@ setup str win = void $ do
      mMV <- liftIO newEmptyMVar
      rMV <- liftIO newEmptyMVar
      defsMV <- liftIO $ newMVar []
-     colMV <- liftIO $ newMVar Map.empty -- could be initialised with custom colorMap
+     colMV <- liftIO $ newMVar Map.empty -- could be initialised with custom colorMap, example: (Map.insert "bd" "black" Map.empty)
 
      void $ liftIO $ forkIO $ highlightLoop [] str win high
      void $ liftIO $ forkIO $ displayLoop win display str
