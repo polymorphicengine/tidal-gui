@@ -40,7 +40,6 @@ main = do
 data Env = Env {windowE :: Window
                ,streamE :: Stream
                ,outputE :: Element
-               ,svgH :: Element
                ,patH :: MVar HighlightStates
                ,patS :: MVar PatternStates
                ,hintM :: MVar InterpreterMessage
@@ -94,10 +93,11 @@ setup str win = void $ do
      mMV <- liftIO newEmptyMVar
      rMV <- liftIO newEmptyMVar
      defsMV <- liftIO $ newMVar []
+     colMV <- liftIO $ newMVar Map.empty -- could be initialised with custom colorMap
 
      void $ liftIO $ forkIO $ highlightLoop [] str win high
      void $ liftIO $ forkIO $ displayLoop win display str
-     void $ liftIO $ forkIO $ visualizeStreamLoop win svg str
+     void $ liftIO $ forkIO $ visualizeStreamLoop win svg str colMV
 
      _ <- if ghcMode == "WITH_GHC=TRUE\n"
              then element output # set UI.text "Started interpreter using local GHC installation"
@@ -107,7 +107,7 @@ setup str win = void $ do
         then void $ liftIO $ forkIO $ startHintJob True str boot defsMV mMV rMV -- True = safe
         else void $ liftIO $ forkIO $ startHintJob False str boot defsMV mMV rMV
 
-     let env = Env win str output svg high pats mMV rMV defsMV
+     let env = Env win str output high pats mMV rMV defsMV
          evaluateBlock = runReaderT (interpretCommands False) env
          evaluateLine = runReaderT (interpretCommands True) env
 
@@ -164,7 +164,6 @@ interpretCommands lineBool = do
            mMV = hintM env
            rMV = hintR env
            defsMV = eDefs env
-           svg = svgH env
            p = streamReplace str
        contentsControl <- liftUI editorValueControl
        line <- liftUI getCursorLine
