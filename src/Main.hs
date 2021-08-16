@@ -136,14 +136,15 @@ setup str win = void $ do
      -- put elements on body
      UI.getBody win #. "CodeMirror cm-s-theme" #+
                        [element display
-                       ,UI.div #. "editor" #+ [UI.div #. "main" #+ [element ctrl]]
+                       ,UI.div #. "editor" #+ [UI.div #. "main" #+ [element ctrl]
+                                              ,element svg
+                                              ]
                        ,element load
                        ,element save
                        ,element output
                        ,element settings
                        ,element makeCtrlEditor
                        ,element recorder
-                       ,element svg
                        ]
 
 
