@@ -114,6 +114,10 @@ bootTidal' = [ "p = streamReplace tidal"
               ,"anticipate i = transition tidal True (Sound.Tidal.Transition.anticipate) i"
               ,"anticipateIn i t = transition tidal True (Sound.Tidal.Transition.anticipateIn t) i"
               ,"forId i t = transition tidal False (Sound.Tidal.Transition.mortalOverlay t) i"
+              ,"color = pS \"color\" "
+              ,"r = pI \"r\""
+              ,"g = pI \"g\""
+              ,"b = pI \"b\""
              ]
 
 bootTidal :: String
