@@ -5,7 +5,6 @@ import qualified Graphics.UI.Threepenny as UI
 
 import Sound.Tidal.Context hiding (solo, (#))
 
-import Control.Concurrent (threadDelay)
 import Control.Concurrent.MVar  (MVar, tryPutMVar, tryTakeMVar, readMVar, takeMVar, putMVar)
 import Control.Monad (void)
 
@@ -29,8 +28,7 @@ displayLoop win display stream = do
                                           Nothing -> ""
                                           Just x -> show x
                           void $ runUI win $ element display # set UI.text ("cps: " ++ cpsDisplay ++ "\n" ++ showPlayMap playMap)
-                          threadDelay 100000 -- seems to be a good value
-                          displayLoop win display stream
+                          runUI win $ runFunction $ ffi "requestAnimationFrame(displayLoop)"
 
 
 
