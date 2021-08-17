@@ -12,6 +12,8 @@ import Sound.Tidal.Tempo (timeToCycles)
 
 import Numeric (showFFloat)
 
+import GHC.Float (float2Double, double2Float)
+
 import System.Random
 
 import Graphics.UI.Threepenny as UI hiding (map)
@@ -182,3 +184,94 @@ evToSVGControlArc i t cMapMV (VAt st en valMap) =
                                          widthScale = 400
                                          heightScale = 7
                                          brightness = if (abs (widthScale - stPos) <= 50) then "brightness(2)" else "brightness(1)"
+
+-------------------- Canvas
+
+getWindowWidth :: UI Double
+getWindowWidth = callFunction $ ffi "window.innerWidth"
+
+getWindowHeight :: UI Double
+getWindowHeight = callFunction $ ffi "window.innerHeight"
+
+evToCanvasArc :: Integer -> Time -> MVar ColorMap -> Canvas -> VisEvent ValueMap -> UI ()
+evToCanvasArc i t cMapMV canv (VAt st en valMap) = do
+
+                                winWidth <- getWindowWidth
+                                winHeight <- getWindowHeight
+
+                                let cent = (winWidth,winHeight)                   --middle, because canvas is scaled
+                                    widthScale = double2Float $ winWidth/10
+                                    heightScale = double2Float $ winHeight/25
+                                    r =  float2Double $ (fromInteger i)*heightScale
+                                    innerR = r - (float2Double heightScale) + 5
+                                    wi = fromRational (en - st)*widthScale :: Float
+                                    stPos = fromRational (st - t)*widthScale :: Float
+                                    endPos = stPos + wi
+                                    startAngle = float2Double $ angle 0 widthScale stPos
+                                    endAngle = float2Double $ angle 0 widthScale endPos
+
+                                beginPath canv
+                                UI.arc cent r startAngle endAngle canv
+                                UI.arc' cent innerR endAngle startAngle True canv
+
+                                --coloring
+                                _ <- case lookUpDefinedColor valMap of
+                                          Just col -> (set UI.fillStyle (htmlColor col) (return canv))
+                                          _ -> do case Map.lookup "s" valMap of
+                                                         Just (VS samp) -> do
+                                                                     cM <- liftIO $ takeMVar cMapMV
+                                                                     case Map.lookup samp cM of
+                                                                       Just col -> do
+                                                                                 _ <- liftIO $ putMVar cMapMV cM
+                                                                                 set UI.fillStyle (htmlColor col) (return canv)
+                                                                       Nothing   -> do
+                                                                                 c <- liftIO $ getRandomColor
+                                                                                 _ <- liftIO $ putMVar cMapMV (Map.insert samp c cM)
+                                                                                 set UI.fillStyle (htmlColor c) (return canv)
+                                                         _ -> return canv
+
+                                -- runFunction $ ffi "%1.getContext('2d').shadowBlur = 10;" canv
+                                -- runFunction $ ffi "%1.getContext('2d').shadowColor = \"black\";" canv
+
+                                fill canv
+                                stroke canv
+                                closePath canv
+
+
+visPatLineCanv :: Integer -> Time -> MVar ColorMap -> Canvas -> VisPat ValueMap -> UI ()
+visPatLineCanv i t cMV canv evs = void $ sequence $ map (evToCanvasArc i t cMV canv) evs
+
+visPatRecCanv :: Time -> MVar ColorMap -> Canvas -> [VisPat ValueMap] ->  UI ()
+visPatRecCanv t cMV canv vs = void $ sequence $ map (\(i,e) -> visPatLineCanv i t cMV canv e) (zip [5..] vs)
+
+makeCanv :: Stream -> MVar ColorMap -> Canvas -> UI ()
+makeCanv str cMV canv = do
+           runFunction $ ffi "%1.getContext('2d').clearRect(0,0, %1.width,%1.height)" canv
+           -- clearCanvas canv
+           tempo <- liftIO $ readMVar $ sTempoMV str
+           pMap <- liftIO $ readMVar $ sPMapMV str
+           t <- time
+           let c = timeToCycles tempo t
+               pats = map pattern $ filter (\x -> not (mute x)) (map snd $ toList pMap)
+           visPatRecCanv c cMV canv (groupByChan c pats)
+
+visualizeStreamLoopCanv :: Window -> Canvas -> Stream -> MVar ColorMap -> IO ()
+visualizeStreamLoopCanv win canv str cMapMV = do
+                                 void $ runUI win $ makeCanv str cMapMV canv
+                                 runUI win $ runFunction $ ffi "requestAnimationFrame(canvasLoop)"
+
+
+
+lookUpDefinedColor :: ValueMap -> Maybe String
+lookUpDefinedColor vM = case Map.lookup "color" vM of
+                            Just (VS c) -> Just c
+                            _ ->
+                                case Map.lookup "r" vM of
+                                  Just (VI r) -> case Map.lookup "g" vM of
+                                    Just (VI g) -> case Map.lookup "b" vM of
+                                      Just (VI b) -> case Map.lookup "alpha" vM of
+                                        Just (VF alph) -> Just $ "rgba(" ++ show r ++ "," ++ show g ++ "," ++ show b ++ "," ++ show alph ++ ")"
+                                        _ -> Just $ "rgb(" ++ show r ++ "," ++ show g ++ "," ++ show b ++ ")"
+                                      _ -> Nothing
+                                    _ -> Nothing
+                                  _ -> Nothing

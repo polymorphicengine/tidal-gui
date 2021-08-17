@@ -75,6 +75,15 @@ setup str win = void $ do
 
      svg <- UI.div #. "svg-display"
 
+     winWidth <- getWindowWidth
+     winHeight <- getWindowHeight
+
+     canv <- UI.canvas #. "canvas"
+                       # set UI.width (round $ winWidth*2)
+                       # set UI.height (round $ winHeight*2)
+
+     _ <- set UI.lineWidth 0.5 (return canv)
+
      execPath <- liftIO $ dropFileName <$> getExecutablePath
      tidalKeys <- liftIO $ readFile $ execPath ++ "static/tidalConfig.js"
      ghcMode <- liftIO $ readFile $ execPath ++ "static/ghc_mode.txt"
@@ -96,8 +105,13 @@ setup str win = void $ do
      colMV <- liftIO $ newMVar Map.empty -- could be initialised with custom colorMap, example: (Map.insert "bd" "black" Map.empty)
 
      void $ liftIO $ forkIO $ highlightLoop [] str win high
-     void $ liftIO $ forkIO $ displayLoop win display str
-     void $ liftIO $ forkIO $ visualizeStreamLoop win svg str colMV
+     -- void $ liftIO $ forkIO $ visualizeStreamLoop win svg str colMV
+
+     createHaskellFunction "displayLoop" (displayLoop win display str)
+     void $ liftIO $ forkIO $ runUI win $ runFunction $ ffi "requestAnimationFrame(displayLoop)"
+
+     createHaskellFunction "canvasLoop" (visualizeStreamLoopCanv win canv str colMV)
+     void $ liftIO $ forkIO $ runUI win $ runFunction $ ffi "requestAnimationFrame(canvasLoop)"
 
      _ <- if ghcMode == "WITH_GHC=TRUE\n"
              then element output # set UI.text "Started interpreter using local GHC installation"
@@ -137,7 +151,7 @@ setup str win = void $ do
      UI.getBody win #. "CodeMirror cm-s-theme" #+
                        [element display
                        ,UI.div #. "editor" #+ [UI.div #. "main" #+ [element ctrl]
-                                              ,element svg
+                                              ,element canv
                                               ]
                        ,element load
                        ,element save
