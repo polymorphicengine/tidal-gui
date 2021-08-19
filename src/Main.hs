@@ -82,6 +82,7 @@ setup str win = void $ do
                        # set UI.width (round $ winWidth*2)
                        # set UI.height (round $ winHeight*2)
 
+
      _ <- set UI.lineWidth 0.5 (return canv)
 
      execPath <- liftIO $ dropFileName <$> getExecutablePath
@@ -105,13 +106,15 @@ setup str win = void $ do
      colMV <- liftIO $ newMVar Map.empty -- could be initialised with custom colorMap, example: (Map.insert "bd" "black" Map.empty)
 
      void $ liftIO $ forkIO $ highlightLoop [] str win high
-     -- void $ liftIO $ forkIO $ visualizeStreamLoop win svg str colMV
+
+     createHaskellFunction "svgLoop" (visualizeStreamLoop win svg str colMV)
+     void $ liftIO $ forkIO $ runUI win $ runFunction $ ffi "svgLoop()"
 
      createHaskellFunction "displayLoop" (displayLoop win display str)
      void $ liftIO $ forkIO $ runUI win $ runFunction $ ffi "requestAnimationFrame(displayLoop)"
 
      createHaskellFunction "canvasLoop" (visualizeStreamLoopCanv win canv str colMV)
-     void $ liftIO $ forkIO $ runUI win $ runFunction $ ffi "requestAnimationFrame(canvasLoop)"
+     -- void $ liftIO $ forkIO $ runUI win $ runFunction $ ffi "canvasLoop()"
 
      _ <- if ghcMode == "WITH_GHC=TRUE\n"
              then element output # set UI.text "Started interpreter using local GHC installation"
@@ -151,7 +154,7 @@ setup str win = void $ do
      UI.getBody win #. "CodeMirror cm-s-theme" #+
                        [element display
                        ,UI.div #. "editor" #+ [UI.div #. "main" #+ [element ctrl]
-                                              ,element canv
+                                              ,element svg
                                               ]
                        ,element load
                        ,element save

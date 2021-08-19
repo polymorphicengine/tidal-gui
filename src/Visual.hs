@@ -24,7 +24,7 @@ import qualified Graphics.UI.Threepenny.SVG  as SVG
 data VisEvent a = VAt {vStart :: Time
                       ,vEnd :: Time
                       ,vVal :: a
-                      }
+                      } deriving Show
 
 type VisPat a = [VisEvent a]
 
@@ -40,6 +40,7 @@ evToVis :: T.Event a -> VisEvent a
 evToVis ev = VAt x y (T.value ev)
           where (Arc x y) = part ev
 
+--each event corresponds to a rectangle
 evToSVGControl :: Int -> Time -> MVar ColorMap -> VisEvent ValueMap  -> UI Element
 evToSVGControl i t cMapMV (VAt st en valMap) = case Map.lookup "s" valMap of
                                               Just (VS samp) -> do
@@ -101,7 +102,13 @@ groupByVals = groupBy (\x y -> vVal x == vVal y)
 
 --groups by channels (standard)
 groupByChan :: Time -> [ControlPattern] -> [VisPat ValueMap]
-groupByChan t = map (patToVis t)
+groupByChan t cs = filter filterDisplayed $ map (patToVis t) cs
+
+filterDisplayed :: VisPat ValueMap -> Bool
+filterDisplayed [] = True
+filterDisplayed ((VAt _ _ vM):_) = case Map.lookup "display" vM of
+                                      Just (VS "true") -> True
+                                      _ -> False
 
 --get patterns playing and transform them to svg elements
 makeSVG :: Stream -> MVar ColorMap -> UI Element
@@ -113,7 +120,8 @@ makeSVG str cMV = do
                 pats = map pattern $ filter (\x -> not (mute x)) (map snd $ toList pMap)
             patToSVGChan c cMV (groupByChan c pats)
 
--- doesn't perform good with many elements
+
+-- performs better than canvas ??
 visualizeStreamLoop :: Window -> Element -> Stream -> MVar ColorMap -> IO ()
 visualizeStreamLoop win svg str cMapMV = do
                         void $ runUI win $ do
@@ -122,8 +130,8 @@ visualizeStreamLoop win svg str cMapMV = do
                                             # set SVG.height "70vh"
                                             #+ [makeSVG str cMapMV]
                                     element svg # set UI.children [d]
-                        threadDelay 100000
-                        visualizeStreamLoop win svg str cMapMV
+                        runUI win $ runFunction $ ffi "requestAnimationFrame(svgLoop)"
+
 
 --------- arcs
 
@@ -151,31 +159,27 @@ makeArc intervalStart intervalEnd startPos endPos r | endPos - startPos <= inter
 
 -- each event corresponds to an arc
 evToSVGControlArc :: Integer -> Time -> MVar ColorMap -> VisEvent ValueMap  -> UI Element
-evToSVGControlArc i t cMapMV (VAt st en valMap) =
-                                    case Map.lookup "s" valMap of
-                                             Just (VS samp) -> do
-                                                         cM <- liftIO $ takeMVar cMapMV
-                                                         case Map.lookup samp cM of
-                                                           Just col -> do
-                                                                     _ <- liftIO $ putMVar cMapMV cM
-                                                                     SVG.path
-                                                                           # set SVG.d arcD
-                                                                           # set SVG.stroke col
-                                                                           # set SVG.stroke_width "7"
-                                                                           # set SVG.fill "none"
-                                                                           # set SVG.stroke_linecap "round"
-                                                                           # set style [("filter",brightness)]
-                                                           Nothing   -> do
-                                                                     c <- liftIO $ getRandomColor
-                                                                     _ <- liftIO $ putMVar cMapMV (Map.insert samp c cM)
-                                                                     SVG.path
-                                                                           # set SVG.d arcD
-                                                                           # set SVG.stroke c
-                                                                           # set SVG.stroke_width "7"
-                                                                           # set SVG.fill "none"
-                                                                           # set SVG.stroke_linecap "round"
-                                                                           # set style [("filter",brightness)]
-                                             _ -> SVG.path
+evToSVGControlArc i t cMapMV (VAt st en valMap) = do
+                                           c <- case lookUpDefinedColor valMap of
+                                              Just col -> return col
+                                              Nothing -> case Map.lookup "s" valMap of
+                                                   Just (VS samp) -> do
+                                                               cM <- liftIO $ takeMVar cMapMV
+                                                               case Map.lookup samp cM of
+                                                                 Just col -> (liftIO $ putMVar cMapMV cM) >> return col
+                                                                 Nothing  -> do
+                                                                           col <- liftIO $ getRandomColor
+                                                                           _ <- liftIO $ putMVar cMapMV (Map.insert samp col cM)
+                                                                           return col
+                                                   _ -> return ""
+                                           SVG.path
+                                                 # set SVG.d arcD
+                                                 # set SVG.stroke c
+                                                 # set SVG.stroke_width "7"
+                                                 # set SVG.fill "none"
+                                                 # set SVG.stroke_linecap "round"
+                                                 # set style [("filter",brightness)]
+
                                    where wi = fromRational (en - st)*widthScale :: Float
                                          stPos = fromRational (st - t)*widthScale :: Float
                                          endPos = stPos + wi
@@ -185,7 +189,7 @@ evToSVGControlArc i t cMapMV (VAt st en valMap) =
                                          heightScale = 7
                                          brightness = if (abs (widthScale - stPos) <= 50) then "brightness(2)" else "brightness(1)"
 
--------------------- Canvas
+-------------------- Canvas (so much flickering :( )
 
 getWindowWidth :: UI Double
 getWindowWidth = callFunction $ ffi "window.innerWidth"
@@ -232,14 +236,11 @@ evToCanvasArc i t cMapMV canv (VAt st en valMap) = do
 
                                 -- runFunction $ ffi "%1.getContext('2d').shadowBlur = 10;" canv
                                 -- runFunction $ ffi "%1.getContext('2d').shadowColor = \"black\";" canv
-
                                 fill canv
                                 stroke canv
-                                closePath canv
-
 
 visPatLineCanv :: Integer -> Time -> MVar ColorMap -> Canvas -> VisPat ValueMap -> UI ()
-visPatLineCanv i t cMV canv evs = void $ sequence $ map (evToCanvasArc i t cMV canv) evs
+visPatLineCanv i t cMV canv evs = (void $ sequence $ map (evToCanvasArc i t cMV canv) evs)
 
 visPatRecCanv :: Time -> MVar ColorMap -> Canvas -> [VisPat ValueMap] ->  UI ()
 visPatRecCanv t cMV canv vs = void $ sequence $ map (\(i,e) -> visPatLineCanv i t cMV canv e) (zip [5..] vs)
@@ -247,7 +248,6 @@ visPatRecCanv t cMV canv vs = void $ sequence $ map (\(i,e) -> visPatLineCanv i 
 makeCanv :: Stream -> MVar ColorMap -> Canvas -> UI ()
 makeCanv str cMV canv = do
            runFunction $ ffi "%1.getContext('2d').clearRect(0,0, %1.width,%1.height)" canv
-           -- clearCanvas canv
            tempo <- liftIO $ readMVar $ sTempoMV str
            pMap <- liftIO $ readMVar $ sPMapMV str
            t <- time
@@ -256,10 +256,9 @@ makeCanv str cMV canv = do
            visPatRecCanv c cMV canv (groupByChan c pats)
 
 visualizeStreamLoopCanv :: Window -> Canvas -> Stream -> MVar ColorMap -> IO ()
-visualizeStreamLoopCanv win canv str cMapMV = do
+visualizeStreamLoopCanv win canv  str cMapMV = do
                                  void $ runUI win $ makeCanv str cMapMV canv
                                  runUI win $ runFunction $ ffi "requestAnimationFrame(canvasLoop)"
-
 
 
 lookUpDefinedColor :: ValueMap -> Maybe String
