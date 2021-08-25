@@ -20,6 +20,8 @@ import Graphics.UI.Threepenny.Core as C hiding (text)
 
 import qualified Hoogle as Hoo
 
+import System.IO.Silently
+
 import Parse
 import Highlight
 import Ui
@@ -30,11 +32,13 @@ import Visual
 main :: IO ()
 main = do
     execPath <- dropFileName <$> getExecutablePath
-    str <- T.startTidal (T.superdirtTarget {oLatency = 0.1, oAddress = "127.0.0.1", oPort = 57120}) (T.defaultConfig {cVerbose = True, cFrameTimespan = 1/20})
+    (outTidal,str) <- capture $  T.startTidal (T.superdirtTarget {oLatency = 0.1, oAddress = "127.0.0.1", oPort = 57120}) (T.defaultConfig {cVerbose = True, cFrameTimespan = 1/20})
+
     startGUI C.defaultConfig {
           jsStatic = Just $ execPath ++ "static",
           jsCustomHTML     = Just "tidal.html"
-        } $ setup str
+        } $ setup str outTidal
+
 
 
 data Env = Env {windowE :: Window
@@ -48,8 +52,8 @@ data Env = Env {windowE :: Window
                }
 
 
-setup :: Stream -> Window -> UI ()
-setup str win = void $ do
+setup :: Stream -> String -> Window -> UI ()
+setup str stdout win = void $ do
      --setup GUI
      void $ return win # set title "Tidal"
 
@@ -64,14 +68,14 @@ setup str win = void $ do
                       #+ [ string "output goes here" ]
      display <- UI.pre #. "displayBox"
 
-     load <- UI.input
-                  # set (attr "type") "file"
-                  # set (attr "id") "fileInput"
-                  # set (attr "onchange") "controlLoadFile()"
-
-     save <- UI.button
-                  # set UI.text "Save file"
-                  # set (attr "onclick") "controlSaveFile()"
+     -- load <- UI.input
+     --              # set (attr "type") "file"
+     --              # set (attr "id") "fileInput"
+     --              # set (attr "onchange") "controlLoadFile()"
+     --
+     -- save <- UI.button
+     --              # set UI.text "Save file"
+     --              # set (attr "onclick") "controlSaveFile()"
 
      svg <- UI.div #. "svg-display"
 
@@ -113,12 +117,12 @@ setup str win = void $ do
      createHaskellFunction "displayLoop" (displayLoop win display str)
      void $ liftIO $ forkIO $ runUI win $ runFunction $ ffi "requestAnimationFrame(displayLoop)"
 
-     createHaskellFunction "canvasLoop" (visualizeStreamLoopCanv win canv str colMV)
+     -- createHaskellFunction "canvasLoop" (visualizeStreamLoopCanv win canv str colMV)
      -- void $ liftIO $ forkIO $ runUI win $ runFunction $ ffi "canvasLoop()"
 
      _ <- if ghcMode == "WITH_GHC=TRUE\n"
-             then element output # set UI.text "Started interpreter using local GHC installation"
-             else element output # set UI.text "Started interpreter with packaged GHC"
+             then element output # set UI.text ("Started interpreter using local GHC installation \n" ++ stdout)
+             else element output # set UI.text ("Started interpreter with packaged GHC \n" ++ stdout)
 
      if ghcMode == "WITH_GHC=TRUE\n"
         then void $ liftIO $ forkIO $ startHintJob True str boot defsMV mMV rMV -- True = safe
@@ -151,14 +155,13 @@ setup str win = void $ do
      createHaskellFunction "muteP8" (muteP str pats 8)
      createHaskellFunction "muteP9" (muteP str pats 9)
      -- put elements on body
-     UI.getBody win #. "CodeMirror cm-s-theme" #+
+     UI.getBody win #. "CodeMirror cm-s-theme"
+                    # set UI.style [("background-color","black")]
+                    #+
                        [element display
-                       ,UI.div #. "editor" #+ [UI.div #. "main" #+ [element ctrl]
-                                              ,element svg
-                                              ]
-                       ,element load
-                       ,element save
+                       ,UI.div #. "editor" #+ [UI.div #. "main" #+ [element ctrl]]
                        ,element output
+                       ,element svg
                        ,element settings
                        ,element makeCtrlEditor
                        ,element recorder
@@ -248,7 +251,7 @@ interpretCommands lineBool = do
 
                                          (Hush)      -> successUI >> (liftIO $ hush str patStatesMVar highStatesMVar)
 
-                                         (Hoogle s)  -> successUI >> (liftUI $ hoogleJob s out)
+                                         (Hoogle s)  -> successUI >> (liftUI $ hoogleJob s out) >> (liftUI $ getHistory)
 
             where successUI = liftUI $ flashSuccess blockLineStart blockLineEnd
                   errorUI err = (liftUI $ flashError blockLineStart blockLineEnd) >> (void $ liftUI $ element out # C.set UI.text err)
@@ -267,3 +270,6 @@ hooSearch :: String -> Hoo.Database -> IO (Either Hoo.Target ())
 hooSearch input dat | search == [] = return $ Right ()
                     | otherwise = return $ Left $ head search
                     where search = Hoo.searchDatabase dat input
+
+getHistory :: UI ()
+getHistory = runFunction $ ffi "console.log(controlEditor.getDoc().getHistory())"
