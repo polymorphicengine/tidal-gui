@@ -118,7 +118,7 @@ bootTidal' = [ "p = streamReplace tidal"
               ,"r = pI \"r\""
               ,"g = pI \"g\""
               ,"b = pI \"b\""
-              ,"display = pS \"display\" \"true\" "
+              ,"display = pS \"display\""
              ]
 
 bootTidal :: String
