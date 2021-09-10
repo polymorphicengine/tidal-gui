@@ -35,6 +35,7 @@ libsU = [
   , "GHC.Real"
   , "System.IO"
   , "System.Directory"
+  , "System.IO.Silently"
   ]
 
 libsU' :: [ModuleImport]
@@ -119,6 +120,7 @@ bootTidal' = [ "p = streamReplace tidal"
               ,"g = pI \"g\""
               ,"b = pI \"b\""
               ,"display = pS \"display\""
+              ,"try' = try :: IO a -> IO (Either SomeException a)"
              ]
 
 bootTidal :: String
