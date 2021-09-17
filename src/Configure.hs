@@ -120,7 +120,6 @@ bootTidal' = [ "p = streamReplace tidal"
               ,"g = pI \"g\""
               ,"b = pI \"b\""
               ,"display = pS \"display\""
-              ,"try' = try :: IO a -> IO (Either SomeException a)"
              ]
 
 bootTidal :: String
