@@ -62,7 +62,7 @@ eventToSVG :: Time -> MVar ColorMap -> VisEvent -> UI Element
 eventToSVG t cMV ev@(VEv _ _ _ (Just Horizontal) _) = eventToRectH t cMV ev
 eventToSVG t cMV ev@(VEv _ _ _ (Just Vertical) _) = eventToRectV t cMV ev
 eventToSVG t cMV ev@(VEv _ _ _ (Just Circular) _) = eventToArc t cMV ev
-eventToSVG _ _ _ = return UI.div "nothing"
+eventToSVG _ _ _ = return UI.div "nothing" -- doesen't happen
 
 --each event corresponds to a rectangle
 eventToRectH ::  Time -> MVar ColorMap -> VisEvent -> UI Element
@@ -70,8 +70,9 @@ eventToRectH t cMapMV (VEv st en valMap _ i) = do
                                    winWidth <- getWindowWidth
                                    winHeight <- getWindowHeight
                                    let wi = show $ (fromRational (en - st)*winWidth  :: Double)
-                                       stPos = show $ (fromRational (st - t)*winWidth :: Double)
-                                       yPos = show $ i*(floor $ winHeight / 16)
+                                       stPos = show $ (fromRational ((st - t)*2)*winWidth :: Double)
+                                       yPos = show $ (alternate i)*(floor $ winHeight / 16)
+                                   -- liftIO $ putStrLn $ show $ fromRational (st - st)
                                    c <-liftIO $ lookupColor valMap cMapMV
                                    SVG.rect
                                         # set SVG.x stPos
@@ -129,6 +130,10 @@ visualizeStreamLoop win svg str cMapMV = do
                                             #+ [makeSVG str cMapMV]
                                     element svg # set UI.children [d]
                         runUI win $ runFunction $ ffi "requestAnimationFrame(svgLoop)"
+
+alternate :: Integer -> Integer
+alternate x | x `mod` 2  == 0 = Prelude.div x 2
+            | otherwise = -(Prelude.div x 2 + 1)
 
 
 --------- arcs
