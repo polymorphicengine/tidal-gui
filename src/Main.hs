@@ -2,6 +2,7 @@
 
 import System.FilePath  (dropFileName)
 import System.Environment (getExecutablePath)
+import System.Directory (getDirectoryContents)
 
 import Control.Concurrent (forkIO)
 import Control.Concurrent.MVar  (newEmptyMVar, tryTakeMVar, MVar, putMVar, newMVar, takeMVar)
@@ -91,7 +92,13 @@ setup str stdout win = void $ do
      tidalKeys <- liftIO $ readFile $ execPath ++ "static/tidalConfig.js"
      ghcMode <- liftIO $ readFile $ execPath ++ "static/ghc_mode.txt"
      recorderScript <- liftIO $ readFile $ execPath ++ "static/codemirror/cm-record.js"
-     boot <- liftIO $ readFile $ execPath ++ "static/bootDefs.hs"
+
+
+     userDefsPaths <- liftIO $ getDirectoryContents $ execPath ++ "static/definitions/"
+
+     liftIO $ putStrLn $ show userDefsPaths
+
+     bootDefs <- liftIO $ sequence $ map (\x -> readFile $ execPath ++ "static/definitions/" ++ x) $ filter (\s -> s /= "." && s /= "..") userDefsPaths
 
      settings <- mkElement "script" # set UI.text tidalKeys
      recorder <- mkElement "script" # set UI.text recorderScript
@@ -123,8 +130,8 @@ setup str stdout win = void $ do
              else element output # set UI.text ("Started interpreter with packaged GHC \n" ++ stdout)
 
      if ghcMode == "WITH_GHC=TRUE\n"
-        then void $ liftIO $ forkIO $ startHintJob True str boot defsMV mMV rMV -- True = safe
-        else void $ liftIO $ forkIO $ startHintJob False str boot defsMV mMV rMV
+        then void $ liftIO $ forkIO $ startHintJob True str bootDefs defsMV mMV rMV -- True = safe
+        else void $ liftIO $ forkIO $ startHintJob False str bootDefs defsMV mMV rMV
 
      let env = Env win str output high pats mMV rMV defsMV
          evaluateBlock = runReaderT (interpretCommands False) env
