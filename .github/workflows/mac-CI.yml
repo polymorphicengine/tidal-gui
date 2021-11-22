@@ -3,7 +3,7 @@ name: Mac-CI
 on:
   push:
     tags:
-      - "v*.*.*"
+      - "svg-v*.*.*"
 
 jobs:
   build:
