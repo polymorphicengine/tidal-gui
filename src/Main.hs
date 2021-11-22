@@ -18,8 +18,6 @@ import Text.Parsec  (parse)
 import qualified Graphics.UI.Threepenny as UI
 import Graphics.UI.Threepenny.Core as C hiding (text)
 
-import qualified Hoogle as Hoo
-
 import System.IO.Silently
 
 import Parse
@@ -251,25 +249,6 @@ interpretCommands lineBool = do
 
                                          (Hush)      -> successUI >> (liftIO $ hush str patStatesMVar highStatesMVar)
 
-                                         (Hoogle s)  -> successUI >> (liftUI $ hoogleJob s out) >> (liftUI $ getHistory)
-
             where successUI = liftUI $ flashSuccess blockLineStart blockLineEnd
                   errorUI err = (liftUI $ flashError blockLineStart blockLineEnd) >> (void $ liftUI $ element out # C.set UI.text err)
                   outputUI o = void $ liftUI $ element out # set UI.text o
-
-
-hoogleJob :: String -> Element -> UI ()
-hoogleJob input out = do
-  execPath <- liftIO $ dropFileName <$> getExecutablePath
-  targ <- liftIO $ Hoo.withDatabase (execPath ++ "static/tidal.hoo") (hooSearch input)
-  case targ of
-    Left t -> void $ element out # set UI.text (Hoo.targetInfo t)
-    Right _ -> void $ element out # set UI.text "Nothing found"
-
-hooSearch :: String -> Hoo.Database -> IO (Either Hoo.Target ())
-hooSearch input dat | search == [] = return $ Right ()
-                    | otherwise = return $ Left $ head search
-                    where search = Hoo.searchDatabase dat input
-
-getHistory :: UI ()
-getHistory = runFunction $ ffi "console.log(controlEditor.getDoc().getHistory())"

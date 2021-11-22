@@ -35,7 +35,6 @@ executable tidal-gui
                        filepath,
                        hosc,
                        containers,
-                       hoogle,
                        random,
                        silently
   hs-source-dirs:      src
