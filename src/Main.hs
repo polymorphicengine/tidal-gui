@@ -95,9 +95,6 @@ setup str stdout win = void $ do
 
 
      userDefsPaths <- liftIO $ getDirectoryContents $ execPath ++ "static/definitions/"
-
-     liftIO $ putStrLn $ show userDefsPaths
-
      bootDefs <- liftIO $ sequence $ map (\x -> readFile $ execPath ++ "static/definitions/" ++ x) $ filter (\s -> s /= "." && s /= "..") userDefsPaths
 
      settings <- mkElement "script" # set UI.text tidalKeys
