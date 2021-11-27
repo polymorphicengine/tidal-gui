@@ -65,16 +65,9 @@ setup str stdout win = void $ do
 
      output <- UI.pre #. "outputBox"
                       #+ [ string "output goes here" ]
+                      # set style [("font-size","3vh")]
      display <- UI.pre #. "displayBox"
-
-     -- load <- UI.input
-     --              # set (attr "type") "file"
-     --              # set (attr "id") "fileInput"
-     --              # set (attr "onchange") "controlLoadFile()"
-     --
-     -- save <- UI.button
-     --              # set UI.text "Save file"
-     --              # set (attr "onclick") "controlSaveFile()"
+                       # set style [("font-size","3vh")]
 
      svg <- UI.div #. "svg-display"
 
