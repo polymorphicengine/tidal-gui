@@ -26,7 +26,12 @@ const controlExtraKeys = {"Ctrl-.": hush,
 			   "Ctrl-O": controlLoadFile,
 			   "Ctrl-/": 'toggleComment',
 			   "Shift-Ctrl--": increaseFontSize,
-			   "Ctrl--": decreaseFontSize}
+			   "Ctrl--": decreaseFontSize,
+			   "Ctrl-M": record,
+			   "Ctrl-B": stopAndPlay,
+			   "Shift-Ctrl-Up": swapLineUp,
+			   "Shift-Ctrl-Down": swapLineDown,
+			   "Shift-Ctrl-D": duplicateLine}
 
 
 const controlEditorSettings = {lineNumbers: true,
