@@ -92,7 +92,7 @@ interpretStat cont rMV = do
                   case t of
                     Left errors -> liftIO $ putMVar rMV $ RError $ intercalate "\n" $ map errMsg errors
                     Right _ -> do
-                      Hint.runStmt ("(tmpMsg, temp) <- hCapture [stderr] $ " ++ cont)
+                      Hint.runStmt ("(tmpMsg, !temp) <- hCapture [stderr] $ " ++ cont)
                       out <- Hint.eval "temp"
                       msg <- Hint.interpret "tmpMsg" (Hint.as :: String)
                       case msg of
