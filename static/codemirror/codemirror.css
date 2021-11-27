@@ -6,6 +6,7 @@
   height: inherit;
   color: black;
   direction: ltr;
+  font-size: 3vh;
 }
 
 /* PADDING */
@@ -31,7 +32,7 @@
 }
 .CodeMirror-linenumbers {}
 .CodeMirror-linenumber {
-  padding: 0 3px 0 5px;
+  padding: 0 3vh 0 5px;
   min-width: 20px;
   text-align: right;
   color: #999;
