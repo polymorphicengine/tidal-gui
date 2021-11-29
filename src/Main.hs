@@ -71,6 +71,12 @@ setup str stdout win = void $ do
 
      svg <- UI.div #. "svg-display"
 
+     fileInput <- UI.input # set UI.id_ "fileInput"
+                           # set UI.type_ "file"
+                           # set style [("display","none")]
+
+     inputScript <- mkElement "script" # set UI.text  "document.getElementById(\"fileInput\").onchange = e => { var file = e.target.files[0]; var reader = new FileReader();reader.readAsText(file,'UTF-8');reader.onload = function() {controlEditor.getDoc().setValue(reader.result);};}"
+
      winWidth <- getWindowWidth
      winHeight <- getWindowHeight
 
@@ -157,6 +163,8 @@ setup str stdout win = void $ do
                        ,UI.div #. "editor" #+ [UI.div #. "main" #+ [element ctrl]]
                        ,element output
                        ,element svg
+                       ,element fileInput
+                       ,element inputScript
                        ,element settings
                        ,element makeCtrlEditor
                        ,element recorder
