@@ -4,6 +4,7 @@ import Graphics.UI.Threepenny.Core as C hiding (text)
 import qualified Graphics.UI.Threepenny as UI
 
 import Sound.Tidal.Context hiding (solo, (#))
+import Sound.Tidal.ID
 
 import Control.Concurrent.MVar  (MVar, tryPutMVar, tryTakeMVar, readMVar, takeMVar, putMVar)
 import Control.Monad (void)
@@ -17,7 +18,7 @@ data PatternState = PS {psChan :: Int,
                         sSolo :: Bool
                        }
 
-type PatternStates = Map Int PatternState
+type PatternStates = Map ID PatternState
 
 
 displayLoop :: Window -> Element -> Stream -> IO ()
@@ -63,7 +64,7 @@ hush str patStatesMVar highStatesMVar = do
               _ <- tryPutMVar highStatesMVar $ Map.empty
               streamHush str
 
-muteP :: Stream -> MVar PatternStates -> Int -> IO ()
+muteP :: Stream -> MVar PatternStates -> ID -> IO ()
 muteP str patStatesMVar i = do
             patStates <- tryTakeMVar patStatesMVar
             case patStates of
@@ -77,7 +78,7 @@ muteP str patStatesMVar i = do
                         Nothing -> void $ tryPutMVar patStatesMVar $ pats
                   Nothing -> return ()
 
-muteH :: Stream -> MVar HighlightStates -> String -> IO ()
+muteH :: Stream -> MVar HighlightStates -> ID -> IO ()
 muteH str highStatesMVar i = do
               highStates <- tryTakeMVar highStatesMVar
               case highStates of
@@ -91,7 +92,7 @@ muteH str highStatesMVar i = do
                           Nothing -> void $ tryPutMVar highStatesMVar $ pats
                     Nothing -> return ()
 
-soloH :: Stream -> MVar HighlightStates -> String -> IO ()
+soloH :: Stream -> MVar HighlightStates -> ID -> IO ()
 soloH str highStatesMVar i = do
               highStates <- tryTakeMVar highStatesMVar
               case highStates of

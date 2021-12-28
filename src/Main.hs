@@ -13,6 +13,7 @@ import Data.Map as Map (insert, empty)
 
 
 import Sound.Tidal.Context as T hiding (mute,solo,(#),s)
+import Sound.Tidal.ID
 
 import Text.Parsec  (parse)
 
@@ -200,7 +201,8 @@ interpretCommands lineBool = do
                          Left e -> errorUI $ show e
                          Right command -> case command of
 
-                                         (H name s (ln,ch)) -> do
+                                         (H name' s (ln,ch)) -> do
+                                                 let name = ID name'
                                                  liftIO $ putMVar mMV $ MHigh s
                                                  res <- liftIO $ takeMVar rMV
                                                  case res of

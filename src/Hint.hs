@@ -9,7 +9,7 @@ import System.FilePath  (dropFileName)
 import System.Environment (getExecutablePath)
 
 import Sound.Tidal.Context (ControlPattern,Stream)
-import Sound.Tidal.Utils (deltaMini)
+import Sound.Tidal.Pattern (deltaMini)
 
 import Language.Haskell.Interpreter as Hint
 import Language.Haskell.Interpreter.Unsafe as Hint
