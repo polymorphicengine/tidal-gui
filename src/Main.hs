@@ -250,7 +250,10 @@ interpretCommands lineBool = do
                                                      successUI
                                                      outputUI ""
                                                      defs <- liftIO $ takeMVar defsMV
-                                                     liftIO $ putMVar defsMV (defs ++ [d])
+                                                     -- could be smarter to create less redundancy
+                                                     case elem d defs of
+                                                          True -> liftIO $ putMVar defsMV defs
+                                                          False -> liftIO $ putMVar defsMV (defs ++ [d])
                                                    (RError e) -> errorUI e
                                                    _ -> return ()
 

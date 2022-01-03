@@ -42,13 +42,15 @@ data InterpreterResponse = RHigh ControlPattern
                          | RError String
                          deriving Show
 
-startHintJob :: Bool -> Stream -> [String] -> MVar [String] -> MVar InterpreterMessage -> MVar InterpreterResponse -> IO ()
-startHintJob safe str bootDefs defsMV mMV rMV | safe = hintJob Hint.runInterpreter str bootDefs defsMV mMV rMV
-                                          | otherwise = hintJob unsafeInterpreter str bootDefs defsMV mMV rMV
+type Defs = [String]
 
-hintJob :: (Interpreter () -> IO (Either InterpreterError ())) ->  Stream -> [String] -> MVar [String] -> MVar InterpreterMessage -> MVar InterpreterResponse -> IO ()
+startHintJob :: Bool -> Stream -> [String] -> MVar Defs -> MVar InterpreterMessage -> MVar InterpreterResponse -> IO ()
+startHintJob safe str bootDefs defsMV mMV rMV | safe = hintJob Hint.runInterpreter str bootDefs defsMV mMV rMV
+                                              | otherwise = hintJob unsafeInterpreter str bootDefs defsMV mMV rMV
+
+hintJob :: (Interpreter () -> IO (Either InterpreterError ())) ->  Stream -> [String] -> MVar Defs -> MVar InterpreterMessage -> MVar InterpreterResponse -> IO ()
 hintJob interpreter str bootDefs defsMV mMV rMV = do
-                result <- catch (interpreter $ (staticInterpreter str bootDefs) >> (interpreterLoop defsMV mMV rMV))
+                result <- catch (interpreter $ (staticInterpreter str defsMV bootDefs) >> (interpreterLoop mMV rMV))
                           (\e -> return (Left $ UnknownError $ "exception" ++ show (e :: SomeException)))
                 let response = case result of
                         Left err -> RError (parseError err)
@@ -56,25 +58,25 @@ hintJob interpreter str bootDefs defsMV mMV rMV = do
                 putMVar rMV response
                 hintJob interpreter str bootDefs defsMV mMV rMV
 
-staticInterpreter :: Stream -> [String] -> Interpreter ()
-staticInterpreter str bootDefs = do
+staticInterpreter :: Stream -> MVar Defs -> [String] -> Interpreter ()
+staticInterpreter str defsMV bootDefs = do
                     Hint.set [languageExtensions := exts]
                     Hint.setImportsF libs
                     bind "tidal" str
                     _ <- sequence $ map Hint.runStmt bootDefs
                     Hint.runStmt bootTidal
-
-interpreterLoop :: MVar [String] -> MVar InterpreterMessage -> MVar InterpreterResponse -> Interpreter ()
-interpreterLoop defsMV mMV rMV = do
-                    message <- liftIO $ takeMVar mMV
                     ds <- liftIO $ readMVar defsMV
                     runManyStmt ds
+
+interpreterLoop :: MVar InterpreterMessage -> MVar InterpreterResponse -> Interpreter ()
+interpreterLoop mMV rMV = do
+                    message <- liftIO $ takeMVar mMV
                     case message of
                       MHigh cont -> interpretPat cont rMV
                       MStat cont -> interpretStat cont rMV
                       MType cont -> interpretType cont rMV
                       MDef cont  -> interpretDef cont rMV
-                    interpreterLoop defsMV mMV rMV
+                    interpreterLoop mMV rMV
 
 interpretPat :: String -> MVar InterpreterResponse -> Interpreter ()
 interpretPat cont rMV = do
