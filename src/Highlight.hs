@@ -27,15 +27,6 @@ data HighlightState = HS {sPat :: ControlPattern
 
 type HighlightStates = Map ID HighlightState
 
-instance Eq ID where
-  (==) (ID s1) (ID s2) = s1 == s2
-
-instance Ord ID where
-  (<=) (ID s1) (ID s2) = s1 <= s2
-
-instance Read ID where
-  readsPrec = readsPrec 
-
 highlight :: (Int, Int, Int) -> UI JSObject
 highlight (line, st, e) = callFunction $ ffi "(controlEditor.markText({line: %1, ch: %2}, {line: %1, ch: %3}, {css: \"background-color: blue\"}))" line st e
 
