@@ -16,9 +16,9 @@ import Highlight
 data PatternState = PS {psChan :: Int,
                         sMuted :: Bool,
                         sSolo :: Bool
-                       }
+                       } deriving Show
 
-type PatternStates = Map ID PatternState
+type PatternStates = Map Int PatternState
 
 
 displayLoop :: Window -> Element -> Stream -> IO ()
@@ -69,14 +69,15 @@ muteP str patStatesMVar i = do
             patStates <- tryTakeMVar patStatesMVar
             case patStates of
                   Just pats -> do
-                      case Map.lookup i pats of
+                      case Map.lookup key pats of
                         Just p -> do
-                          let newPatS = Map.insert i (p {sMuted = not (sMuted p)}) pats
+                          let newPatS = Map.insert key (p {sMuted = not (sMuted p)}) pats
                           if sMuted p then streamUnmute str i else streamMute str i
                           _ <- tryPutMVar patStatesMVar $ newPatS
                           return ()
-                        Nothing -> void $ tryPutMVar patStatesMVar $ pats
+                        Nothing -> (void $ tryPutMVar patStatesMVar $ pats)
                   Nothing -> return ()
+              where key = read $ fromID i
 
 muteH :: Stream -> MVar HighlightStates -> ID -> IO ()
 muteH str highStatesMVar i = do
