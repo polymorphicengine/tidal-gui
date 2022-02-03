@@ -9,6 +9,7 @@ libsU :: [String]
 libsU = [
     "Sound.Tidal.Transition"
   , "Sound.Tidal.Context"
+  , "Sound.Tidal.ID"
   , "Sound.Tidal.Simple"
   , "Control.Applicative"
   , "Data.Bifunctor"

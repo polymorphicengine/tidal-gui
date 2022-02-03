@@ -63,8 +63,8 @@ staticInterpreter str defsMV bootDefs = do
                     Hint.set [languageExtensions := exts]
                     Hint.setImportsF libs
                     bind "tidal" str
-                    _ <- sequence $ map Hint.runStmt bootDefs
                     Hint.runStmt bootTidal
+                    _ <- sequence $ map Hint.runStmt bootDefs
                     ds <- liftIO $ readMVar defsMV
                     runManyStmt ds
 

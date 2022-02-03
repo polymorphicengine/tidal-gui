@@ -55,7 +55,7 @@ data Env = Env {windowE :: Window
 setup :: Stream -> String -> Window -> UI ()
 setup str stdout win = void $ do
      --setup GUI
-     void $ return win # set title "Tidal"
+     void $ return win # set title "TidalCycles"
 
      UI.addStyleSheet win "tidal.css"
      UI.addStyleSheet win "theme.css"
