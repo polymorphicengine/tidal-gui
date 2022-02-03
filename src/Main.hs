@@ -26,7 +26,7 @@ import Parse
 import Highlight
 import Ui
 import Hint
-import Visual
+
 
 
 main :: IO ()
@@ -70,35 +70,22 @@ setup str stdout win = void $ do
      display <- UI.pre #. "displayBox"
                        # set style [("font-size","3vh")]
 
-     svg <- UI.div #. "svg-display"
-
      fileInput <- UI.input # set UI.id_ "fileInput"
                            # set UI.type_ "file"
                            # set style [("display","none")]
 
      inputScript <- mkElement "script" # set UI.text  "document.getElementById(\"fileInput\").onchange = e => { var file = e.target.files[0]; var reader = new FileReader();reader.readAsText(file,'UTF-8');reader.onload = function() {controlEditor.getDoc().setValue(reader.result);};}"
 
-     winWidth <- getWindowWidth
-     winHeight <- getWindowHeight
-
-     canv <- UI.canvas #. "canvas"
-                       # set UI.width (round $ winWidth*2)
-                       # set UI.height (round $ winHeight*2)
-
-
-     _ <- set UI.lineWidth 0.5 (return canv)
 
      execPath <- liftIO $ dropFileName <$> getExecutablePath
      tidalKeys <- liftIO $ readFile $ execPath ++ "static/tidalConfig.js"
      ghcMode <- liftIO $ readFile $ execPath ++ "static/ghc_mode.txt"
-     recorderScript <- liftIO $ readFile $ execPath ++ "static/codemirror/cm-record.js"
 
 
      userDefsPaths <- liftIO $ getDirectoryContents $ execPath ++ "static/definitions/"
      bootDefs <- liftIO $ sequence $ map (\x -> readFile $ execPath ++ "static/definitions/" ++ x) $ filter (\s -> s /= "." && s /= "..") userDefsPaths
 
      settings <- mkElement "script" # set UI.text tidalKeys
-     recorder <- mkElement "script" # set UI.text recorderScript
 
      makeCtrlEditor <- mkElement "script"
                        # set UI.text "const controlEditor = CodeMirror.fromTextArea(document.getElementById('control-editor'), controlEditorSettings);"
@@ -109,18 +96,8 @@ setup str stdout win = void $ do
      mMV <- liftIO newEmptyMVar
      rMV <- liftIO newEmptyMVar
      defsMV <- liftIO $ newMVar []
-     colMV <- liftIO $ newMVar Map.empty -- could be initialised with custom colorMap, example: (Map.insert "bd" "black" Map.empty)
-
+     
      void $ liftIO $ forkIO $ highlightLoop [] str win high
-
-     createHaskellFunction "svgLoop" (visualizeStreamLoop win svg str colMV)
-     void $ liftIO $ forkIO $ runUI win $ runFunction $ ffi "svgLoop()"
-
-     createHaskellFunction "displayLoop" (displayLoop win display str)
-     void $ liftIO $ forkIO $ runUI win $ runFunction $ ffi "requestAnimationFrame(displayLoop)"
-
-     -- createHaskellFunction "canvasLoop" (visualizeStreamLoopCanv win canv str colMV)
-     -- void $ liftIO $ forkIO $ runUI win $ runFunction $ ffi "canvasLoop()"
 
      _ <- if ghcMode == "WITH_GHC=TRUE\n"
              then element output # set UI.text ("Started interpreter using local GHC installation \n" ++ stdout)
@@ -163,12 +140,10 @@ setup str stdout win = void $ do
                        [element display
                        ,UI.div #. "editor" #+ [UI.div #. "main" #+ [element ctrl]]
                        ,element output
-                       ,element svg
                        ,element fileInput
                        ,element inputScript
                        ,element settings
                        ,element makeCtrlEditor
-                       ,element recorder
                        ]
 
 

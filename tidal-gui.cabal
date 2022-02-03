@@ -22,7 +22,6 @@ executable tidal-gui
                        Highlight
                        Hint
                        Ui
-                       Visual
   -- other-extensions:
   ghc-options: -threaded
                -Wall
