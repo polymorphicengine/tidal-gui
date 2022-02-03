@@ -105,6 +105,9 @@ setup str stdout win = void $ do
          evaluateBlock = runReaderT (interpretCommands False) env
          evaluateLine = runReaderT (interpretCommands True) env
 
+     createHaskellFunction "displayLoop" (displayLoop win display str)
+     void $ liftIO $ forkIO $ runUI win $ runFunction $ ffi "requestAnimationFrame(displayLoop)"
+
      createHaskellFunction "evaluateBlock" evaluateBlock
      createHaskellFunction "evaluateLine" evaluateLine
      createHaskellFunction "hush" (hush str pats)
