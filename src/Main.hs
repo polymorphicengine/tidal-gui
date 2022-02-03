@@ -41,7 +41,6 @@ main = do
 
 data Env = Env {windowE :: Window
                ,streamE :: Stream
-               ,outputE :: Element
                ,patS :: MVar PatternStates
                ,hintM :: MVar InterpreterMessage
                ,hintR :: MVar InterpreterResponse
@@ -59,44 +58,41 @@ setup str stdout win = void $ do
 
      setCallBufferMode NoBuffering -- important for highlighting
 
-     ctrl <- UI.textarea # set (attr "id") "control-editor"
+     editor <- UI.textarea # set (attr "id") "control-editor"
 
-     output <- UI.pre #. "outputBox"
+     output <- UI.pre # set UI.id_ "output"
+                      #. "outputBox"
                       #+ [ string "output goes here" ]
                       # set style [("font-size","3vh")]
-     display <- UI.pre #. "displayBox"
+     display <- UI.pre # set UI.id_ "display"
+                       #. "displayBox"
                        # set style [("font-size","3vh")]
 
      fileInput <- UI.input # set UI.id_ "fileInput"
                            # set UI.type_ "file"
                            # set style [("display","none")]
 
-     inputScript <- mkElement "script" # set UI.text  "document.getElementById(\"fileInput\").onchange = e => { var file = e.target.files[0]; var reader = new FileReader();reader.readAsText(file,'UTF-8');reader.onload = function() {controlEditor.getDoc().setValue(reader.result);};}"
-
-
-     execPath <- liftIO $ dropFileName <$> getExecutablePath
-     tidalKeys <- liftIO $ readFile $ execPath ++ "static/tidalConfig.js"
-
-
-     settings <- mkElement "script" # set UI.text tidalKeys
-
      makeCtrlEditor <- mkElement "script"
                        # set UI.text "const controlEditor = CodeMirror.fromTextArea(document.getElementById('control-editor'), controlEditorSettings);"
 
-     setupBackend str stdout win output display
+
+     body <- UI.getBody win
 
      -- put elements on body
-     UI.getBody win #. "CodeMirror cm-s-theme"
+     _ <- (element body) #. "CodeMirror cm-s-theme"
                     # set UI.style [("background-color","black")]
-                    #+ [element display
-                       ,UI.div #. "editor" #+ [UI.div #. "main" #+ [element ctrl]]
-                       ,element output
-                       ,element fileInput
-                       ,element inputScript
-                       ,element settings
-                       ,element makeCtrlEditor
-                       ]
+                    #+  [element display
+                        ,UI.div #. "editor" #+ [UI.div #. "main" #+ [element editor]]
+                        ,element output
+                        ]
 
+     setupBackend str stdout
+
+     (element body) #+  [element fileInput
+                        ,inputScript
+                        ,tidalSettings
+                        ,element makeCtrlEditor
+                        ]
 
 -- to combine UI and IO actions with an environment
 instance MonadUI (ReaderT Env IO) where
@@ -108,14 +104,14 @@ instance MonadUI (ReaderT Env IO) where
 interpretCommands :: Bool -> ReaderT Env IO ()
 interpretCommands lineBool = do
        env <- ask
-       let out = outputE env
-           str = streamE env
+       let str = streamE env
            patStatesMVar = patS env
            mMV = hintM env
            rMV = hintR env
            defsMV = eDefs env
        contentsControl <- liftUI editorValueControl
        line <- liftUI getCursorLine
+       out <- liftUI getOutputEl
        let bs = getBlocks contentsControl
            blockMaybe = if lineBool then getLineContent line (linesNum contentsControl) else getBlock line bs
        case blockMaybe of
@@ -168,10 +164,13 @@ interpretCommands lineBool = do
                   errorUI err = (liftUI $ flashError blockLineStart blockLineEnd) >> (void $ liftUI $ element out # C.set UI.text err)
                   outputUI o = void $ liftUI $ element out # set UI.text o
 
-setupBackend :: Stream -> String -> Window -> Element -> Element -> UI ()
-setupBackend str stdout win out disp  = do
+setupBackend :: Stream -> String -> UI ()
+setupBackend str stdout = do
 
-        env <- startInterpreter str stdout win out
+        win <- askWindow
+        env <- startInterpreter str stdout
+
+        disp <- getDisplayEl
 
         createHaskellFunction "displayLoop" (displayLoop win disp str)
         void $ liftIO $ forkIO $ runUI win $ runFunction $ ffi "requestAnimationFrame(displayLoop)"
@@ -187,9 +186,10 @@ getBootDefs = do
         return bootDefs
 
 
-startInterpreter :: Stream -> String -> Window -> Element  -> UI Env
-startInterpreter str stdout win out  = do
+startInterpreter :: Stream -> String -> UI Env
+startInterpreter str stdout = do
 
+            win <- askWindow
             pats <- liftIO $ newMVar Map.empty
             mMV <- liftIO newEmptyMVar
             rMV <- liftIO newEmptyMVar
@@ -203,11 +203,12 @@ startInterpreter str stdout win out  = do
                then void $ liftIO $ forkIO $ startHintJob True str bootDefs defsMV mMV rMV -- True = safe
                else void $ liftIO $ forkIO $ startHintJob False str bootDefs defsMV mMV rMV
 
+            out <- getOutputEl
             _ <- if ghcMode == "WITH_GHC=TRUE\n"
                      then element out # set UI.text ("Started interpreter using local GHC installation \n" ++ stdout)
                      else element out # set UI.text ("Started interpreter with packaged GHC \n" ++ stdout)
 
-            return $ Env win str out pats mMV rMV defsMV
+            return $ Env win str pats mMV rMV defsMV
 
 createShortcutFunctions :: Env -> UI ()
 createShortcutFunctions env = do
@@ -227,3 +228,29 @@ createShortcutFunctions env = do
                         createHaskellFunction "muteP7" (muteP str pats 7)
                         createHaskellFunction "muteP8" (muteP str pats 8)
                         createHaskellFunction "muteP9" (muteP str pats 9)
+
+getOutputEl :: UI Element
+getOutputEl = do
+          win <- askWindow
+          elMay <- getElementById win "output"
+          case elMay of
+            Nothing -> error "can't happen"
+            Just el -> return el
+
+getDisplayEl :: UI Element
+getDisplayEl = do
+          win <- askWindow
+          elMay <- getElementById win "display"
+          case elMay of
+            Nothing -> error "can't happen"
+            Just el -> return el
+
+tidalSettings :: UI Element
+tidalSettings = do
+          execPath <- liftIO $ dropFileName <$> getExecutablePath
+          tidalKeys <- liftIO $ readFile $ execPath ++ "static/tidalConfig.js"
+          settings <- mkElement "script" # set UI.text tidalKeys
+          return settings
+
+inputScript :: UI Element
+inputScript = mkElement "script" # set UI.text  "document.getElementById(\"fileInput\").onchange = e => { var file = e.target.files[0]; var reader = new FileReader();reader.readAsText(file,'UTF-8');reader.onload = function() {controlEditor.getDoc().setValue(reader.result);};}"
