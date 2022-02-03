@@ -76,57 +76,19 @@ setup str stdout win = void $ do
 
      execPath <- liftIO $ dropFileName <$> getExecutablePath
      tidalKeys <- liftIO $ readFile $ execPath ++ "static/tidalConfig.js"
-     ghcMode <- liftIO $ readFile $ execPath ++ "static/ghc_mode.txt"
 
-
-     userDefsPaths <- liftIO $ getDirectoryContents $ execPath ++ "static/definitions/"
-     bootDefs <- liftIO $ sequence $ map (\x -> readFile $ execPath ++ "static/definitions/" ++ x) $ filter (\s -> s /= "." && s /= "..") userDefsPaths
 
      settings <- mkElement "script" # set UI.text tidalKeys
 
      makeCtrlEditor <- mkElement "script"
                        # set UI.text "const controlEditor = CodeMirror.fromTextArea(document.getElementById('control-editor'), controlEditorSettings);"
 
-     pats <- liftIO $ newMVar Map.empty
-     mMV <- liftIO newEmptyMVar
-     rMV <- liftIO newEmptyMVar
-     defsMV <- liftIO $ newMVar []
-
-
-     _ <- if ghcMode == "WITH_GHC=TRUE\n"
-             then element output # set UI.text ("Started interpreter using local GHC installation \n" ++ stdout)
-             else element output # set UI.text ("Started interpreter with packaged GHC \n" ++ stdout)
-
-     if ghcMode == "WITH_GHC=TRUE\n"
-        then void $ liftIO $ forkIO $ startHintJob True str bootDefs defsMV mMV rMV -- True = safe
-        else void $ liftIO $ forkIO $ startHintJob False str bootDefs defsMV mMV rMV
-
-     let env = Env win str output pats mMV rMV defsMV
-         evaluateBlock = runReaderT (interpretCommands False) env
-         evaluateLine = runReaderT (interpretCommands True) env
-
-     createHaskellFunction "displayLoop" (displayLoop win display str)
-     void $ liftIO $ forkIO $ runUI win $ runFunction $ ffi "requestAnimationFrame(displayLoop)"
-
-     createHaskellFunction "evaluateBlock" evaluateBlock
-     createHaskellFunction "evaluateLine" evaluateLine
-     createHaskellFunction "hush" (hush str pats)
-
-     createHaskellFunction "muteP1" (muteP str pats 1)
-     createHaskellFunction "muteP2" (muteP str pats 2)
-     createHaskellFunction "muteP3" (muteP str pats 3)
-     createHaskellFunction "muteP4" (muteP str pats 4)
-     createHaskellFunction "muteP5" (muteP str pats 5)
-     createHaskellFunction "muteP6" (muteP str pats 6)
-     createHaskellFunction "muteP7" (muteP str pats 7)
-     createHaskellFunction "muteP8" (muteP str pats 8)
-     createHaskellFunction "muteP9" (muteP str pats 9)
+     setupBackend str stdout win output display
 
      -- put elements on body
      UI.getBody win #. "CodeMirror cm-s-theme"
                     # set UI.style [("background-color","black")]
-                    #+
-                       [element display
+                    #+ [element display
                        ,UI.div #. "editor" #+ [UI.div #. "main" #+ [element ctrl]]
                        ,element output
                        ,element fileInput
@@ -205,3 +167,63 @@ interpretCommands lineBool = do
             where successUI = liftUI $ flashSuccess blockLineStart blockLineEnd
                   errorUI err = (liftUI $ flashError blockLineStart blockLineEnd) >> (void $ liftUI $ element out # C.set UI.text err)
                   outputUI o = void $ liftUI $ element out # set UI.text o
+
+setupBackend :: Stream -> String -> Window -> Element -> Element -> UI ()
+setupBackend str stdout win out disp  = do
+
+        env <- startInterpreter str stdout win out
+
+        createHaskellFunction "displayLoop" (displayLoop win disp str)
+        void $ liftIO $ forkIO $ runUI win $ runFunction $ ffi "requestAnimationFrame(displayLoop)"
+
+        createShortcutFunctions env
+
+
+getBootDefs :: IO [String]
+getBootDefs = do
+        execPath <- liftIO $ dropFileName <$> getExecutablePath
+        userDefsPaths <- liftIO $ getDirectoryContents $ execPath ++ "static/definitions/"
+        bootDefs <- liftIO $ sequence $ map (\x -> readFile $ execPath ++ "static/definitions/" ++ x) $ filter (\s -> s /= "." && s /= "..") userDefsPaths
+        return bootDefs
+
+
+startInterpreter :: Stream -> String -> Window -> Element  -> UI Env
+startInterpreter str stdout win out  = do
+
+            pats <- liftIO $ newMVar Map.empty
+            mMV <- liftIO newEmptyMVar
+            rMV <- liftIO newEmptyMVar
+            defsMV <- liftIO $ newMVar []
+            bootDefs <- liftIO getBootDefs
+            execPath <- liftIO $ dropFileName <$> getExecutablePath
+            ghcMode <- liftIO $ readFile $ execPath ++ "static/ghc_mode.txt"
+
+
+            if ghcMode == "WITH_GHC=TRUE\n"
+               then void $ liftIO $ forkIO $ startHintJob True str bootDefs defsMV mMV rMV -- True = safe
+               else void $ liftIO $ forkIO $ startHintJob False str bootDefs defsMV mMV rMV
+
+            _ <- if ghcMode == "WITH_GHC=TRUE\n"
+                     then element out # set UI.text ("Started interpreter using local GHC installation \n" ++ stdout)
+                     else element out # set UI.text ("Started interpreter with packaged GHC \n" ++ stdout)
+
+            return $ Env win str out pats mMV rMV defsMV
+
+createShortcutFunctions :: Env -> UI ()
+createShortcutFunctions env = do
+                        let str = streamE env
+                            pats = patS env
+
+                        createHaskellFunction "evaluateBlock" (runReaderT (interpretCommands False) env)
+                        createHaskellFunction "evaluateLine" (runReaderT (interpretCommands True) env)
+                        createHaskellFunction "hush" (hush str pats)
+
+                        createHaskellFunction "muteP1" (muteP str pats 1)
+                        createHaskellFunction "muteP2" (muteP str pats 2)
+                        createHaskellFunction "muteP3" (muteP str pats 3)
+                        createHaskellFunction "muteP4" (muteP str pats 4)
+                        createHaskellFunction "muteP5" (muteP str pats 5)
+                        createHaskellFunction "muteP6" (muteP str pats 6)
+                        createHaskellFunction "muteP7" (muteP str pats 7)
+                        createHaskellFunction "muteP8" (muteP str pats 8)
+                        createHaskellFunction "muteP9" (muteP str pats 9)
