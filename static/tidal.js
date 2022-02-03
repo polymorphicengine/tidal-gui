@@ -1,22 +1,14 @@
  function controlLoadFile(){
- 
-    var fileToLoad = document.getElementById("fileInput").files[0];
-    let reader = new FileReader();
-    
-    reader.readAsText(fileToLoad);
-    
-    reader.onload = function() {
-   	controlEditor.getDoc().setValue(reader.result);
-    };
 
+   document.getElementById("fileInput").click();
 }
 
-function controlSaveFile()
-{
+
+function controlSaveFile(){
     var textToSave = controlEditor.getValue();
     var textToSaveAsBlob = new Blob([textToSave], {type:"text/plain"});
     var textToSaveAsURL = window.URL.createObjectURL(textToSaveAsBlob);
- 
+
     var downloadLink = document.createElement("a");
     downloadLink.download = 'untitled.tidal';
     downloadLink.innerHTML = "Download File";
@@ -24,19 +16,18 @@ function controlSaveFile()
     downloadLink.onclick = destroyClickedElement;
     downloadLink.style.display = "none";
     document.body.appendChild(downloadLink);
- 
+
     downloadLink.click();
 }
 
-function destroyClickedElement(event)
-{
+function destroyClickedElement(event){
     document.body.removeChild(event.target);
 }
 
-	
+
 function openDocs(cm){
-	var loc = cm.findWordAt(cm.getCursor()); 
-	var word = cm.getRange(loc.anchor, loc.head); 
+	var loc = cm.findWordAt(cm.getCursor());
+	var word = cm.getRange(loc.anchor, loc.head);
 	window.open("https://tidalcycles.org/search?q=" + word,"_blank")
 }
 
@@ -60,7 +51,7 @@ function record() {
 	codePlayer.clear();
 	codeRecorder.listen();
 }
-	
+
 function stopAndPlay() {
 	const records = codeRecorder.getRecords();
 	codePlayer.addOperations(records);
@@ -119,7 +110,7 @@ function swapLineDown(cm) {
       cm.scrollIntoView();
     });
   };
-  
+
  function duplicateLine(cm) {
     cm.operation(function() {
       var rangeCount = cm.listSelections().length;

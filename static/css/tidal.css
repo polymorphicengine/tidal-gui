@@ -2,15 +2,18 @@
       overflow: auto;
       float: left;
       margin:10px;
-      resize: vertical;
-      height: 70vh;
-      width: 97vw;
+      height: inherit;
+      width:95vw;
+      z-index:9;
+      position: relative;
+      top: 0;
+      left: 0;
       }
       
-
 .editor{
 	overflow: hidden;
 	border: 1px solid black;
+	resize:vertical;
 	}
 
 .outputBox{
@@ -19,3 +22,21 @@
 	resize: vertical;
 	overflow: auto;
 	}
+
+.svg-display{
+	position:absolute;
+	float:center;
+	z-index:8;
+	top: 0;
+        left: 0;
+}
+
+.canvas{
+	position:absolute;
+	float:center;
+	z-index:8;
+	top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+}

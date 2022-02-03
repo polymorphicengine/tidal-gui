@@ -1,6 +1,7 @@
 const keyMap = "default" // possible options: "default", "emacs", "vim", "sublime"
 
-const controlExtraKeys = {"Ctrl-.": hush,
+const controlExtraKeys = {
+				 "Ctrl-.": hush,
 			   "Ctrl-Enter": evaluateBlock,
 			   "Shift-Enter": evaluateLine,
 			   "Ctrl-D": openDocs,
@@ -27,11 +28,10 @@ const controlExtraKeys = {"Ctrl-.": hush,
 			   "Ctrl-/": 'toggleComment',
 			   "Shift-Ctrl--": increaseFontSize,
 			   "Ctrl--": decreaseFontSize,
-			   "Ctrl-M": record,
-			   "Ctrl-B": stopAndPlay,
-			   "Shift-Ctrl-Up": swapLineUp,
-			   "Shift-Ctrl-Down": swapLineDown,
-			   "Shift-Ctrl-D": duplicateLine}
+			   "Ctrl-Up": swapLineUp,
+			   "Ctrl-Down": swapLineDown,
+			   "Shift-Ctrl-D": duplicateLine
+			 }
 
 
 const controlEditorSettings = {lineNumbers: true,
@@ -41,6 +41,4 @@ const controlEditorSettings = {lineNumbers: true,
 			 	extraKeys: controlExtraKeys,
 			 	matchBrackets: true,
 			 	autoCloseBrackets: true
-			       }
-
-
+			 }
