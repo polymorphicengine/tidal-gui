@@ -21,6 +21,8 @@ executable tidal-gui
                        Configure
                        Hint
                        Ui
+                       Backend
+                       Frontend
   -- other-extensions:
   ghc-options: -threaded
                -Wall
