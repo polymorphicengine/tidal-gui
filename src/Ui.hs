@@ -11,7 +11,9 @@ import Control.Monad (void)
 
 import Data.Map as Map  (Map, insert, fromList, assocs, lookup, empty, toList)
 
-import Highlight
+import Foreign.JavaScript (JSObject)
+import Control.Concurrent (threadDelay)
+
 
 data PatternState = PS {psChan :: Int,
                         sMuted :: Bool,
@@ -54,14 +56,12 @@ createHaskellFunction name fn = do
 getCursorLine :: UI Int
 getCursorLine = callFunction $ ffi "(controlEditor.getCursor()).line"
 
-hush :: Stream -> MVar PatternStates -> MVar HighlightStates -> IO ()
-hush str patStatesMVar highStatesMVar = do
+hush :: Stream -> MVar PatternStates  -> IO ()
+hush str patStatesMVar = do
               _ <- takeMVar (sPMapMV str)
               _ <- putMVar (sPMapMV str) Map.empty
               _ <- takeMVar patStatesMVar
               _ <- putMVar patStatesMVar $ Map.empty
-              _ <- tryTakeMVar highStatesMVar
-              _ <- tryPutMVar highStatesMVar $ Map.empty
               streamHush str
 
 muteP :: Stream -> MVar PatternStates -> ID -> IO ()
@@ -79,31 +79,25 @@ muteP str patStatesMVar i = do
                   Nothing -> return ()
               where key = read $ fromID i
 
-muteH :: Stream -> MVar HighlightStates -> ID -> IO ()
-muteH str highStatesMVar i = do
-              highStates <- tryTakeMVar highStatesMVar
-              case highStates of
-                    Just pats -> do
-                        case Map.lookup i pats of
-                          Just p -> do
-                            let newPatS = Map.insert i (p {hMuted = not (hMuted p)}) pats
-                            if hMuted p then streamUnmute str i else streamMute str i
-                            _ <- tryPutMVar highStatesMVar $ newPatS
-                            return ()
-                          Nothing -> void $ tryPutMVar highStatesMVar $ pats
-                    Nothing -> return ()
 
-soloH :: Stream -> MVar HighlightStates -> ID -> IO ()
-soloH str highStatesMVar i = do
-              highStates <- tryTakeMVar highStatesMVar
-              case highStates of
-                    Just pats -> do
-                        case Map.lookup i pats of
-                          Just pat -> do
-                            let newPatS' = Map.fromList $ map (\(j, p) -> (j, p {hMuted = True})) (Map.assocs pats)
-                            let newPatS = Map.insert i (pat {hSolo = not (hSolo pat)}) newPatS'
-                            if hSolo pat then streamUnsolo str i else streamSolo str i
-                            _ <- tryPutMVar highStatesMVar $ newPatS
-                            return ()
-                          Nothing -> return ()
-                    Nothing -> return ()
+--flash on evaluation
+
+highlightBlock :: Int -> Int -> String -> UI JSObject
+highlightBlock lineStart lineEnd color = callFunction $ ffi "(controlEditor.markText({line: %1, ch: 0}, {line: %2, ch: 0}, {css: %3}))" lineStart lineEnd color
+
+unHighlight :: JSObject -> UI ()
+unHighlight mark = runFunction $ ffi "if (typeof %1 !== 'undefined'){%1.clear()};" mark
+
+flashSuccess :: Int -> Int -> UI ()
+flashSuccess lineStart lineEnd = do
+                            mark <- highlightBlock lineStart (lineEnd + 1) "background-color: green"
+                            liftIO $ threadDelay 100000
+                            unHighlight mark
+                            flushCallBuffer
+
+flashError :: Int -> Int -> UI ()
+flashError lineStart lineEnd = do
+                            mark <- highlightBlock lineStart (lineEnd + 1) "background-color: red"
+                            liftIO $ threadDelay 100000
+                            unHighlight mark
+                            flushCallBuffer

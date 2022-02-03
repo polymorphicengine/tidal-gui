@@ -29,14 +29,12 @@ unsafeInterpreter interpreter = do
 
 type Contents = String
 
-data InterpreterMessage = MHigh Contents
-                        | MStat Contents
+data InterpreterMessage = MStat Contents
                         | MType Contents
                         | MDef Contents
                         deriving Show
 
-data InterpreterResponse = RHigh ControlPattern
-                         | RStat String
+data InterpreterResponse = RStat String
                          | RType String
                          | RDef String
                          | RError String
@@ -72,21 +70,10 @@ interpreterLoop :: MVar InterpreterMessage -> MVar InterpreterResponse -> Interp
 interpreterLoop mMV rMV = do
                     message <- liftIO $ takeMVar mMV
                     case message of
-                      MHigh cont -> interpretPat cont rMV
                       MStat cont -> interpretStat cont rMV
                       MType cont -> interpretType cont rMV
                       MDef cont  -> interpretDef cont rMV
                     interpreterLoop mMV rMV
-
-interpretPat :: String -> MVar InterpreterResponse -> Interpreter ()
-interpretPat cont rMV = do
-                  let munged = deltaMini cont
-                  t <- Hint.typeChecksWithDetails munged
-                  case t of
-                    Left errors -> liftIO $ putMVar rMV $ RError $ intercalate "\n" $ map errMsg errors
-                    Right _ -> do
-                      !pat <- Hint.interpret munged (Hint.as :: ControlPattern)
-                      liftIO $ putMVar rMV $ RHigh pat
 
 interpretStat :: String -> MVar InterpreterResponse -> Interpreter ()
 interpretStat cont rMV = do
