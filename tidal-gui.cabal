@@ -19,7 +19,6 @@ executable tidal-gui
   main-is:             Main.hs
   other-modules:       Parse
                        Configure
-                       Highlight
                        Hint
                        Ui
   -- other-extensions:

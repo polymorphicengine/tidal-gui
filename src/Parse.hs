@@ -6,8 +6,7 @@ import Control.Monad (void)
 
 type Position = (Int,Int)
 
-data Command = H String String Position
-             | Hush
+data Command = Hush
              | T String
              | Other String
              | Def String  deriving Show
@@ -22,23 +21,6 @@ data Block = Block {bStart :: Int
 
 whitespace :: Parser ()
 whitespace = void $ many $ oneOf " \n\t"
-
-parseHighlight :: Parser Command
-parseHighlight = do
-        white1 <- many $ oneOf " \n\t"
-        _ <- char 'h'
-        h <- many1 digit
-        white3 <- many $ oneOf " \t\n"
-        _ <- char '$'
-        white4 <- many $ oneOf " \t\n"
-        pat <- many anyToken
-        case elem '\n' white3 of
-          False -> case elem '\n' white4 of
-            False -> return $ H ("h"++h) (white4 ++ pat) (0,length white1 + length h + length white3 + 2)
-            True -> return $ H ("h"++h) (white4 ++ pat) (0,2)
-          True -> case elem '\n' white4 of
-            True -> return $ H ("h"++h) (white4 ++ pat) (1,0)
-            False -> return $ H ("h"++h) (white4 ++ pat) (1,1)
 
 parseHush :: Parser Command
 parseHush = do
@@ -63,7 +45,7 @@ parseDef = do
         return $ Def $ replaceTabs (l ++ s)
 
 parseCommand :: Parser Command
-parseCommand = try parseHighlight <|> try parseHush <|> try parseType <|> try parseDef <|> parseOther
+parseCommand = try parseHush <|> try parseType <|> try parseDef <|> parseOther
 
 --parsing blocks
 

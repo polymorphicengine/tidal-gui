@@ -5,7 +5,7 @@ import System.Environment (getExecutablePath)
 import System.Directory (getDirectoryContents)
 
 import Control.Concurrent (forkIO)
-import Control.Concurrent.MVar  (newEmptyMVar, tryTakeMVar, MVar, putMVar, newMVar, takeMVar)
+import Control.Concurrent.MVar  (newEmptyMVar, MVar, putMVar, newMVar, takeMVar)
 import Control.Monad  (void)
 import Control.Monad.Reader (ReaderT, runReaderT, ask)
 
@@ -13,7 +13,6 @@ import Data.Map as Map (insert, empty)
 
 
 import Sound.Tidal.Context as T hiding (mute,solo,(#),s)
-import Sound.Tidal.ID
 
 import Text.Parsec  (parse)
 
@@ -23,7 +22,6 @@ import Graphics.UI.Threepenny.Core as C hiding (text)
 import System.IO.Silently
 
 import Parse
-import Highlight
 import Ui
 import Hint
 
@@ -44,7 +42,6 @@ main = do
 data Env = Env {windowE :: Window
                ,streamE :: Stream
                ,outputE :: Element
-               ,patH :: MVar HighlightStates
                ,patS :: MVar PatternStates
                ,hintM :: MVar InterpreterMessage
                ,hintR :: MVar InterpreterResponse
@@ -90,14 +87,11 @@ setup str stdout win = void $ do
      makeCtrlEditor <- mkElement "script"
                        # set UI.text "const controlEditor = CodeMirror.fromTextArea(document.getElementById('control-editor'), controlEditorSettings);"
 
-     --highlight (experimental)
-     high <- liftIO newEmptyMVar
      pats <- liftIO $ newMVar Map.empty
      mMV <- liftIO newEmptyMVar
      rMV <- liftIO newEmptyMVar
      defsMV <- liftIO $ newMVar []
-     
-     void $ liftIO $ forkIO $ highlightLoop [] str win high
+
 
      _ <- if ghcMode == "WITH_GHC=TRUE\n"
              then element output # set UI.text ("Started interpreter using local GHC installation \n" ++ stdout)
@@ -107,22 +101,13 @@ setup str stdout win = void $ do
         then void $ liftIO $ forkIO $ startHintJob True str bootDefs defsMV mMV rMV -- True = safe
         else void $ liftIO $ forkIO $ startHintJob False str bootDefs defsMV mMV rMV
 
-     let env = Env win str output high pats mMV rMV defsMV
+     let env = Env win str output pats mMV rMV defsMV
          evaluateBlock = runReaderT (interpretCommands False) env
          evaluateLine = runReaderT (interpretCommands True) env
 
      createHaskellFunction "evaluateBlock" evaluateBlock
      createHaskellFunction "evaluateLine" evaluateLine
-     createHaskellFunction "hush" (hush str pats high)
-     createHaskellFunction "muteH1" (muteH str high "h1")
-     createHaskellFunction "muteH2" (muteH str high "h2")
-     createHaskellFunction "muteH3" (muteH str high "h3")
-     createHaskellFunction "muteH4" (muteH str high "h4")
-     createHaskellFunction "muteH5" (muteH str high "h5")
-     createHaskellFunction "muteH6" (muteH str high "h6")
-     createHaskellFunction "muteH7" (muteH str high "h7")
-     createHaskellFunction "muteH8" (muteH str high "h8")
-     createHaskellFunction "muteH9" (muteH str high "h9")
+     createHaskellFunction "hush" (hush str pats)
 
      createHaskellFunction "muteP1" (muteP str pats 1)
      createHaskellFunction "muteP2" (muteP str pats 2)
@@ -133,6 +118,7 @@ setup str stdout win = void $ do
      createHaskellFunction "muteP7" (muteP str pats 7)
      createHaskellFunction "muteP8" (muteP str pats 8)
      createHaskellFunction "muteP9" (muteP str pats 9)
+
      -- put elements on body
      UI.getBody win #. "CodeMirror cm-s-theme"
                     # set UI.style [("background-color","black")]
@@ -159,12 +145,10 @@ interpretCommands lineBool = do
        env <- ask
        let out = outputE env
            str = streamE env
-           highStatesMVar = patH env
            patStatesMVar = patS env
            mMV = hintM env
            rMV = hintR env
            defsMV = eDefs env
-           p = streamReplace str
        contentsControl <- liftUI editorValueControl
        line <- liftUI getCursorLine
        let bs = getBlocks contentsControl
@@ -175,25 +159,6 @@ interpretCommands lineBool = do
                    case parse parseCommand "" block of
                          Left e -> errorUI $ show e
                          Right command -> case command of
-
-                                         (H name' s (ln,ch)) -> do
-                                                 let name = ID name'
-                                                 liftIO $ putMVar mMV $ MHigh s
-                                                 res <- liftIO $ takeMVar rMV
-                                                 case res of
-                                                     RHigh pat -> do
-                                                             successUI >> (outputUI "")
-                                                             liftIO $ p name $ pat
-                                                             highStates <- liftIO $ tryTakeMVar highStatesMVar
-                                                             case highStates of
-                                                                   Just pats -> do
-                                                                       let newPatS = Map.insert name (HS pat (blockLineStart + ln) ch False False) pats
-                                                                       liftIO $ putMVar highStatesMVar $ newPatS
-                                                                   Nothing -> do
-                                                                       let newPatS = Map.insert name (HS pat (blockLineStart + ln) ch False False) Map.empty
-                                                                       liftIO $ putMVar highStatesMVar $ newPatS
-                                                     RError e -> errorUI e
-                                                     _ -> return ()
 
                                          (Other s)   -> do
                                                  liftIO $ putMVar mMV $ MStat s
@@ -232,7 +197,7 @@ interpretCommands lineBool = do
                                                    (RError e) -> errorUI e
                                                    _ -> return ()
 
-                                         (Hush)      -> successUI >> (liftIO $ hush str patStatesMVar highStatesMVar)
+                                         (Hush)      -> successUI >> (liftIO $ hush str patStatesMVar)
 
             where successUI = liftUI $ flashSuccess blockLineStart blockLineEnd
                   errorUI err = (liftUI $ flashError blockLineStart blockLineEnd) >> (void $ liftUI $ element out # C.set UI.text err)
