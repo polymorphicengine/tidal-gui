@@ -1,14 +1,31 @@
- function controlLoadFile(){
-
+ function loadFile(cm){
+ 
+   document.getElementById('fileInput').onchange = e => { 
+   
+   	var file = e.target.files[0]; 
+   	var reader = new FileReader();
+   	reader.readAsText(file,'UTF-8');
+   	reader.onload = function() {cm.getDoc().setValue(reader.result);};
+   	
+   	}
+   	
    document.getElementById("fileInput").click();
 }
 
 
-function controlSaveFile(){
-    var textToSave = controlEditor.getValue();
+function saveFile(cm){
+    var editors = document.querySelectorAll('.CodeMirror');
+    var textToSave = "";
+    
+    for (i = 0; i < editors.length; i++){
+    	
+    	textToSave = textToSave + "\n\n" + editors[i].CodeMirror.getValue();
+    	
+    }
+    
     var textToSaveAsBlob = new Blob([textToSave], {type:"text/plain"});
     var textToSaveAsURL = window.URL.createObjectURL(textToSaveAsBlob);
-
+ 
     var downloadLink = document.createElement("a");
     downloadLink.download = 'untitled.tidal';
     downloadLink.innerHTML = "Download File";
@@ -16,7 +33,7 @@ function controlSaveFile(){
     downloadLink.onclick = destroyClickedElement;
     downloadLink.style.display = "none";
     document.body.appendChild(downloadLink);
-
+ 
     downloadLink.click();
 }
 

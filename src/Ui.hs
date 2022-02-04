@@ -54,22 +54,22 @@ muteP str i = do
 
 --flash on evaluation
 
-highlightBlock :: Int -> Int -> String -> UI JSObject
-highlightBlock lineStart lineEnd color = callFunction $ ffi "(controlEditor.markText({line: %1, ch: 0}, {line: %2, ch: 0}, {css: %3}))" lineStart lineEnd color
+highlightBlock :: JSObject -> Int -> Int -> String -> UI JSObject
+highlightBlock cm lineStart lineEnd color = callFunction $ ffi "((%1).markText({line: %2, ch: 0}, {line: %3, ch: 0}, {css: %4}))" cm lineStart lineEnd color
 
 unHighlight :: JSObject -> UI ()
 unHighlight mark = runFunction $ ffi "if (typeof %1 !== 'undefined'){%1.clear()};" mark
 
-flashSuccess :: Int -> Int -> UI ()
-flashSuccess lineStart lineEnd = do
-                            mark <- highlightBlock lineStart (lineEnd + 1) "background-color: green"
+flashSuccess :: JSObject -> Int -> Int -> UI ()
+flashSuccess cm lineStart lineEnd = do
+                            mark <- highlightBlock cm lineStart (lineEnd + 1) "background-color: green"
                             liftIO $ threadDelay 100000
                             unHighlight mark
                             flushCallBuffer
 
-flashError :: Int -> Int -> UI ()
-flashError lineStart lineEnd = do
-                            mark <- highlightBlock lineStart (lineEnd + 1) "background-color: red"
+flashError :: JSObject -> Int -> Int -> UI ()
+flashError cm lineStart lineEnd = do
+                            mark <- highlightBlock cm lineStart (lineEnd + 1) "background-color: red"
                             liftIO $ threadDelay 100000
                             unHighlight mark
                             flushCallBuffer

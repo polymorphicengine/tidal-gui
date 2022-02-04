@@ -10,6 +10,7 @@ import Sound.Tidal.Context as T hiding (mute,solo,(#),s)
 import qualified Graphics.UI.Threepenny as UI
 import Graphics.UI.Threepenny.Core as C hiding (text)
 
+
 import Backend
 
 
@@ -23,7 +24,7 @@ setup str stdout win = void $ do
 
      setCallBufferMode NoBuffering -- important for highlighting
 
-     editor <- UI.textarea # set (attr "id") "control-editor"
+     editor <- UI.textarea # set (attr "id") "controlEditor"
 
      output <- UI.pre # set UI.id_ "output"
                       #. "outputBox"
@@ -37,28 +38,26 @@ setup str stdout win = void $ do
                            # set UI.type_ "file"
                            # set style [("display","none")]
 
-     makeCtrlEditor <- mkElement "script"
-                       # set UI.text "const controlEditor = CodeMirror.fromTextArea(document.getElementById('control-editor'), controlEditorSettings);"
+     mainEditor <- UI.div #. "main" #+ [element editor] # set UI.style [("flex-grow","8")]
+     container <- UI.div # set UI.id_ "editors" #. "flex-container" #+ [element mainEditor] # set UI.style [("display","flex"),("flex-wrap","wrap")]
 
+     body <- UI.getBody win #. "CodeMirror cm-s-theme" # set UI.style [("background-color","black")]
 
-     body <- UI.getBody win
+     createShortcutFunctions str mainEditor
 
-     -- put elements on body
-     _ <- (element body) #. "CodeMirror cm-s-theme"
-                    # set UI.style [("background-color","black")]
-                    #+  [element display
-                        ,UI.div #. "editor" #+ [UI.div #. "main" #+ [element editor]]
-                        ,element output
-                        ]
+     _ <- (element body) #+
+                       [element display
+                       ,element container
+                       ,element output
+                       ]
 
      setupBackend str stdout
 
-     (element body) #+  [element fileInput
-                        ,inputScript
+     _ <- (element body) #+
+                        [element fileInput
                         ,tidalSettings
-                        ,element makeCtrlEditor
                         ]
-
+     makeEditor "controlEditor"
 
 tidalSettings :: UI Element
 tidalSettings = do

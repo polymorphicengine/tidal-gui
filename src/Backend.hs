@@ -18,6 +18,10 @@ import Text.Parsec  (parse)
 import qualified Graphics.UI.Threepenny as UI
 import Graphics.UI.Threepenny.Core as C hiding (text)
 
+import Data.IORef (IORef, readIORef, modifyIORef, newIORef)
+
+import Foreign.JavaScript (JSObject)
+
 
 import Parse
 import Ui
@@ -39,15 +43,15 @@ instance MonadUI (ReaderT Env IO) where
             let win = windowE env
             liftIO $ runUI win m
 
-interpretCommands :: Bool -> ReaderT Env IO ()
-interpretCommands lineBool = do
+interpretCommands :: JSObject -> Bool -> ReaderT Env IO ()
+interpretCommands cm lineBool = do
       env <- ask
       let str = streamE env
           mMV = hintM env
           rMV = hintR env
           defsMV = eDefs env
-      contentsControl <- liftUI editorValueControl
-      line <- liftUI getCursorLine
+      contentsControl <- liftUI $ getValue cm
+      line <- liftUI $ getCursorLine cm
       out <- liftUI getOutputEl
       let bs = getBlocks contentsControl
           blockMaybe = if lineBool then getLineContent line (linesNum contentsControl) else getBlock line bs
@@ -93,8 +97,8 @@ interpretCommands lineBool = do
 
                                         (Hush)      -> successUI >> (liftIO $ hush str)
 
-           where successUI = liftUI $ flashSuccess blockLineStart blockLineEnd
-                 errorUI err = (liftUI $ flashError blockLineStart blockLineEnd) >> (void $ liftUI $ element out # set UI.text err)
+           where successUI = liftUI $ flashSuccess cm blockLineStart blockLineEnd
+                 errorUI err = (liftUI $ flashError cm blockLineStart blockLineEnd) >> (void $ liftUI $ element out # set UI.text err)
                  outputUI o = void $ liftUI $ element out # set UI.text o
 
 setupBackend :: Stream -> String -> UI ()
@@ -108,10 +112,8 @@ setupBackend str stdout = do
        createHaskellFunction "displayLoop" (displayLoop win disp str)
        void $ liftIO $ forkIO $ runUI win $ runFunction $ ffi "requestAnimationFrame(displayLoop)"
 
-       createShortcutFunctions str
-
-       createHaskellFunction "evaluateBlock" (runReaderT (interpretCommands False) env)
-       createHaskellFunction "evaluateLine" (runReaderT (interpretCommands True) env)
+       createHaskellFunction "evaluateBlock" (\cm -> runReaderT (interpretCommands cm False) env)
+       createHaskellFunction "evaluateLine" (\cm -> runReaderT (interpretCommands cm True) env)
 
 
 getBootDefs :: IO [String]
@@ -145,8 +147,12 @@ startInterpreter str stdout = do
 
            return $ Env win str mMV rMV defsMV
 
-createShortcutFunctions :: Stream -> UI ()
-createShortcutFunctions str = do
+createShortcutFunctions :: Stream -> Element -> UI ()
+createShortcutFunctions str mainEditor = do
+                       editorsRef <- liftIO $ newIORef [mainEditor]
+                       win <- askWindow
+                       createHaskellFunction "addEditor" (runUI win $ addEditor editorsRef)
+                       createHaskellFunction "removeEditor" (runUI win $ removeEditor editorsRef)
 
                        createHaskellFunction "hush" (hush str)
 
@@ -176,12 +182,44 @@ getDisplayEl = do
            Nothing -> error "can't happen"
            Just el -> return el
 
-editorValueControl :: UI String
-editorValueControl = callFunction $ ffi "controlEditor.getValue()"
+
+getValue :: JSObject -> UI String
+getValue cm = callFunction $ (ffi $ "(%1).getValue()") cm
 
 createHaskellFunction name fn = do
   handler <- ffiExport fn
   runFunction $ ffi ("window." ++ name ++ " = %1") handler
 
-getCursorLine :: UI Int
-getCursorLine = callFunction $ ffi "(controlEditor.getCursor()).line"
+getCursorLine :: JSObject -> UI Int
+getCursorLine cm = callFunction $ (ffi "((%1).getCursor()).line") cm
+
+makeEditor :: String -> UI ()
+makeEditor i = runFunction $ ffi $ "CodeMirror.fromTextArea(document.getElementById('" ++ i ++ "'), editorSettings);"
+
+addEditor :: IORef [Element]  -> UI ()
+addEditor ref = do
+        old <- liftIO $ readIORef ref
+        let x = show $ length old
+        editor <- UI.textarea # set (attr "id") ("editor" ++ x)
+        d <- UI.div #. "main" #+ [element editor] # set UI.style [("flex-grow","8")]
+        liftIO $ modifyIORef ref (\xs -> xs ++ [d])
+        redoEditorLayout ref
+        makeEditor ("editor" ++ x)
+
+removeEditor :: IORef [Element] -> UI ()
+removeEditor ref = do
+          xs <- liftIO $ readIORef ref
+          case length xs == 1 of
+            True -> return ()
+            False -> do
+                liftIO $ modifyIORef ref (\ys -> take (length xs - 1) ys)
+                redoEditorLayout ref
+
+redoEditorLayout :: IORef [Element] -> UI ()
+redoEditorLayout ref = do
+            win <- askWindow
+            eds <- liftIO $ readIORef ref
+            editorsMay <- getElementById win "editors"
+            case editorsMay of
+              Nothing -> error "cant happen"
+              Just editors -> void $ element editors # set UI.children eds
