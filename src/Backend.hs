@@ -10,8 +10,6 @@ import Control.Concurrent.MVar  (newEmptyMVar, MVar, putMVar, newMVar, takeMVar)
 import Control.Monad  (void)
 import Control.Monad.Reader (ReaderT, runReaderT, ask)
 
-import Data.Map as Map (insert, empty)
-
 
 import Sound.Tidal.Context as T hiding (mute,solo,(#),s)
 
@@ -27,7 +25,6 @@ import Hint
 
 data Env = Env {windowE :: Window
                  ,streamE :: Stream
-                 ,patS :: MVar PatternStates
                  ,hintM :: MVar InterpreterMessage
                  ,hintR :: MVar InterpreterResponse
                  ,eDefs :: MVar [String]
@@ -46,7 +43,6 @@ interpretCommands :: Bool -> ReaderT Env IO ()
 interpretCommands lineBool = do
       env <- ask
       let str = streamE env
-          patStatesMVar = patS env
           mMV = hintM env
           rMV = hintR env
           defsMV = eDefs env
@@ -67,11 +63,7 @@ interpretCommands lineBool = do
                                                 res <- liftIO $ takeMVar rMV
                                                 case res of
                                                   RStat "()" -> successUI
-                                                  RStat (['\"','d',num,'\"']) -> do
-                                                                   successUI >> (outputUI "")
-                                                                   patStates <- liftIO $ takeMVar patStatesMVar
-                                                                   let newPatS = Map.insert (read [num]) (PS (read [num]) False False) patStates
-                                                                   liftIO $ putMVar patStatesMVar $ newPatS
+                                                  RStat (['\"','d',_,'\"']) -> successUI >> (outputUI "")
                                                   RStat outputString -> successUI >> (outputUI outputString)
                                                   RError e -> errorUI e
                                                   _ -> return ()
@@ -99,7 +91,7 @@ interpretCommands lineBool = do
                                                   (RError e) -> errorUI e
                                                   _ -> return ()
 
-                                        (Hush)      -> successUI >> (liftIO $ hush str patStatesMVar)
+                                        (Hush)      -> successUI >> (liftIO $ hush str)
 
            where successUI = liftUI $ flashSuccess blockLineStart blockLineEnd
                  errorUI err = (liftUI $ flashError blockLineStart blockLineEnd) >> (void $ liftUI $ element out # set UI.text err)
@@ -116,7 +108,10 @@ setupBackend str stdout = do
        createHaskellFunction "displayLoop" (displayLoop win disp str)
        void $ liftIO $ forkIO $ runUI win $ runFunction $ ffi "requestAnimationFrame(displayLoop)"
 
-       createShortcutFunctions env
+       createShortcutFunctions str
+
+       createHaskellFunction "evaluateBlock" (runReaderT (interpretCommands False) env)
+       createHaskellFunction "evaluateLine" (runReaderT (interpretCommands True) env)
 
 
 getBootDefs :: IO [String]
@@ -131,7 +126,6 @@ startInterpreter :: Stream -> String -> UI Env
 startInterpreter str stdout = do
 
            win <- askWindow
-           pats <- liftIO $ newMVar Map.empty
            mMV <- liftIO newEmptyMVar
            rMV <- liftIO newEmptyMVar
            defsMV <- liftIO $ newMVar []
@@ -149,26 +143,22 @@ startInterpreter str stdout = do
                     then element out # set UI.text ("Started interpreter using local GHC installation \n" ++ stdout)
                     else element out # set UI.text ("Started interpreter with packaged GHC \n" ++ stdout)
 
-           return $ Env win str pats mMV rMV defsMV
+           return $ Env win str mMV rMV defsMV
 
-createShortcutFunctions :: Env -> UI ()
-createShortcutFunctions env = do
-                       let str = streamE env
-                           pats = patS env
+createShortcutFunctions :: Stream -> UI ()
+createShortcutFunctions str = do
 
-                       createHaskellFunction "evaluateBlock" (runReaderT (interpretCommands False) env)
-                       createHaskellFunction "evaluateLine" (runReaderT (interpretCommands True) env)
-                       createHaskellFunction "hush" (hush str pats)
+                       createHaskellFunction "hush" (hush str)
 
-                       createHaskellFunction "muteP1" (muteP str pats 1)
-                       createHaskellFunction "muteP2" (muteP str pats 2)
-                       createHaskellFunction "muteP3" (muteP str pats 3)
-                       createHaskellFunction "muteP4" (muteP str pats 4)
-                       createHaskellFunction "muteP5" (muteP str pats 5)
-                       createHaskellFunction "muteP6" (muteP str pats 6)
-                       createHaskellFunction "muteP7" (muteP str pats 7)
-                       createHaskellFunction "muteP8" (muteP str pats 8)
-                       createHaskellFunction "muteP9" (muteP str pats 9)
+                       createHaskellFunction "muteP1" (muteP str 1)
+                       createHaskellFunction "muteP2" (muteP str 2)
+                       createHaskellFunction "muteP3" (muteP str 3)
+                       createHaskellFunction "muteP4" (muteP str 4)
+                       createHaskellFunction "muteP5" (muteP str 5)
+                       createHaskellFunction "muteP6" (muteP str 6)
+                       createHaskellFunction "muteP7" (muteP str 7)
+                       createHaskellFunction "muteP8" (muteP str 8)
+                       createHaskellFunction "muteP9" (muteP str 9)
 
 getOutputEl :: UI Element
 getOutputEl = do
@@ -185,3 +175,13 @@ getDisplayEl = do
          case elMay of
            Nothing -> error "can't happen"
            Just el -> return el
+
+editorValueControl :: UI String
+editorValueControl = callFunction $ ffi "controlEditor.getValue()"
+
+createHaskellFunction name fn = do
+  handler <- ffiExport fn
+  runFunction $ ffi ("window." ++ name ++ " = %1") handler
+
+getCursorLine :: UI Int
+getCursorLine = callFunction $ ffi "(controlEditor.getCursor()).line"

@@ -6,21 +6,14 @@ import qualified Graphics.UI.Threepenny as UI
 import Sound.Tidal.Context hiding (solo, (#))
 import Sound.Tidal.ID
 
-import Control.Concurrent.MVar  (MVar, tryPutMVar, tryTakeMVar, readMVar, takeMVar, putMVar)
+import Control.Concurrent.MVar  (tryPutMVar, takeMVar, readMVar, modifyMVar_)
 import Control.Monad (void)
 
-import Data.Map as Map  (Map, insert, fromList, assocs, lookup, empty, toList)
+import Data.Map as Map  (insert, lookup, empty, toList)
 
 import Foreign.JavaScript (JSObject)
 import Control.Concurrent (threadDelay)
 
-
-data PatternState = PS {psChan :: Int,
-                        sMuted :: Bool,
-                        sSolo :: Bool
-                       } deriving Show
-
-type PatternStates = Map Int PatternState
 
 
 displayLoop :: Window -> Element -> Stream -> IO ()
@@ -45,39 +38,18 @@ showPlayMap pMap = concat [ i ++ ": " ++ showPlayState ps ++ " " | (i,ps) <- pLi
                 where pList = toList pMap
 
 
---get the contents of the codeMirror editor
-editorValueControl :: UI String
-editorValueControl = callFunction $ ffi "controlEditor.getValue()"
+hush :: Stream -> IO ()
+hush str  = modifyMVar_ (sPMapMV str) (\_ -> return Map.empty)
 
-createHaskellFunction name fn = do
-   handler <- ffiExport fn
-   runFunction $ ffi ("window." ++ name ++ " = %1") handler
+muteP :: Stream -> ID -> IO ()
+muteP str i = do
+            pState <- takeMVar $ sPMapMV str
+            case Map.lookup (fromID i) pState of
+                  Just (p@(PlayState _ mt _ _)) -> do
+                          let newPState = Map.insert (fromID i) (p {mute = not mt}) pState
+                          void $ tryPutMVar (sPMapMV str) newPState
+                  Nothing -> void $ tryPutMVar (sPMapMV str) pState
 
-getCursorLine :: UI Int
-getCursorLine = callFunction $ ffi "(controlEditor.getCursor()).line"
-
-hush :: Stream -> MVar PatternStates  -> IO ()
-hush str patStatesMVar = do
-              _ <- takeMVar (sPMapMV str)
-              _ <- putMVar (sPMapMV str) Map.empty
-              _ <- takeMVar patStatesMVar
-              _ <- putMVar patStatesMVar $ Map.empty
-              streamHush str
-
-muteP :: Stream -> MVar PatternStates -> ID -> IO ()
-muteP str patStatesMVar i = do
-            patStates <- tryTakeMVar patStatesMVar
-            case patStates of
-                  Just pats -> do
-                      case Map.lookup key pats of
-                        Just p -> do
-                          let newPatS = Map.insert key (p {sMuted = not (sMuted p)}) pats
-                          if sMuted p then streamUnmute str i else streamMute str i
-                          _ <- tryPutMVar patStatesMVar $ newPatS
-                          return ()
-                        Nothing -> (void $ tryPutMVar patStatesMVar $ pats)
-                  Nothing -> return ()
-              where key = read $ fromID i
 
 
 --flash on evaluation
