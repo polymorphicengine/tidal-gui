@@ -23,7 +23,8 @@ const extraKeys = {
 		   "Ctrl--": decreaseFontSize,
 		   "Ctrl-Up": swapLineUp,
 		   "Ctrl-Down": swapLineDown,
-		   "Shift-Ctrl-D": duplicateLine
+		   "Shift-Ctrl-D": duplicateLine,
+	           "Ctrl-M": replaceWordByDef
 	          }
 
 

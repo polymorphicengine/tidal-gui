@@ -17,7 +17,7 @@ function saveFile(cm){
     var editors = document.querySelectorAll('.CodeMirror');
     var textToSave = "";
     
-    for (i = 0; i < editors.length; i++){
+    for (i = 1; i < editors.length; i++){
     	
     	textToSave = textToSave + "\n\n" + editors[i].CodeMirror.getValue();
     	
@@ -141,3 +141,4 @@ function swapLineDown(cm) {
       cm.scrollIntoView();
     });
   };
+  

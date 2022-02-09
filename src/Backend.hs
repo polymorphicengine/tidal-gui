@@ -67,7 +67,6 @@ interpretCommands cm lineBool = do
                                                 res <- liftIO $ takeMVar rMV
                                                 case res of
                                                   RStat "()" -> successUI
-                                                  RStat (['\"','d',_,'\"']) -> successUI >> (outputUI "")
                                                   RStat outputString -> successUI >> (outputUI outputString)
                                                   RError e -> errorUI e
                                                   _ -> return ()
@@ -145,6 +144,7 @@ startInterpreter str stdout = do
                     then element out # set UI.text ("Started interpreter using local GHC installation \n" ++ stdout)
                     else element out # set UI.text ("Started interpreter with packaged GHC \n" ++ stdout)
 
+           createHaskellFunction "replaceWordByDef" (\cm -> runUI win $ replaceWordByDef mMV rMV cm)
            return $ Env win str mMV rMV defsMV
 
 createShortcutFunctions :: Stream -> Element -> UI ()
@@ -223,3 +223,17 @@ redoEditorLayout ref = do
             case editorsMay of
               Nothing -> error "cant happen"
               Just editors -> void $ element editors # set UI.children eds
+
+
+replaceWordByDef :: MVar InterpreterMessage -> MVar InterpreterResponse -> JSObject -> UI ()
+replaceWordByDef mMV rMV cm = do
+      loc <- (callFunction $ ffi "(%1).findWordAt((%1).getCursor())" cm) :: UI JSObject
+      word <- (callFunction $ (ffi "(%1).getRange((%2).anchor, (%2).head)" cm loc)) :: UI String
+      liftIO $ putMVar mMV $ MStat ("return $ " ++ word)
+      res <- liftIO $ takeMVar rMV
+      case res of
+        RStat outputString -> runFunction $ ffi ("(%1).replaceRange(" ++ outputString ++ ", (%2).anchor, (%2).head)") cm loc
+        _ -> return ()
+
+noDoubleQuotes :: String -> String
+noDoubleQuotes = init . tail
