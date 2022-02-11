@@ -184,7 +184,7 @@ getDisplayEl = do
 
 
 getValue :: JSObject -> UI String
-getValue cm = callFunction $ (ffi $ "(%1).getValue()") cm
+getValue cm = callFunction $ ffi "(function (a) { if (typeof a !== 'undefined') {return a.getValue();} })(%1)" cm
 
 createHaskellFunction name fn = do
   handler <- ffiExport fn
