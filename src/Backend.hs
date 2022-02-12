@@ -191,7 +191,7 @@ createHaskellFunction name fn = do
   runFunction $ ffi ("window." ++ name ++ " = %1") handler
 
 getCursorLine :: JSObject -> UI Int
-getCursorLine cm = callFunction $ (ffi "((%1).getCursor()).line") cm
+getCursorLine cm = callFunction $ (ffi "(function (a) { if (typeof a !== 'undefined') {return (a.getCursor()).line;} else { return 0; } })(%1)") cm
 
 makeEditor :: String -> UI ()
 makeEditor i = runFunction $ ffi $ "CodeMirror.fromTextArea(document.getElementById('" ++ i ++ "'), editorSettings);"
