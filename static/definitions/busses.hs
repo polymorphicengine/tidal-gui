@@ -179,6 +179,7 @@ let fxs = ["amp"
                           		_ -> genrecv name ((pure i) + totalShift)
                           where totalShift = (pure shift)*maxBusses
     -- some predefined recv shortcuts
+    cb = controlbus
     elementrecv shift pat = pat
                       # genrecv "elementspitch" (12 + totalShift)
                       # genrecv "elementsstrength" (13 + totalShift)

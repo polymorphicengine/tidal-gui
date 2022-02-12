@@ -38,7 +38,6 @@ let
     clouds p s d t = cloudsgain 1 # cloudspos p # cloudssize s # cloudsdens d # cloudstex t
     cloudsblend w s f r = cloudsgain 1 # cloudswet w # cloudsspread s # cloudsfb f # cloudsrvb r
     c = clouds
-    cb = cloudsblend
     elementspitch = pF "elementspitch"
     elementsstrength = pF "elementsstrength"
     elementscontour = pF "elementscontour"
