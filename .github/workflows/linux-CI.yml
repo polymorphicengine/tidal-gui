@@ -3,7 +3,7 @@ name: Linux CI
 on:
   push:
     tags:
-      - "svg-v*.*.*"
+      - "v*.*.*"
 
 jobs:
   build:
@@ -71,7 +71,7 @@ jobs:
     - name: change paths in config files (GHC)
       run: |
             mv /home/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/ghc-packages/package.conf.d /home/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/package.conf.d
-            sed -i 's/\/opt\/ghc\/${{ matrix.ghc }}\/lib\/ghc-${{ matrix.ghc }}/${pkgroot}\/ghc-packages/g' /home/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/package.conf.d/*
+            sed -i 's/\/home\/runner\/.ghcup\/ghc\/${{ matrix.ghc }}\/lib\/ghc-${{ matrix.ghc }}/${pkgroot}\/ghc-packages/g' /home/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/package.conf.d/*
      
     - name: change paths in config files (cabal)
       run: |
