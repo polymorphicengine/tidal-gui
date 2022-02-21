@@ -79,6 +79,7 @@ let fxs = ["amp"
        ,"smear"
        ,"freq"
        ,"sup"
+       ,"auto"
        ]
     busmap :: Map String Int
     busmap = Data.Map.fromList $ zip fxs [0..]
@@ -171,6 +172,7 @@ let fxs = ["amp"
                                         "smear" -> genbusF "smear" (78 + totalShift) pat
                                         "freq" -> genbusF "freq" (79 + totalShift) pat
                                         "sup" -> genbusF "sup" (80 + totalShift) pat
+                                        "auto" -> genbusF "auto" (81 + totalShift) pat
     recv name shift = case Data.Map.lookup name busmap of
                           Nothing -> error "Bus not found"
                           Just i -> case name of
