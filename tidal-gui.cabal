@@ -28,7 +28,7 @@ executable tidal-gui
                -Wall
   build-depends:       base,
                        threepenny-gui,
-                       hint,
+                       hint == 0.9.0.4,
                        tidal,
                        parsec,
                        mtl,
