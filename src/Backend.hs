@@ -50,55 +50,60 @@ interpretCommands cm lineBool = do
           mMV = hintM env
           rMV = hintR env
           defsMV = eDefs env
-      contentsControl <- liftUI $ getValue cm
-      line <- liftUI $ getCursorLine cm
-      out <- liftUI getOutputEl
-      let bs = getBlocks contentsControl
-          blockMaybe = if lineBool then getLineContent line (linesNum contentsControl) else getBlock line bs
-      case blockMaybe of
-          Nothing -> void $ liftUI $ element out # set UI.text "Failed to get Block"
-          Just (Block blockLineStart blockLineEnd block) -> do
-                  case parse parseCommand "" block of
-                        Left e -> errorUI $ show e
-                        Right command -> case command of
+      undef <- liftUI $ checkUndefined cm
+      liftIO $ putStrLn undef
+      case undef of
+        "yes" -> liftIO $ putStrLn $ undef ++ "ooh"
+        _ -> do
+              contentsControl <- liftUI $ getValue cm
+              line <- liftUI $ getCursorLine cm
+              out <- liftUI getOutputEl
+              let bs = getBlocks contentsControl
+                  blockMaybe = if lineBool then getLineContent line (linesNum contentsControl) else getBlock line bs
+              case blockMaybe of
+                  Nothing -> void $ liftUI $ element out # set UI.text "Failed to get Block"
+                  Just (Block blockLineStart blockLineEnd block) -> do
+                          case parse parseCommand "" block of
+                                Left e -> errorUI $ show e
+                                Right command -> case command of
 
-                                        (Other s)   -> do
-                                                liftIO $ putMVar mMV $ MStat s
-                                                res <- liftIO $ takeMVar rMV
-                                                case res of
-                                                  RStat "()" -> successUI
-                                                  RStat outputString -> successUI >> (outputUI outputString)
-                                                  RError e -> errorUI e
-                                                  _ -> return ()
+                                                (Other s)   -> do
+                                                        liftIO $ putMVar mMV $ MStat s
+                                                        res <- liftIO $ takeMVar rMV
+                                                        case res of
+                                                          RStat "()" -> successUI
+                                                          RStat outputString -> successUI >> (outputUI outputString)
+                                                          RError e -> errorUI e
+                                                          _ -> return ()
 
-                                        (T s)       -> do
-                                                   liftIO $ putMVar mMV $ MType s
-                                                   res <- liftIO $ takeMVar rMV
-                                                   case res of
-                                                     (RType t) -> successUI >> (outputUI t)
-                                                     (RError e) -> errorUI e
-                                                     _ -> return ()
+                                                (T s)       -> do
+                                                           liftIO $ putMVar mMV $ MType s
+                                                           res <- liftIO $ takeMVar rMV
+                                                           case res of
+                                                             (RType t) -> successUI >> (outputUI t)
+                                                             (RError e) -> errorUI e
+                                                             _ -> return ()
 
-                                        (Def s)     -> do
-                                                liftIO $ putMVar mMV $ MDef s
-                                                res <- liftIO $ takeMVar rMV
-                                                case res of
-                                                  (RDef d) -> do
-                                                    successUI
-                                                    outputUI ""
-                                                    defs <- liftIO $ takeMVar defsMV
-                                                    -- could be smarter to create less redundancy
-                                                    case elem d defs of
-                                                         True -> liftIO $ putMVar defsMV defs
-                                                         False -> liftIO $ putMVar defsMV (defs ++ [d])
-                                                  (RError e) -> errorUI e
-                                                  _ -> return ()
+                                                (Def s)     -> do
+                                                        liftIO $ putMVar mMV $ MDef s
+                                                        res <- liftIO $ takeMVar rMV
+                                                        case res of
+                                                          (RDef d) -> do
+                                                            successUI
+                                                            outputUI ""
+                                                            defs <- liftIO $ takeMVar defsMV
+                                                            -- could be smarter to create less redundancy
+                                                            case elem d defs of
+                                                                 True -> liftIO $ putMVar defsMV defs
+                                                                 False -> liftIO $ putMVar defsMV (defs ++ [d])
+                                                          (RError e) -> errorUI e
+                                                          _ -> return ()
 
-                                        (Hush)      -> successUI >> (liftIO $ hush str)
+                                                (Hush)      -> successUI >> (liftIO $ hush str)
 
-           where successUI = liftUI $ flashSuccess cm blockLineStart blockLineEnd
-                 errorUI err = (liftUI $ flashError cm blockLineStart blockLineEnd) >> (void $ liftUI $ element out # set UI.text err)
-                 outputUI o = void $ liftUI $ element out # set UI.text o
+                   where successUI = liftUI $ flashSuccess cm blockLineStart blockLineEnd
+                         errorUI err = (liftUI $ flashError cm blockLineStart blockLineEnd) >> (void $ liftUI $ element out # set UI.text err)
+                         outputUI o = void $ liftUI $ element out # set UI.text o
 
 setupBackend :: Stream -> String -> UI ()
 setupBackend str stdout = do
@@ -182,16 +187,18 @@ getDisplayEl = do
            Nothing -> error "can't happen"
            Just el -> return el
 
+checkUndefined :: JSObject -> UI String
+checkUndefined cm = callFunction $ ffi "(function (a) { if (typeof a === 'undefined' || a === null) {return \"yes\";} else { return \"no\"; } })(%1)" cm
 
 getValue :: JSObject -> UI String
-getValue cm = callFunction $ ffi "(function (a) { if (typeof a !== 'undefined') {return a.getValue();} else { return \"\"; } })(%1)" cm
+getValue cm = callFunction $ ffi "(%1).getValue()" cm
 
 createHaskellFunction name fn = do
   handler <- ffiExport fn
   runFunction $ ffi ("window." ++ name ++ " = %1") handler
 
 getCursorLine :: JSObject -> UI Int
-getCursorLine cm = callFunction $ (ffi "(function (a) { if (typeof a !== 'undefined') {return (a.getCursor()).line;} else { return 0; } })(%1)") cm
+getCursorLine cm = callFunction $ (ffi "((%1).getCursor()).line") cm
 
 makeEditor :: String -> UI ()
 makeEditor i = runFunction $ ffi $ "CodeMirror.fromTextArea(document.getElementById('" ++ i ++ "'), editorSettings);"
