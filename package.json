@@ -5,7 +5,7 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "pack-app": "electron-packager . tidal-gui --overwrite  --prune=true --ignore=\\.github --ignore=\\.stack-work --ignore=\\.gitignore --ignor=\\dist",
+    "pack-app": "electron-packager . tidal-gui --overwrite  --prune=true --ignore=\\.github --ignore=\\.stack-work --ignore=\\.gitignore --ignore=\\dist-newstyle",
     "postpack-app:darwin": "node ./postpack-app-darwin.js",
     "postpack-app:win32": "node ./postpack-app-win.js"
   },
@@ -15,7 +15,7 @@
   },
   "keywords": [
     "Electron",
-    "Threepenny GUI"
+    "Tidal GUI"
   ],
   "author": "Martin Gius",
   "license": "Apache-2.0",
