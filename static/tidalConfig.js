@@ -2,7 +2,7 @@ const keyMap = "default" // possible options: "default", "emacs", "vim", "sublim
 
 const extraKeys = {
 	           "Ctrl-.": hush,
-		   "Ctrl-Enter": evaluateBlock,
+		   "Ctrl-Enter": evalB,
 		   "Shift-Enter": evaluateLine,
 		   "Ctrl-D": openDocs,
 		   "Ctrl-1": muteP1,
@@ -17,14 +17,14 @@ const extraKeys = {
 		   "Ctrl-S": saveFile,
 		   "Ctrl-O": loadFile,
 		   "Ctrl-A": addEditor,
-		   "Shift-B": removeEditor,
+		   "Ctrl-B": removeEditor,
 		   "Ctrl-/": 'toggleComment',
 		   "Shift-Ctrl--": increaseFontSize,
 		   "Ctrl--": decreaseFontSize,
 		   "Ctrl-Up": swapLineUp,
 		   "Ctrl-Down": swapLineDown,
 		   "Shift-Ctrl-D": duplicateLine,
-	           "Ctrl-M": replaceWordByDef
+		   "Ctrl-M": replaceWordByDef
 	          }
 
 

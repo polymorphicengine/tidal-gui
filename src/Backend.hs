@@ -51,9 +51,8 @@ interpretCommands cm lineBool = do
           rMV = hintR env
           defsMV = eDefs env
       undef <- liftUI $ checkUndefined cm
-      liftIO $ putStrLn undef
       case undef of
-        "yes" -> liftIO $ putStrLn $ undef ++ "ooh"
+        "yes" -> return ()
         _ -> do
               contentsControl <- liftUI $ getValue cm
               line <- liftUI $ getCursorLine cm
@@ -118,6 +117,8 @@ setupBackend str stdout = do
 
        createHaskellFunction "evaluateBlock" (\cm -> runReaderT (interpretCommands cm False) env)
        createHaskellFunction "evaluateLine" (\cm -> runReaderT (interpretCommands cm True) env)
+
+       on disconnect win $ \_ -> (runFunction $ ffi "saveFile()")
 
 
 getBootDefs :: IO [String]
@@ -187,18 +188,15 @@ getDisplayEl = do
            Nothing -> error "can't happen"
            Just el -> return el
 
-checkUndefined :: JSObject -> UI String
-checkUndefined cm = callFunction $ ffi "(function (a) { if (typeof a === 'undefined' || a === null) {return \"yes\";} else { return \"no\"; } })(%1)" cm
-
-getValue :: JSObject -> UI String
-getValue cm = callFunction $ ffi "(%1).getValue()" cm
+getValue :: ToJS a => a -> UI String
+getValue cm = callFunction $ ffi "getV(%1)" cm
 
 createHaskellFunction name fn = do
   handler <- ffiExport fn
   runFunction $ ffi ("window." ++ name ++ " = %1") handler
 
-getCursorLine :: JSObject -> UI Int
-getCursorLine cm = callFunction $ (ffi "((%1).getCursor()).line") cm
+getCursorLine :: ToJS a => a -> UI Int
+getCursorLine cm = callFunction $ (ffi "getCursorLine(%1)") cm
 
 makeEditor :: String -> UI ()
 makeEditor i = runFunction $ ffi $ "CodeMirror.fromTextArea(document.getElementById('" ++ i ++ "'), editorSettings);"

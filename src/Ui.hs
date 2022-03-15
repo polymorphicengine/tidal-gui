@@ -54,8 +54,15 @@ muteP str i = do
 
 --flash on evaluation
 
+checkUndefined :: ToJS a => a -> UI String
+checkUndefined cm = callFunction $ ffi "(function (a) { if (typeof a === 'undefined' || a === null) {return \"yes\";} else { return \"no\"; } })(%1)" cm
+
 highlightBlock :: JSObject -> Int -> Int -> String -> UI JSObject
-highlightBlock cm lineStart lineEnd color = callFunction $ ffi "((%1).markText({line: %2, ch: 0}, {line: %3, ch: 0}, {css: %4}))" cm lineStart lineEnd color
+highlightBlock cm lineStart lineEnd color = do
+                                        undef <- checkUndefined cm
+                                        case undef of
+                                          "no" -> callFunction $ ffi "((%1).markText({line: %2, ch: 0}, {line: %3, ch: 0}, {css: %4}))" cm lineStart lineEnd color
+                                          _ -> callFunction $ ffi "return {}"
 
 unHighlight :: JSObject -> UI ()
 unHighlight mark = runFunction $ ffi "if (typeof %1 !== 'undefined'){%1.clear()};" mark
