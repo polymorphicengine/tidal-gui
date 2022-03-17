@@ -3,6 +3,7 @@ let
     sup = pF "sup"
 -- autotune
     auto = pF "auto"
+    autof = pF "autof"
 -- custom SC synths
     att_ = pF "att_"
     dur_ = pF "dur_"
