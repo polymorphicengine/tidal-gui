@@ -8,8 +8,7 @@ import Control.Concurrent.MVar  (MVar, putMVar, takeMVar, readMVar)
 import System.FilePath  (dropFileName)
 import System.Environment (getExecutablePath)
 
-import Sound.Tidal.Context (ControlPattern,Stream)
-import Sound.Tidal.Pattern (deltaMini)
+import Sound.Tidal.Context (Stream)
 
 import Language.Haskell.Interpreter as Hint
 import Language.Haskell.Interpreter.Unsafe as Hint
@@ -82,7 +81,7 @@ interpretStat cont rMV = do
                     Left errors -> liftIO $ putMVar rMV $ RError $ intercalate "\n" $ map errMsg errors
                     Right _ -> do
                       Hint.runStmt ("(tmpMsg, !temp) <- hCapture [stderr] $ " ++ cont)
-                      out <- Hint.eval "temp"
+                      !out <- Hint.eval "temp"
                       msg <- Hint.interpret "tmpMsg" (Hint.as :: String)
                       case msg of
                         "" -> liftIO $ putMVar rMV $ RStat out
