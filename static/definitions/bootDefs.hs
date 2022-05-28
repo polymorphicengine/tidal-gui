@@ -4,6 +4,8 @@ let
 -- autotune
     auto = pF "auto"
     autof = pF "autof"
+--looper
+    linput = pI "linput"
 -- custom SC synths
     att_ = pF "att_"
     dur_ = pF "dur_"

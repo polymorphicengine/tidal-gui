@@ -2,7 +2,7 @@ let genrecv name busid = pI ("^" ++ name) busid
     genbusF name busid pat = pF name pat # pI ("^" ++ name) busid
     genbusI :: String -> Pattern Int -> Pattern Double -> ControlPattern
     genbusI name busid pat = pI name (fmap floor pat) # pI ("^" ++ name) busid
-    controlbus busname num pat = streamReplace tidal (Sound.Tidal.ID.ID $ busname ++ "control" ++ (show num)) $ struct "t*128" $ p
+    controlbus busname num pat = streamReplace tidal (Sound.Tidal.ID.ID $ "cb" ++ (show num)) $ struct "t*128" $ p
                         where p = case busname of
                                         "amp" -> ampbus (pure num) pat
                                         "pan" -> panbus (pure num) pat
