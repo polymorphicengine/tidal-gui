@@ -6,7 +6,7 @@ import System.Environment (getExecutablePath)
 import System.Directory (getDirectoryContents)
 
 import Control.Concurrent (forkIO)
-import Control.Concurrent.MVar  (newEmptyMVar, MVar, putMVar, newMVar, takeMVar)
+import Control.Concurrent.MVar  (newEmptyMVar, MVar, putMVar, takeMVar)
 import Control.Monad  (void)
 import Control.Monad.Reader (ReaderT, runReaderT, ask)
 
@@ -31,7 +31,6 @@ data Env = Env {windowE :: Window
                  ,streamE :: Stream
                  ,hintM :: MVar InterpreterMessage
                  ,hintR :: MVar InterpreterResponse
-                 ,eDefs :: MVar [String]
                  }
 
 
@@ -49,7 +48,6 @@ interpretCommands cm lineBool = do
       let str = streamE env
           mMV = hintM env
           rMV = hintR env
-          defsMV = eDefs env
       undef <- liftUI $ checkUndefined cm
       case undef of
         "yes" -> return ()
@@ -87,14 +85,7 @@ interpretCommands cm lineBool = do
                                                         liftIO $ putMVar mMV $ MDef s
                                                         res <- liftIO $ takeMVar rMV
                                                         case res of
-                                                          (RDef d) -> do
-                                                            successUI
-                                                            outputUI ""
-                                                            defs <- liftIO $ takeMVar defsMV
-                                                            -- could be smarter to create less redundancy
-                                                            case elem d defs of
-                                                                 True -> liftIO $ putMVar defsMV defs
-                                                                 False -> liftIO $ putMVar defsMV (defs ++ [d])
+                                                          (RDef) -> successUI >> outputUI ""
                                                           (RError e) -> errorUI e
                                                           _ -> return ()
 
@@ -135,15 +126,14 @@ startInterpreter str stdout = do
            win <- askWindow
            mMV <- liftIO newEmptyMVar
            rMV <- liftIO newEmptyMVar
-           defsMV <- liftIO $ newMVar []
            bootDefs <- liftIO getBootDefs
            execPath <- liftIO $ dropFileName <$> getExecutablePath
            ghcMode <- liftIO $ readFile $ execPath ++ "static/ghc_mode.txt"
 
 
            if ghcMode == "WITH_GHC=TRUE\n"
-              then void $ liftIO $ forkIO $ startHintJob True str bootDefs defsMV mMV rMV -- True = safe
-              else void $ liftIO $ forkIO $ startHintJob False str bootDefs defsMV mMV rMV
+              then void $ liftIO $ forkIO $ startHintJob True str bootDefs mMV rMV -- True = safe
+              else void $ liftIO $ forkIO $ startHintJob False str bootDefs mMV rMV
 
            out <- getOutputEl
            _ <- if ghcMode == "WITH_GHC=TRUE\n"
@@ -151,7 +141,7 @@ startInterpreter str stdout = do
                     else element out # set UI.text ("Started interpreter with packaged GHC \n" ++ stdout)
 
            createHaskellFunction "replaceWordByDef" (\cm -> runUI win $ replaceWordByDef mMV rMV cm)
-           return $ Env win str mMV rMV defsMV
+           return $ Env win str mMV rMV
 
 createShortcutFunctions :: Stream -> Element -> UI ()
 createShortcutFunctions str mainEditor = do

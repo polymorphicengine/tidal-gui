@@ -2,8 +2,10 @@
 
 module Hint where
 
-import Control.Exception  (SomeException, catch)
-import Control.Concurrent.MVar  (MVar, putMVar, takeMVar, readMVar)
+import Control.Exception  (SomeException)
+import Control.Monad.Catch (catch)
+import Control.DeepSeq (deepseq)
+import Control.Concurrent.MVar  (MVar, putMVar, takeMVar)
 
 import System.FilePath  (dropFileName)
 import System.Environment (getExecutablePath)
@@ -35,44 +37,44 @@ data InterpreterMessage = MStat Contents
 
 data InterpreterResponse = RStat String
                          | RType String
-                         | RDef String
+                         | RDef
                          | RError String
                          deriving Show
 
-type Defs = [String]
 
-startHintJob :: Bool -> Stream -> [String] -> MVar Defs -> MVar InterpreterMessage -> MVar InterpreterResponse -> IO ()
-startHintJob safe str bootDefs defsMV mMV rMV | safe = hintJob Hint.runInterpreter str bootDefs defsMV mMV rMV
-                                              | otherwise = hintJob unsafeInterpreter str bootDefs defsMV mMV rMV
+startHintJob :: Bool -> Stream -> [String] -> MVar InterpreterMessage -> MVar InterpreterResponse -> IO ()
+startHintJob safe str bootDefs mMV rMV | safe = hintJob Hint.runInterpreter str bootDefs mMV rMV
+                                       | otherwise = hintJob unsafeInterpreter str bootDefs mMV rMV
 
-hintJob :: (Interpreter () -> IO (Either InterpreterError ())) ->  Stream -> [String] -> MVar Defs -> MVar InterpreterMessage -> MVar InterpreterResponse -> IO ()
-hintJob interpreter str bootDefs defsMV mMV rMV = do
-                result <- catch (interpreter $ (staticInterpreter str defsMV bootDefs) >> (interpreterLoop mMV rMV))
-                          (\e -> return (Left $ UnknownError $ "exception" ++ show (e :: SomeException)))
+hintJob :: (Interpreter () -> IO (Either InterpreterError ())) ->  Stream -> [String] -> MVar InterpreterMessage -> MVar InterpreterResponse -> IO ()
+hintJob interpreter str bootDefs mMV rMV = do
+                result <- catch (interpreter $ (staticInterpreter str bootDefs) >> (interpreterLoop mMV rMV))
+                          (\e -> return (Left $ UnknownError $ show (e :: SomeException)))
+                -- can this happen? If it happens all definitions made interactively are lost...
                 let response = case result of
                         Left err -> RError (parseError err)
                         Right p  -> RError (show p)
                 putMVar rMV response
-                hintJob interpreter str bootDefs defsMV mMV rMV
+                hintJob interpreter str bootDefs mMV rMV
 
-staticInterpreter :: Stream -> MVar Defs -> [String] -> Interpreter ()
-staticInterpreter str defsMV bootDefs = do
+staticInterpreter :: Stream -> [String] -> Interpreter ()
+staticInterpreter str bootDefs = do
                     Hint.set [languageExtensions := exts]
                     Hint.setImportsF libs
                     bind "tidal" str
                     Hint.runStmt bootTidal
                     _ <- sequence $ map Hint.runStmt bootDefs
-                    ds <- liftIO $ readMVar defsMV
-                    runManyStmt ds
+                    return ()
 
 interpreterLoop :: MVar InterpreterMessage -> MVar InterpreterResponse -> Interpreter ()
 interpreterLoop mMV rMV = do
                     message <- liftIO $ takeMVar mMV
                     case message of
-                      MStat cont -> interpretStat cont rMV
-                      MType cont -> interpretType cont rMV
-                      MDef cont  -> interpretDef cont rMV
+                      MStat cont -> catch (interpretStat cont rMV) (\e -> liftIO $ putMVar rMV $ RError $ show (e :: SomeException))
+                      MType cont -> catch (interpretType cont rMV) (\e -> liftIO $ putMVar rMV $ RError $ show (e :: SomeException))
+                      MDef cont  -> catch (interpretDef cont rMV) (\e -> liftIO $ putMVar rMV $ RError $ show (e :: SomeException))
                     interpreterLoop mMV rMV
+
 
 interpretStat :: String -> MVar InterpreterResponse -> Interpreter ()
 interpretStat cont rMV = do
@@ -81,8 +83,9 @@ interpretStat cont rMV = do
                     Left errors -> liftIO $ putMVar rMV $ RError $ intercalate "\n" $ map errMsg errors
                     Right _ -> do
                       Hint.runStmt ("(tmpMsg, !temp) <- hCapture [stderr] $ " ++ cont)
-                      !out <- Hint.eval "temp"
-                      msg <- Hint.interpret "tmpMsg" (Hint.as :: String)
+                      out <- Hint.eval "temp"
+                      -- force complete evaluation of 'out', so that any possible error is thrown here
+                      msg <- deepseq out (Hint.interpret "tmpMsg" (Hint.as :: String))
                       case msg of
                         "" -> liftIO $ putMVar rMV $ RStat out
                         _ -> liftIO $ putMVar rMV $ RError msg
@@ -97,7 +100,7 @@ interpretType cont rMV = do
 interpretDef :: String -> MVar InterpreterResponse -> Interpreter ()
 interpretDef cont rMV = do
                   Hint.runStmt cont
-                  liftIO $ putMVar rMV $ RDef cont
+                  liftIO $ putMVar rMV $ RDef
 
 parseError:: InterpreterError -> String
 parseError (UnknownError s) = "Unknown error: " ++ s
