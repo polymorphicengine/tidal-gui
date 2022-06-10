@@ -70,7 +70,7 @@ interpretCommands cm lineBool = do
                                                         liftIO $ putMVar mMV $ MStat s
                                                         res <- liftIO $ takeMVar rMV
                                                         case res of
-                                                          RStat "()" -> successUI
+                                                          RStat "()" -> successUI >> outputUI ""
                                                           RStat outputString -> successUI >> (outputUI outputString)
                                                           RError e -> errorUI e
                                                           _ -> return ()
