@@ -36,7 +36,6 @@ libsU = [
   , "GHC.Real"
   , "System.IO"
   , "System.Directory"
-  , "System.IO.Silently"
   ]
 
 libsU' :: [ModuleImport]
@@ -44,6 +43,7 @@ libsU' = [ModuleImport x NotQualified NoImportList | x <- libsU]
 
 libs :: [ModuleImport]
 libs = [ModuleImport "Data.Map" NotQualified (HidingList ["size"])
+       ,ModuleImport "System.IO.Silently" NotQualified (HidingList ["silence"])
        ] ++ libsU'
 
 exts :: [Extension]
