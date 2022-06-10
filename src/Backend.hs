@@ -99,10 +99,10 @@ interpretCommands cm lineBool = do
                                                           _ -> return ()
 
                                                 (Hush)      -> successUI >> (liftIO $ hush str)
-
                    where successUI = liftUI $ flashSuccess cm blockLineStart blockLineEnd
                          errorUI err = (liftUI $ flashError cm blockLineStart blockLineEnd) >> (void $ liftUI $ element out # set UI.text err)
                          outputUI o = void $ liftUI $ element out # set UI.text o
+              liftUI $ updateDisplay str
 
 setupBackend :: Stream -> String -> UI ()
 setupBackend str stdout = do
@@ -110,10 +110,10 @@ setupBackend str stdout = do
        win <- askWindow
        env <- startInterpreter str stdout
 
-       disp <- getDisplayEl
+       --disp <- getDisplayElV
 
-       createHaskellFunction "displayLoop" (displayLoop win disp str)
-       void $ liftIO $ forkIO $ runUI win $ runFunction $ ffi "requestAnimationFrame(displayLoop)"
+       --createHaskellFunction "displayLoop" (displayLoop win disp str)
+       --void $ liftIO $ forkIO $ runUI win $ runFunction $ ffi "requestAnimationFrame(displayLoop)"
 
        createHaskellFunction "evaluateBlock" (\cm -> runReaderT (interpretCommands cm False) env)
        createHaskellFunction "evaluateLine" (\cm -> runReaderT (interpretCommands cm True) env)
@@ -160,17 +160,17 @@ createShortcutFunctions str mainEditor = do
                        createHaskellFunction "addEditor" (runUI win $ addEditor editorsRef)
                        createHaskellFunction "removeEditor" (runUI win $ removeEditor editorsRef)
 
-                       createHaskellFunction "hush" (hush str)
+                       createHaskellFunction "hush" (hush str >> (runUI win $ updateDisplay str))
 
-                       createHaskellFunction "muteP1" (muteP str 1)
-                       createHaskellFunction "muteP2" (muteP str 2)
-                       createHaskellFunction "muteP3" (muteP str 3)
-                       createHaskellFunction "muteP4" (muteP str 4)
-                       createHaskellFunction "muteP5" (muteP str 5)
-                       createHaskellFunction "muteP6" (muteP str 6)
-                       createHaskellFunction "muteP7" (muteP str 7)
-                       createHaskellFunction "muteP8" (muteP str 8)
-                       createHaskellFunction "muteP9" (muteP str 9)
+                       createHaskellFunction "muteP1" (muteP str 1 >> (runUI win $ updateDisplay str))
+                       createHaskellFunction "muteP2" (muteP str 2 >> (runUI win $ updateDisplay str))
+                       createHaskellFunction "muteP3" (muteP str 3 >> (runUI win $ updateDisplay str))
+                       createHaskellFunction "muteP4" (muteP str 4 >> (runUI win $ updateDisplay str))
+                       createHaskellFunction "muteP5" (muteP str 5 >> (runUI win $ updateDisplay str))
+                       createHaskellFunction "muteP6" (muteP str 6 >> (runUI win $ updateDisplay str))
+                       createHaskellFunction "muteP7" (muteP str 7 >> (runUI win $ updateDisplay str))
+                       createHaskellFunction "muteP8" (muteP str 8 >> (runUI win $ updateDisplay str))
+                       createHaskellFunction "muteP9" (muteP str 9 >> (runUI win $ updateDisplay str))
 
 getOutputEl :: UI Element
 getOutputEl = do
@@ -180,13 +180,14 @@ getOutputEl = do
            Nothing -> error "can't happen"
            Just el -> return el
 
-getDisplayEl :: UI Element
-getDisplayEl = do
-         win <- askWindow
-         elMay <- getElementById win "display"
-         case elMay of
-           Nothing -> error "can't happen"
-           Just el -> return el
+getDisplayElV :: UI Element
+getDisplayElV = do
+        win <- askWindow
+        elMay <- getElementById win "displayV"
+        case elMay of
+          Nothing -> error "can't happen"
+          Just el -> return el
+
 
 getValue :: ToJS a => a -> UI String
 getValue cm = callFunction $ ffi "getV(%1)" cm

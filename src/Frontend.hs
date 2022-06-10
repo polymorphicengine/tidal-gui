@@ -30,10 +30,12 @@ setup str stdout win = void $ do
                       #. "outputBox"
                       #+ [ string "output goes here" ]
                       # set style [("font-size","3vh")]
-     display <- UI.pre # set UI.id_ "display"
+     displayP <- UI.div # set UI.id_ "displayP"
                        #. "displayBox"
-                       # set style [("font-size","3vh")]
-
+                       # set style [("font-size","3vh"),("display","flex"),("flex-wrap","wrap")]
+     -- continous display needs some more thought ...
+     -- displayV <- UI.div # set UI.id_ "displayV"
+     --                    #. "displayBox"
      fileInput <- UI.input # set UI.id_ "fileInput"
                            # set UI.type_ "file"
                            # set style [("display","none")]
@@ -46,7 +48,8 @@ setup str stdout win = void $ do
      createShortcutFunctions str mainEditor
 
      _ <- (element body) #+
-                       [element display
+                       [--element displayV
+                       element displayP
                        ,element container
                        ,element output
                        ]
