@@ -9,7 +9,7 @@ type Position = (Int,Int)
 data Command = Hush
              | T String
              | Other String
-             | Def String  deriving Show
+             deriving Show
 
 data Block = Block {bStart :: Int
                    ,bEnd :: Int
@@ -38,14 +38,8 @@ parseType = do
 parseOther :: Parser Command
 parseOther = fmap Other $ many anyChar
 
-parseDef :: Parser Command
-parseDef = do
-        l <- string "let"
-        s <- many anyChar
-        return $ Def $ replaceTabs (l ++ s)
-
 parseCommand :: Parser Command
-parseCommand = try parseHush <|> try parseType <|> try parseDef <|> parseOther
+parseCommand = try parseHush <|> try parseType <|> parseOther
 
 --parsing blocks
 

@@ -68,8 +68,9 @@ interpretCommands cm lineBool = do
                                                         liftIO $ putMVar mMV $ MStat s
                                                         res <- liftIO $ takeMVar rMV
                                                         case res of
-                                                          RStat "()" -> successUI >> outputUI ""
-                                                          RStat outputString -> successUI >> (outputUI outputString)
+                                                          RStat (Just "()") -> successUI >> outputUI ""
+                                                          RStat (Just outputString) -> successUI >> (outputUI outputString)
+                                                          RStat Nothing -> successUI >> outputUI ""
                                                           RError e -> errorUI e
                                                           _ -> return ()
 
@@ -80,14 +81,6 @@ interpretCommands cm lineBool = do
                                                              (RType t) -> successUI >> (outputUI t)
                                                              (RError e) -> errorUI e
                                                              _ -> return ()
-
-                                                (Def s)     -> do
-                                                        liftIO $ putMVar mMV $ MDef s
-                                                        res <- liftIO $ takeMVar rMV
-                                                        case res of
-                                                          (RDef) -> successUI >> outputUI ""
-                                                          (RError e) -> errorUI e
-                                                          _ -> return ()
 
                                                 (Hush)      -> successUI >> (liftIO $ hush str)
                    where successUI = liftUI $ flashSuccess cm blockLineStart blockLineEnd
@@ -228,7 +221,7 @@ replaceWordByDef mMV rMV cm = do
       liftIO $ putMVar mMV $ MStat ("return $ " ++ word)
       res <- liftIO $ takeMVar rMV
       case res of
-        RStat outputString -> runFunction $ ffi ("(%1).replaceRange(" ++ outputString ++ ", (%2).anchor, (%2).head)") cm loc
+        RStat (Just outputString) -> runFunction $ ffi ("(%1).replaceRange(" ++ outputString ++ ", (%2).anchor, (%2).head)") cm loc
         _ -> return ()
 
 noDoubleQuotes :: String -> String

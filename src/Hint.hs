@@ -32,12 +32,10 @@ type Contents = String
 
 data InterpreterMessage = MStat Contents
                         | MType Contents
-                        | MDef Contents
                         deriving Show
 
-data InterpreterResponse = RStat String
+data InterpreterResponse = RStat (Maybe String)
                          | RType String
-                         | RDef
                          | RError String
                          deriving Show
 
@@ -70,25 +68,26 @@ interpreterLoop :: MVar InterpreterMessage -> MVar InterpreterResponse -> Interp
 interpreterLoop mMV rMV = do
                     message <- liftIO $ takeMVar mMV
                     case message of
-                      MStat cont -> catch (interpretStat cont rMV) (\e -> liftIO $ putMVar rMV $ RError $ show (e :: SomeException))
+                      MStat cont -> catch (interpretStatement cont rMV) (\e -> liftIO $ putMVar rMV $ RError $ show (e :: SomeException))
                       MType cont -> catch (interpretType cont rMV) (\e -> liftIO $ putMVar rMV $ RError $ show (e :: SomeException))
-                      MDef cont  -> catch (interpretDef cont rMV) (\e -> liftIO $ putMVar rMV $ RError $ show (e :: SomeException))
                     interpreterLoop mMV rMV
 
 
-interpretStat :: String -> MVar InterpreterResponse -> Interpreter ()
-interpretStat cont rMV = do
-                  t <- Hint.typeChecksWithDetails cont
-                  case t of
-                    Left errors -> liftIO $ putMVar rMV $ RError $ intercalate "\n" $ map errMsg errors
-                    Right _ -> do
-                      Hint.runStmt ("(tmpMsg, !temp) <- hCapture [stderr] $ " ++ cont)
-                      out <- Hint.eval "temp"
-                      -- force complete evaluation of 'out', so that any possible error is thrown here
-                      msg <- deepseq out (Hint.interpret "tmpMsg" (Hint.as :: String))
-                      case msg of
-                        "" -> liftIO $ putMVar rMV $ RStat out
-                        _ -> liftIO $ putMVar rMV $ RError msg
+interpretStatement :: String -> MVar InterpreterResponse -> Interpreter ()
+interpretStatement cont rMV = do
+                        t <- Hint.typeChecksWithDetails cont
+                        case t of
+                          -- if the expression doesn't type check try to just evaluate it (it could be a definition or binding)
+                          Left errors -> catch (Hint.runStmt cont >> (liftIO $ putMVar rMV $ RStat Nothing))
+                                         (\e -> liftIO $ putMVar rMV $ RError $ intercalate "\n" $ map errMsg errors ++ ([show (e :: SomeException)]))
+                          Right _ -> do
+                            Hint.runStmt ("(tmpMsg, !temp) <- hCapture [stderr] $ " ++ cont)
+                            out <- Hint.eval "temp"
+                            -- force complete evaluation of 'out', so that any possible error is thrown here
+                            msg <- deepseq out (Hint.interpret "tmpMsg" (Hint.as :: String))
+                            case msg of
+                              "" -> liftIO $ putMVar rMV $ RStat (Just out)
+                              _ -> liftIO $ putMVar rMV $ RError msg
 
 interpretType :: String -> MVar InterpreterResponse -> Interpreter ()
 interpretType cont rMV = do
@@ -97,10 +96,6 @@ interpretType cont rMV = do
                     Left errors -> liftIO $ putMVar rMV $ RError $ intercalate "\n" $ map errMsg errors
                     Right out -> liftIO $ putMVar rMV $ RType out
 
-interpretDef :: String -> MVar InterpreterResponse -> Interpreter ()
-interpretDef cont rMV = do
-                  Hint.runStmt cont
-                  liftIO $ putMVar rMV $ RDef
 
 parseError:: InterpreterError -> String
 parseError (UnknownError s) = "Unknown error: " ++ s
