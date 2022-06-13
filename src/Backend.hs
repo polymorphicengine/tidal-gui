@@ -3,7 +3,7 @@ module Backend where
 
 import System.FilePath  (dropFileName)
 import System.Environment (getExecutablePath)
-import System.Directory (getDirectoryContents)
+import System.Directory (listDirectory)
 
 import Control.Concurrent (forkIO)
 import Control.Concurrent.MVar  (newEmptyMVar, MVar, putMVar, takeMVar)
@@ -119,8 +119,8 @@ setupBackend str stdout = do
 getBootDefs :: IO [String]
 getBootDefs = do
        execPath <- liftIO $ dropFileName <$> getExecutablePath
-       userDefsPaths <- liftIO $ getDirectoryContents $ execPath ++ "static/definitions/"
-       bootDefs <- liftIO $ sequence $ map (\x -> readFile $ execPath ++ "static/definitions/" ++ x) $ filter (\s -> s /= "." && s /= "..") userDefsPaths
+       userDefsPaths <- liftIO $ listDirectory $ execPath ++ "static/definitions/"
+       bootDefs <- liftIO $ sequence $ map (\x -> readFile $ execPath ++ "static/definitions/" ++ x) userDefsPaths
        return bootDefs
 
 
