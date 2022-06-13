@@ -65,6 +65,7 @@ interpretCommands cm lineBool = do
                                 Right command -> case command of
 
                                                 (Statement s)   -> do
+                                                        -- evaluate the given expression, if a string is returned, print it to the console
                                                         liftIO $ putMVar mMV $ MStat s
                                                         res <- liftIO $ takeMVar rMV
                                                         case res of
@@ -75,13 +76,23 @@ interpretCommands cm lineBool = do
                                                           _ -> return ()
 
                                                 (T s)       -> do
+                                                           -- ask the interpreter for the type of the given expression
                                                            liftIO $ putMVar mMV $ MType s
                                                            res <- liftIO $ takeMVar rMV
                                                            case res of
                                                              (RType t) -> successUI >> (outputUI t)
                                                              (RError e) -> errorUI e
                                                              _ -> return ()
-
+                                                (M s)   -> do
+                                                         -- evaluate the given expression expecting a string, which will replace the line
+                                                         liftIO $ putMVar mMV $ MStat s
+                                                         res <- liftIO $ takeMVar rMV
+                                                         case res of
+                                                           RStat (Just "()") -> errorUI "A makro has to return a string"
+                                                           RStat (Just outputString) -> successUI >> (liftUI $ runFunction $ ffi ("(%1).replaceRange(" ++ outputString ++ ", {line: (%2), ch: 0}, {line: (%2), ch: 50})") cm line)
+                                                           RStat Nothing -> errorUI "A makro has to return a string"
+                                                           RError e -> errorUI e
+                                                           _ -> return ()
                                                 (Hush)      -> successUI >> (liftIO $ hush str)
                    where successUI = liftUI $ flashSuccess cm blockLineStart blockLineEnd
                          errorUI err = (liftUI $ flashError cm blockLineStart blockLineEnd) >> (void $ liftUI $ element out # set UI.text err)

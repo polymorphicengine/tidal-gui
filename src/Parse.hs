@@ -8,6 +8,7 @@ type Position = (Int,Int)
 
 data Command = Hush
              | T String
+             | M String
              | Statement String
              deriving Show
 
@@ -35,11 +36,18 @@ parseType = do
         s <- many anyChar
         return (T s)
 
+parseMakro :: Parser Command
+parseMakro = do
+        whitespace
+        _ <- string ":m"
+        s <- many anyChar
+        return (M s)
+
 parseStatement :: Parser Command
 parseStatement = fmap Statement $ many anyChar
 
 parseCommand :: Parser Command
-parseCommand = try parseHush <|> try parseType <|> parseStatement
+parseCommand = try parseHush <|> try parseType <|> try parseMakro <|> parseStatement
 
 --parsing blocks
 
