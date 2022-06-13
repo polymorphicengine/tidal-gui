@@ -8,7 +8,7 @@ type Position = (Int,Int)
 
 data Command = Hush
              | T String
-             | Other String
+             | Statement String
              deriving Show
 
 data Block = Block {bStart :: Int
@@ -35,11 +35,11 @@ parseType = do
         s <- many anyChar
         return (T s)
 
-parseOther :: Parser Command
-parseOther = fmap Other $ many anyChar
+parseStatement :: Parser Command
+parseStatement = fmap Statement $ many anyChar
 
 parseCommand :: Parser Command
-parseCommand = try parseHush <|> try parseType <|> parseOther
+parseCommand = try parseHush <|> try parseType <|> parseStatement
 
 --parsing blocks
 

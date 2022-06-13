@@ -64,7 +64,7 @@ interpretCommands cm lineBool = do
                                 Left e -> errorUI $ show e
                                 Right command -> case command of
 
-                                                (Other s)   -> do
+                                                (Statement s)   -> do
                                                         liftIO $ putMVar mMV $ MStat s
                                                         res <- liftIO $ takeMVar rMV
                                                         case res of
