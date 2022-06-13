@@ -78,8 +78,8 @@ interpretStatement cont rMV = do
                         t <- Hint.typeChecksWithDetails cont
                         case t of
                           -- if the expression doesn't type check try to just evaluate it (it could be a definition or binding)
-                          Left errors -> catch (Hint.runStmt cont >> (liftIO $ putMVar rMV $ RStat Nothing))
-                                         (\e -> liftIO $ putMVar rMV $ RError $ intercalate "\n" $ map errMsg errors ++ ([show (e :: SomeException)]))
+                          Left _ -> catch (Hint.runStmt cont >> (liftIO $ putMVar rMV $ RStat Nothing))
+                                         (\e -> liftIO $ putMVar rMV $ RError $ parseError e)
                           Right _ -> do
                             Hint.runStmt ("(tmpMsg, !temp) <- hCapture [stderr] $ " ++ cont)
                             out <- Hint.eval "temp"
