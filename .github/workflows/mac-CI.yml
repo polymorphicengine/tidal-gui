@@ -61,6 +61,7 @@ jobs:
             cd ..
             cd lib
             cp -R ghc-${{ matrix.ghc }}/* /Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/ghc-packages
+            ls binary/haskell-libs/ghc-packages/
             
     - name: move installed packages
       run: | 
