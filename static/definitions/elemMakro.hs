@@ -1,0 +1,21 @@
+
+
+let elemM n = return $ intercalate "\n" ["cb \"elementspitch\" " ++ show n ++ " $ 48"
+                                        ,"cb \"elementsstrength\" " ++ show (n + 1) ++ " $ 0.5"
+                                        ,"cb \"elementscontour\" " ++ show (n + 2) ++ " $ 0.2"
+                                        ,"cb \"elementsbowlevel\" " ++ show (n + 3) ++ " $ 0"
+                                        ,"cb \"elementsblowlevel\" " ++ show (n + 4) ++ " $ 0"
+                                        ,"cb \"elementsstrikelevel\" " ++ show (n + 5) ++ " $ 0"
+                                        ,"cb \"elementsflow\" " ++ show (n + 6) ++ " $ 0.5"
+                                        ,"cb \"elementsmallet\" " ++ show (n + 7) ++ " $ 0.5"
+                                        ,"cb \"elementsbowtimb\" " ++ show (n + 8) ++ " $ 0.5"
+                                        ,"cb \"elementsblowtimb\" " ++ show (n + 9) ++ " $ 0.5"
+                                        ,"cb \"elementsstriketimb\" " ++ show (n + 10) ++ " $ 0.5"
+                                        ,"cb \"elementsgeom\" " ++ show (n + 11) ++ " $ 0.25"
+                                        ,"cb \"elementsbright\" " ++ show (n + 12) ++ " $ 0.5"
+                                        ,"cb \"elementsdamp\" " ++ show (n + 13) ++ " $ 0.7"
+                                        ,"cb \"elementspos\" " ++ show (n + 14) ++ " $ 0.2"
+                                        ,"cb \"elementsspace\" " ++ show (n + 15) ++ " $ 0.3"
+                                        ,"cb \"elementsmodel\" " ++ show (n + 16) ++ " $ 0"
+                                        ,"cb \"elementseasteregg\" " ++ show (n + 17) ++ " $ 0"
+                                        ]                                       
