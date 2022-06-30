@@ -1,0 +1,6 @@
+allow-newer: snap-server:base, io-streams-haproxy:base,
+             snap-server:bytestring, snap-server:attoparsec,
+             websockets-snap:bytestring, snap-server:time,
+             io-streams-haproxy:attoparsec, io-streams-haproxy:bytestring
+ignore-project: False
+
