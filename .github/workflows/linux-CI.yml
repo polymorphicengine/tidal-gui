@@ -81,9 +81,9 @@ jobs:
     - name: move ghc settings etc
       run: |
             mv /home/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/ghc-packages/settings /home/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/settings
-            mv /home/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/ghc-packages/platformConstants /home/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/platformConstants
             mv /home/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/ghc-packages/llvm-targets /home/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/llvm-targets
             mv /home/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/ghc-packages/llvm-passes /home/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/llvm-passes
+            
     - name: ghc-pkg recache
       run: |
             ghc-pkg --package-db=/home/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/package.conf.d recache
