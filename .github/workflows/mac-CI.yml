@@ -1,9 +1,6 @@
 name: Mac-CI
 
-on:
-  push:
-    tags:
-      - "v*.*.*"
+on: [push]
 
 jobs:
   build:
@@ -61,7 +58,7 @@ jobs:
             cd ..
             cd lib
             cp -R ghc-${{ matrix.ghc }}/* /Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/ghc-packages
-            ls ~/binary/haskell-libs/ghc-packages/
+            ls /Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/ghc-packages/
             
     - name: move installed packages
       run: | 
