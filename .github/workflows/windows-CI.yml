@@ -44,7 +44,6 @@ jobs:
       
     - name: remove unneccessary libs 
       run: | 
-            Remove-Item 'C:\tools\ghc-${{ matrix.ghc }}\lib\ghc-${{ matrix.ghc }}' -Recurse
             Remove-Item 'C:\tools\ghc-${{ matrix.ghc }}\lib\Cabal-*' -Recurse
             Remove-Item 'C:\tools\ghc-${{ matrix.ghc }}\lib\rts' -Recurse
             
@@ -52,6 +51,7 @@ jobs:
       run: |
             Copy-Item -Path 'C:\tools\ghc-${{ matrix.ghc }}\lib\' -Recurse -Destination 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\ghc-packages'
             Move-Item -Path 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\ghc-packages\settings' -Destination 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\settings'
+            Move-Item -Path 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\ghc-packages\platformConstants' -Destination 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\platformConstants'
             Move-Item -Path 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\ghc-packages\llvm-passes' -Destination 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\llvm-passes'
             Move-Item -Path 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\ghc-packages\llvm-targets' -Destination 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\llvm-targets'
             
