@@ -90,11 +90,11 @@ jobs:
             mv /Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/ghc-packages/llvm-targets /Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/llvm-targets
             mv /Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/ghc-packages/llvm-passes /Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/llvm-passes
 
-    - name: ghc-pkg recache
-      run: |
-            ghc-pkg --package-db=/Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/package.conf.d recache
-            ghc-pkg --package-db=/Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/package.db recache
-            ghc-pkg --package-db=/Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/package.conf.d --package-db=/Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/package.db check
+  #  - name: ghc-pkg recache
+  #    run: |
+  #          ghc-pkg --package-db=/Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/package.conf.d recache
+  #          ghc-pkg --package-db=/Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/package.db recache
+  #          ghc-pkg --package-db=/Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/package.conf.d --package-db=/Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/package.db check
    
     - name: remove unneccessary libs 
       run: |
