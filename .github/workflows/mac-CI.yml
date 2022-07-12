@@ -82,7 +82,7 @@ jobs:
             export LC_ALL=C
             mv /Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/packages/package.db /Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/package.db
             cd /Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/package.db/
-            sed -i '' 's+/Users/runner/.cabal/store/ghc-8.10.1+${pkgroot}/packages+g' *
+            sed -i '' 's+/Users/runner/.cabal/store/ghc-${{ matrix.ghc }}+${pkgroot}/packages+g' *
    
     - name: move ghc settings etc
       run: |
