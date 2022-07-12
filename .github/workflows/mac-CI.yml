@@ -124,9 +124,9 @@ jobs:
             cd /Users/runner/work/tidal-gui/tidal-gui/
             tar cvfj macOS.tar binary/*
     
-    - name: Release
-      uses: softprops/action-gh-release@v1
-      with:
-        files: '/Users/runner/work/tidal-gui/tidal-gui/macOS.tar'
+    #- name: Release
+    #  uses: softprops/action-gh-release@v1
+    #  with:
+    #    files: '/Users/runner/work/tidal-gui/tidal-gui/macOS.tar'
     
 
