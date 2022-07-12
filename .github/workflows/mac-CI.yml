@@ -96,12 +96,12 @@ jobs:
   #          ghc-pkg --package-db=/Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/package.db recache
   #          ghc-pkg --package-db=/Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/package.conf.d --package-db=/Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/package.db check
    
-    - name: remove unneccessary libs 
-      run: |
-            cd /Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/ghc-packages
-            rm -R ghc-${{ matrix.ghc }}
-            rm -R Cabal-*
-            rm -R rts
+  #  - name: remove unneccessary libs 
+  #    run: |
+  #          cd /Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/ghc-packages
+  #          rm -R ghc-${{ matrix.ghc }}
+  #          rm -R Cabal-*
+  #          rm -R rts
             
     - name: fake gcc
       run: |
