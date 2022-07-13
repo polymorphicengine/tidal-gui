@@ -1,9 +1,6 @@
 name: Mac-CI
 
-on:
-  push:
-    tags:
-      - "v*.*.*"
+on: [push]
 
 jobs:
   build:
@@ -76,7 +73,7 @@ jobs:
             export LC_ALL=C
             mv /Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/ghc-packages/package.conf.d /Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/package.conf.d
             cd /Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/package.conf.d/
-            sed -i '' 's+/Users/runner/.ghcup/ghc/${{ matrix.ghc }}/lib/ghc-${{ matrix.ghc }}+${pkgroot}/ghc-packages+g' *
+            sed -i '' 's+${pkgroot}/../lib+${pkgroot}/ghc-packages+g' *
      
     - name: change paths in config files (cabal)
       run: |
@@ -93,18 +90,18 @@ jobs:
             mv /Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/ghc-packages/llvm-targets /Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/llvm-targets
             mv /Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/ghc-packages/llvm-passes /Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/llvm-passes
 
-  #  - name: ghc-pkg recache
-  #    run: |
-  #          ghc-pkg --package-db=/Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/package.conf.d recache
-  #          ghc-pkg --package-db=/Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/package.db recache
-  #          ghc-pkg --package-db=/Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/package.conf.d --package-db=/Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/package.db check
+    - name: ghc-pkg recache
+      run: |
+            ghc-pkg --package-db=/Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/package.conf.d recache
+            ghc-pkg --package-db=/Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/package.db recache
+            ghc-pkg --package-db=/Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/package.conf.d --package-db=/Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/package.db check
    
-  #  - name: remove unneccessary libs 
-  #    run: |
-  #          cd /Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/ghc-packages
-  #          rm -R ghc-${{ matrix.ghc }}
-  #          rm -R Cabal-*
-  #          rm -R rts
+    - name: remove unneccessary libs 
+      run: |
+            cd /Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/ghc-packages/x86_64-osx-ghc-${{ matrix.ghc }}
+            rm -R ghc-${{ matrix.ghc }}
+            rm -R Cabal-*
+            rm -R rts-*
             
     - name: fake gcc
       run: |
