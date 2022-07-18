@@ -42,7 +42,7 @@ libsU' :: [ModuleImport]
 libsU' = [ModuleImport x NotQualified NoImportList | x <- libsU]
 
 libs :: [ModuleImport]
-libs = [ModuleImport "Data.Map" (QualifiedAs $ Just "Map") (HidingList ["size"])
+libs = [ModuleImport "Data.Map" (QualifiedAs $ Just "Map") NoImportList
        ,ModuleImport "System.IO.Silently" NotQualified (HidingList ["silence"])
        ] ++ libsU'
 
