@@ -42,12 +42,12 @@ libsU' :: [ModuleImport]
 libsU' = [ModuleImport x NotQualified NoImportList | x <- libsU]
 
 libs :: [ModuleImport]
-libs = [ModuleImport "Data.Map" NotQualified (HidingList ["size"])
+libs = [ModuleImport "Data.Map" (QualifiedAs $ Just "Map") (HidingList ["size"])
        ,ModuleImport "System.IO.Silently" NotQualified (HidingList ["silence"])
        ] ++ libsU'
 
 exts :: [Extension]
-exts = [OverloadedStrings, BangPatterns]
+exts = [OverloadedStrings, BangPatterns, MonadComprehensions]
 
 listenPort,remotePort :: Int
 listenPort = 6011
