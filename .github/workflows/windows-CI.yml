@@ -82,9 +82,6 @@ jobs:
             $ENV:GHC_PACKAGE_PATH="D:\a\tidal-gui\tidal-gui\binary\haskell-libs\package.conf.d;D:\a\tidal-gui\tidal-gui\binary\haskell-libs\package.db"
             ghc-pkg -v2 recache --package-db="D:\a\tidal-gui\tidal-gui\binary\haskell-libs\package.conf.d"
             ghc-pkg -v2 recache --package-db="D:\a\tidal-gui\tidal-gui\binary\haskell-libs\package.db"
-#            ghc-pkg --help
-#            Remove-Item -Path 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\package.conf.d\package.cache'
-#            Remove-Item -Path 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\package.db\package.cache'
 
    
     - name: move executable
@@ -94,10 +91,10 @@ jobs:
       run: Copy-Item -Path 'D:\a\tidal-gui\tidal-gui\static\' -Recurse -Destination 'D:\a\tidal-gui\tidal-gui\binary\static'
     
     - name: zip files
-      run: Compress-Archive -LiteralPath 'D:\a\tidal-gui\tidal-gui\binary\' -DestinationPath 'D:\a\tidal-gui\tidal-gui\windows.zip'
+      run: Compress-Archive -LiteralPath 'D:\a\tidal-gui\tidal-gui\binary\' -DestinationPath 'D:\a\tidal-gui\tidal-gui\tidal-windows.zip'
 
     - name: Release
       uses: softprops/action-gh-release@v1
       if: startsWith(github.ref, 'refs/tags/')
       with:
-        files: 'D:\a\tidal-gui\tidal-gui\windows.zip'
+        files: 'D:\a\tidal-gui\tidal-gui\tidal-windows.zip'
