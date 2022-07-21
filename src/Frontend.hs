@@ -24,7 +24,7 @@ setup str stdout win = void $ do
 
      setCallBufferMode NoBuffering -- important for highlighting
 
-     editor <- UI.textarea # set (attr "id") "controlEditor"
+     editor <- UI.textarea # set (attr "id") "editor0"
 
      output <- UI.pre # set UI.id_ "output"
                       #. "outputBox"
@@ -60,7 +60,7 @@ setup str stdout win = void $ do
                         [element fileInput
                         ,tidalSettings
                         ]
-     makeEditor "controlEditor"
+     makeEditor "editor0"
 
 tidalSettings :: UI Element
 tidalSettings = do
@@ -68,6 +68,3 @@ tidalSettings = do
           tidalKeys <- liftIO $ readFile $ execPath ++ "static/tidalConfig.js"
           settings <- mkElement "script" # set UI.text tidalKeys
           return settings
-
-inputScript :: UI Element
-inputScript = mkElement "script" # set UI.text  "document.getElementById(\"fileInput\").onchange = e => { var file = e.target.files[0]; var reader = new FileReader();reader.readAsText(file,'UTF-8');reader.onload = function() {controlEditor.getDoc().setValue(reader.result);};}"
