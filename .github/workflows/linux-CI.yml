@@ -133,9 +133,9 @@ jobs:
     - name: zip files
       run: |
             cd /home/runner/work/tidal-gui/tidal-gui/
-            tar cvfj linux.tar binary/*
+            tar cvfj tidal-linux.tar binary/*
   
     - name: Release
       uses: softprops/action-gh-release@v1
       with:
-          files: /home/runner/work/tidal-gui/tidal-gui/linux.tar
+          files: /home/runner/work/tidal-gui/tidal-gui/tidal-linux.tar
