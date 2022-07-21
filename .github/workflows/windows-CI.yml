@@ -48,7 +48,7 @@ jobs:
     - name: remove unneccessary libs 
       run: | 
             Remove-Item 'C:\tools\ghc-${{ matrix.ghc }}\lib\x86_64-windows-ghc-${{ matrix.ghc }}\Cabal-*' -Recurse
-            Remove-Item 'C:\tools\ghc-${{ matrix.ghc }}\lib\x86_64-windows-ghc-${{ matrix.ghc }}\rts' -Recurse
+            Remove-Item 'C:\tools\ghc-${{ matrix.ghc }}\lib\x86_64-windows-ghc-${{ matrix.ghc }}\rts-*' -Recurse
             
     - name: move GHC libs and configs
       run: |
