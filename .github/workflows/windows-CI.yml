@@ -45,10 +45,10 @@ jobs:
     - name: cabal build
       run: cabal v2-build --enable-tests
       
-   # - name: remove unneccessary libs 
-   #   run: | 
-   #         Remove-Item 'C:\tools\ghc-${{ matrix.ghc }}\lib\Cabal-*' -Recurse
-   #         Remove-Item 'C:\tools\ghc-${{ matrix.ghc }}\lib\rts' -Recurse
+    - name: remove unneccessary libs 
+      run: | 
+            Remove-Item 'C:\tools\ghc-${{ matrix.ghc }}\lib\x86_64-windows-ghc-${{ matrix.ghc }}\Cabal-*' -Recurse
+            Remove-Item 'C:\tools\ghc-${{ matrix.ghc }}\lib\x86_64-windows-ghc-${{ matrix.ghc }}\rts' -Recurse
             
     - name: move GHC libs and configs
       run: |
