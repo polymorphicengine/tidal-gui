@@ -12,6 +12,9 @@ import Control.Monad.Reader (ReaderT, runReaderT, ask)
 
 
 import Sound.Tidal.Context as T hiding (mute,solo,(#),s)
+import Sound.Tidal.ID
+
+import Sound.OSC.FD as O
 
 import Text.Parsec  (parse)
 
@@ -44,6 +47,11 @@ instance MonadUI (ReaderT Env IO) where
 
 interpretCommands :: JSObject -> Bool -> ReaderT Env IO ()
 interpretCommands cm lineBool = do
+                  line <- liftUI $ getCursorLine cm
+                  interpretCommandsLine cm lineBool line
+
+interpretCommandsLine :: JSObject -> Bool -> Int -> ReaderT Env IO ()
+interpretCommandsLine cm lineBool line = do
       env <- ask
       let str = streamE env
           mMV = hintM env
@@ -53,7 +61,6 @@ interpretCommands cm lineBool = do
         "yes" -> return ()
         _ -> do
               contentsControl <- liftUI $ getValue cm
-              line <- liftUI $ getCursorLine cm
               out <- liftUI getOutputEl
               let bs = getBlocks contentsControl
                   blockMaybe = if lineBool then getLineContent line (linesNum contentsControl) else getBlock line bs
@@ -110,8 +117,13 @@ setupBackend str stdout = do
        --createHaskellFunction "displayLoop" (displayLoop win disp str)
        --void $ liftIO $ forkIO $ runUI win $ runFunction $ ffi "requestAnimationFrame(displayLoop)"
 
+       void $ liftIO $ forkIO $ listen 5000 env
+
        createHaskellFunction "evaluateBlock" (\cm -> runReaderT (interpretCommands cm False) env)
        createHaskellFunction "evaluateLine" (\cm -> runReaderT (interpretCommands cm True) env)
+
+       createHaskellFunction "evaluateBlockLine" (\cm l -> runReaderT (interpretCommandsLine cm False l) env)
+       createHaskellFunction "evaluateLineLine" (\cm l -> runReaderT (interpretCommandsLine cm True l) env)
 
        on disconnect win $ \_ -> (runFunction $ ffi "saveFile()")
 
@@ -237,3 +249,26 @@ replaceWordByDef mMV rMV cm = do
 
 noDoubleQuotes :: String -> String
 noDoubleQuotes = init . tail
+
+
+
+--OSC
+
+listen :: Int -> Env -> IO ()
+listen listenPort env = do
+            local <- udpServer "127.0.0.1" listenPort
+            loopOSC env local
+            where loopOSC e l = do -- wait for, read and act on OSC message
+                         m <- recvMessage l
+                         e' <- actOSC e m
+                         loopOSC e' l
+
+actOSC :: Env -> Maybe O.Message -> IO Env
+actOSC env (Just (Message "/eval" [])) = (runUI (windowE env) $ runFunction $ ffi "evaluateBlock(document.querySelector(\"#editor0 + .CodeMirror\").CodeMirror)") >> return env
+actOSC env (Just (Message "/hush" [])) = (runUI (windowE env) $ (liftIO $ hush $ streamE env) >> updateDisplay (streamE env)) >> return env
+actOSC env (Just (Message "/go/line" [Int32 line])) = (runUI (windowE env) $ runFunction $ ffi "(document.querySelector(\"#editor0 + .CodeMirror\").CodeMirror).setCursor(%1)" (fromIntegral line :: Int)) >> return env
+actOSC env (Just (Message "/eval/block" [Int32 line])) = (runUI (windowE env) $ runFunction $ ffi "evaluateBlockLine(document.querySelector(\"#editor0 + .CodeMirror\").CodeMirror, (%1))" ((fromIntegral line) - 1 :: Int)) >> return env
+actOSC env (Just (Message "/eval/line" [Int32 line])) = (runUI (windowE env) $ runFunction $ ffi "evaluateLineLine(document.querySelector(\"#editor0 + .CodeMirror\").CodeMirror, (%1))" ((fromIntegral line) - 1 :: Int)) >> return env
+actOSC env (Just (Message "/mute" [ASCII_String s])) = (runUI (windowE env) $ (liftIO $ muteP (streamE env) (ID $ ascii_to_string s)) >> updateDisplay (streamE env)) >> return env
+actOSC env (Just m) = (runUI (windowE env) $ getOutputEl # (set UI.text $ "Unhandeled OSC message: " ++ show m)) >> return env
+actOSC env _ = return env
