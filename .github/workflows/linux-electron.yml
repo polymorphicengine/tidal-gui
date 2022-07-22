@@ -111,7 +111,7 @@ jobs:
     - name: remove unneccessary libs 
       run: |
             cd /home/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/ghc-packages
-            rm -r ghc-${{ matrix.ghc }}
+            rm -r rts
             rm -r Cabal-*
             
     - name: fake gcc
