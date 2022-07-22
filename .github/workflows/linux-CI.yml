@@ -130,12 +130,30 @@ jobs:
     - name: move executable
       run: cp -r dist-newstyle/build/x86_64-linux/ghc-${{ matrix.ghc }}/tidal-gui-0.1.0.0/x/tidal-gui/build/tidal-gui/tidal-gui binary/tidal-gui
   
-    - name: zip files
-      run: |
-            cd /home/runner/work/tidal-gui/tidal-gui/
-            tar cvfj tidal-linux.tar binary/*
+   # - name: zip files
+   #   run: |
+   #         cd /home/runner/work/tidal-gui/tidal-gui/
+   #         tar cvfj tidal-linux.tar binary/*
   
+   # - name: Release
+   #   uses: softprops/action-gh-release@v1
+   #   with:
+   #       files: /home/runner/work/tidal-gui/tidal-gui/tidal-linux.tar
+    
+    - name: setup node
+      uses: actions/setup-node@v3
+      with:
+         node-version: 16
+    
+    - name: electron forge
+      run: |
+            npm install --save-dev @electron-forge/cli
+            npx electron-forge import
+            npm run make
+
     - name: Release
       uses: softprops/action-gh-release@v1
       with:
-          files: /home/runner/work/tidal-gui/tidal-gui/tidal-linux.tar
+          files: |
+                  out/make/deb/x64/*.deb
+                  out/make/rpm/x64/*.rpm
