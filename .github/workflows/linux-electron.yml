@@ -142,3 +142,4 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
           files: /home/runner/work/tidal-gui/tidal-gui/out/make/deb/threepenny-electron-linux-x64.deb
+          tag-name: 1
