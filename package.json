@@ -1,13 +1,15 @@
 {
-  "name": "threepenny-electron",
+  "name": "TidalCycles Interface",
   "version": "1.0.0",
-  "description": "A ThreepennyGUI for Tidal",
+  "description": "An Interface for Tidal Cycles",
   "main": "main.js",
   "scripts": {
-    "start": "electron .",
+    "start": "electron-forge start",
     "pack-app": "electron-packager . tidal-gui --overwrite  --prune=true --ignore=\\.github --ignore=\\.stack-work --ignore=\\.gitignore --ignore=\\dist-newstyle",
     "postpack-app:darwin": "node ./postpack-app-darwin.js",
-    "postpack-app:win32": "node ./postpack-app-win.js"
+    "postpack-app:win32": "node ./postpack-app-win.js",
+    "package": "electron-forge package",
+    "make": "electron-forge make"
   },
   "repository": {
     "type": "git",
@@ -20,14 +22,47 @@
   "author": "Martin Gius",
   "license": "Apache-2.0",
   "devDependencies": {
+    "@electron-forge/cli": "^6.0.0-beta.64",
+    "@electron-forge/maker-deb": "^6.0.0-beta.64",
+    "@electron-forge/maker-rpm": "^6.0.0-beta.64",
+    "@electron-forge/maker-squirrel": "^6.0.0-beta.64",
+    "@electron-forge/maker-zip": "^6.0.0-beta.64",
     "electron": "^9.4.4",
-    "electron-packager": "^14.0.6",
     "ncp": "^2.0.0",
     "run-script-os": "^1.1.6",
     "shelljs": "^0.8.3"
   },
   "dependencies": {
+    "electron-squirrel-startup": "^1.0.0",
     "freeport": "^1.0.5",
+    "rpmbuild": "^0.0.23",
     "wait-on": "^3.3.0"
+  },
+  "config": {
+    "forge": {
+      "packagerConfig": {},
+      "makers": [
+        {
+          "name": "@electron-forge/maker-squirrel",
+          "config": {
+            "name": "threepenny_electron"
+          }
+        },
+        {
+          "name": "@electron-forge/maker-zip",
+          "platforms": [
+            "darwin"
+          ]
+        },
+        {
+          "name": "@electron-forge/maker-deb",
+          "config": {}
+        },
+        {
+          "name": "@electron-forge/maker-rpm",
+          "config": {}
+        }
+      ]
+    }
   }
 }
