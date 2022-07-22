@@ -1,5 +1,5 @@
 {
-  "name": "TidalCycles Interface",
+  "name": "TidalCyclesInterface",
   "version": "1.0.0",
   "description": "An Interface for Tidal Cycles",
   "main": "main.js",
@@ -17,7 +17,7 @@
   },
   "keywords": [
     "Electron",
-    "Tidal GUI"
+    "Tidal Cycles Interface"
   ],
   "author": "Martin Gius",
   "license": "Apache-2.0",

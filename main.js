@@ -46,7 +46,7 @@ freeport((err, port) => {
           height: 370,
           maximizable: true,
           resizable: true,
-          title: 'Tidal'
+          title: 'TidalCycles'
       });
 
       win.removeMenu();
