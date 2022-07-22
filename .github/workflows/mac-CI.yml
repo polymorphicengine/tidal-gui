@@ -122,14 +122,28 @@ jobs:
     - name: move static
       run : cp -R static binary/static
   
-    - name: zip files
-      run: |
-            cd /Users/runner/work/tidal-gui/tidal-gui/
-            tar cvfj tidal-mac.tar binary/*
+ # - name: zip files
+ #   run: |
+ #         cd /Users/runner/work/tidal-gui/tidal-gui/
+ #         tar cvfj tidal-mac.tar binary/*
     
+  #  - name: Release
+  #    uses: softprops/action-gh-release@v1
+  #    with:
+  #      files: '/Users/runner/work/tidal-gui/tidal-gui/tidal-mac.tar'
+    
+    - name: setup node
+      uses: actions/setup-node@v3
+      with:
+         node-version: 16
+    
+    - name: electron forge
+      run: |
+            npm install --save-dev @electron-forge/cli
+            npx electron-forge import
+            npm run make
+            
     - name: Release
       uses: softprops/action-gh-release@v1
       with:
-        files: '/Users/runner/work/tidal-gui/tidal-gui/tidal-mac.tar'
-    
-
+          files: out/make/
