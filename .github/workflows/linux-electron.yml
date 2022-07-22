@@ -137,3 +137,8 @@ jobs:
             npm install --save-dev @electron-forge/cli
             npx electron-forge import
             npm run make
+
+    - name: Release
+      uses: softprops/action-gh-release@v1
+      with:
+          files: /home/runner/work/tidal-gui/tidal-gui/out/make/deb/threepenny-electron-linux-x64.deb
