@@ -102,7 +102,6 @@ jobs:
     - name: remove unneccessary libs 
       run: |
             cd /Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/ghc-packages/x86_64-osx-ghc-${{ matrix.ghc }}
-            rm -R ghc-${{ matrix.ghc }}
             rm -R Cabal-*
             rm -R rts-*
             
