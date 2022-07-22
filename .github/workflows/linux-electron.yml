@@ -133,4 +133,7 @@ jobs:
          node-version: 16
     
     - name: electron forge
-      run: npm run make
+      run: |
+            npm install --save-dev @electron-forge/cli
+            npx electron-forge import
+            npm run make
