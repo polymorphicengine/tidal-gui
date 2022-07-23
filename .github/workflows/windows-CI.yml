@@ -75,7 +75,7 @@ jobs:
       run: |
             Move-Item -Path 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\ghc-packages\package.conf.d\' -Destination 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\package.conf.d\'
             $configs = Get-ChildItem 'D:\a\tidal-gui\tidal-gui\binary\haskell-libs\package.conf.d\' -Recurse
-            $configs | %{ (gc $_) -replace '${pkgroot}', '${pkgroot}\ghc-packages' | Set-Content $_.fullname}
+            $configs | %{ (gc $_) -replace '${pkgroot}', '$topdir\ghc-packages' | Set-Content $_.fullname}
    
     - name: ghc-pkg recache
       run: | 
