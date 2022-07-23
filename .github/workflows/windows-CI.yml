@@ -1,9 +1,6 @@
 name: Windows CI
 
-on:
-  push:
-    tags:
-      - "v*.*.*"
+on: [push]
 
 jobs:
   build:
@@ -109,7 +106,10 @@ jobs:
             npm install --save-dev @electron-forge/cli
             npx electron-forge import
             npm run make
-            
+    
+    - name: test
+      run : ls out -R
+      
     - name: Release
       uses: softprops/action-gh-release@v1
       with:
