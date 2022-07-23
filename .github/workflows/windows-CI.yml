@@ -1,6 +1,9 @@
 name: Windows CI
 
-on: [push]
+on:
+  push:
+    tags:
+      - "v*.*.*"
 
 jobs:
   build:
@@ -106,11 +109,10 @@ jobs:
             npm install --save-dev @electron-forge/cli
             npx electron-forge import
             npm run make
-    
-    - name: test
-      run : ls out -R
       
     - name: Release
       uses: softprops/action-gh-release@v1
       with:
-          files: out/make/win32/x64/*.exe
+          files: |
+                  out\make\squirrel.windows\x64\*.exe
+                  out\make\squirrel.windows\x64\*.nupkg
