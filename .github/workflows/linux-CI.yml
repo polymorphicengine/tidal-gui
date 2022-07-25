@@ -52,7 +52,6 @@ jobs:
             mkdir binary
             mkdir binary/haskell-libs/
             mkdir binary/c-libs/
-            ls
             
     - name: move GHC libs and configs
       run: |
@@ -116,6 +115,7 @@ jobs:
             cd /home/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/ghc-packages
             rm -r ghc-${{ matrix.ghc }}
             rm -r Cabal-*
+            rm -r rts
             
     - name: fake gcc
       run: |
