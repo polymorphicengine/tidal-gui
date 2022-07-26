@@ -92,6 +92,11 @@ jobs:
             mv /Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/ghc-packages/settings /Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/settings
             mv /Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/ghc-packages/llvm-targets /Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/llvm-targets
             mv /Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/ghc-packages/llvm-passes /Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/llvm-passes
+            mv /Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/ghc-packages/template-hsc.h /Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/template-hsc.h
+            mv /Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/ghc-packages/ghcversion.h /Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/ghcversion.h
+            mv /Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/ghc-packages/ghcplatform.h /Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/ghcplatform.h
+            mv /Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/ghc-packages/ghcautoconf.h /Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/ghcautoconf.h
+            mv /Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/ghc-packages/DerivedConstants.h /Users/runner/work/tidal-gui/tidal-gui/binary/haskell-libs/DerivedConstants.h
 
     - name: ghc-pkg recache
       run: |
