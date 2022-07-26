@@ -10,6 +10,7 @@ data Command = Hush
              | T String
              | M String
              | Statement String
+             | Conf String
              deriving Show
 
 data Block = Block {bStart :: Int
@@ -43,11 +44,18 @@ parseMakro = do
         s <- many anyChar
         return (M s)
 
+parseConfig :: Parser Command
+parseConfig = do
+        whitespace
+        _ <- string ":c"
+        s <- many anyChar
+        return (Conf s)
+
 parseStatement :: Parser Command
 parseStatement = fmap Statement $ many anyChar
 
 parseCommand :: Parser Command
-parseCommand = try parseHush <|> try parseType <|> try parseMakro <|> parseStatement
+parseCommand = try parseHush <|> try parseType <|> try parseMakro <|> try parseConfig <|> parseStatement
 
 --parsing blocks
 

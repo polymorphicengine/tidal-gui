@@ -36,3 +36,4 @@ const editorSettings = {lineNumbers: true,
 			 matchBrackets: true,
 			 autoCloseBrackets: true
 			 }
+			 

@@ -52,6 +52,7 @@ setup str stdout win = void $ do
                        element displayP
                        ,element container
                        ,element output
+                       ,config
                        ]
 
      setupBackend str stdout
@@ -68,3 +69,9 @@ tidalSettings = do
           tidalKeys <- liftIO $ readFile $ execPath ++ "static/tidalConfig.js"
           settings <- mkElement "script" # set UI.text tidalKeys
           return settings
+
+config :: UI Element
+config = do
+        execPath <- liftIO $ dropFileName <$> getExecutablePath
+        conf <- liftIO $ readFile $ execPath ++ "static/config.js"
+        mkElement "script" # set UI.text conf

@@ -3,7 +3,7 @@ module Backend where
 
 import System.FilePath  (dropFileName)
 import System.Environment (getExecutablePath)
-import System.Directory (listDirectory)
+import System.Directory (listDirectory, doesDirectoryExist)
 
 import Control.Concurrent (forkIO)
 import Control.Concurrent.MVar  (newEmptyMVar, MVar, putMVar, takeMVar)
@@ -100,7 +100,8 @@ interpretCommandsLine cm lineBool line = do
                                                            RStat Nothing -> errorUI "A makro has to return a string"
                                                            RError e -> errorUI e
                                                            _ -> return ()
-                                                (Hush)      -> successUI >> (liftIO $ hush str)
+                                                (Hush)     -> successUI >> (liftIO $ hush str)
+                                                (Conf s) -> (liftUI $ setBootPath s) >> successUI >> (outputUI $ "Successfully set path to: " ++ s)
                    where successUI = liftUI $ flashSuccess cm blockLineStart blockLineEnd
                          errorUI err = (liftUI $ flashError cm blockLineStart blockLineEnd) >> (void $ liftUI $ element out # set UI.text err)
                          outputUI o = void $ liftUI $ element out # set UI.text o
@@ -127,13 +128,28 @@ setupBackend str stdout = do
 
        on disconnect win $ \_ -> (runFunction $ ffi "saveFile()")
 
+lookupBootPath :: UI String
+lookupBootPath = callFunction $ ffi "config.bootPath"
 
-getBootDefs :: IO [String]
+setBootPath :: String -> UI ()
+setBootPath s = do
+          execPath <- liftIO $ dropFileName <$> getExecutablePath
+          liftIO $ writeFile (execPath ++ "static/config.js") ("const config = {bootPath:" ++ s ++ " }")
+
+getBootDefs :: UI [String]
 getBootDefs = do
-       execPath <- liftIO $ dropFileName <$> getExecutablePath
-       userDefsPaths <- liftIO $ listDirectory $ execPath ++ "static/definitions/"
-       bootDefs <- liftIO $ sequence $ map (\x -> readFile $ execPath ++ "static/definitions/" ++ x) userDefsPaths
-       return bootDefs
+       bootPath <- lookupBootPath
+       b <- liftIO $ doesDirectoryExist bootPath
+       case b of
+         False -> do
+             execPath <- liftIO $ dropFileName <$> getExecutablePath
+             userDefsPaths <- liftIO $ listDirectory $ execPath ++ "static/definitions/"
+             bootDefs <- liftIO $ sequence $ map (\x -> readFile $ execPath ++ "static/definitions/" ++ x) userDefsPaths
+             return bootDefs
+         True -> do
+             userDefsPaths <- liftIO $ listDirectory $ bootPath
+             bootDefs <- liftIO $ sequence $ map (\x -> readFile $ bootPath ++"/"++ x) userDefsPaths
+             return bootDefs
 
 
 startInterpreter :: Stream -> String -> UI Env
@@ -142,7 +158,7 @@ startInterpreter str stdout = do
            win <- askWindow
            mMV <- liftIO newEmptyMVar
            rMV <- liftIO newEmptyMVar
-           bootDefs <- liftIO getBootDefs
+           bootDefs <- getBootDefs
            execPath <- liftIO $ dropFileName <$> getExecutablePath
            ghcMode <- liftIO $ readFile $ execPath ++ "static/ghc_mode.txt"
 
