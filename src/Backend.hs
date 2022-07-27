@@ -109,6 +109,7 @@ interpretCommandsLine cm lineBool line = do
                                                               Left _ -> errorUI "Perhaps you don't have authority to write to the config file?\nTry running with sudo or admin privileges"
                                                               Right True -> successUI >> (outputUI $ "Successfully set path to: " ++ s)
                                                               Right False -> errorUI "This path doesn't seem to exist!"
+                                                (Listen s i) -> (liftUI $ void $ liftIO $ forkIO $ listen s i env) >> successUI >> outputUI ("Listening on port " ++ s ++ ":" ++ show i)
                    where successUI = liftUI $ flashSuccess cm blockLineStart blockLineEnd
                          errorUI err = (liftUI $ flashError cm blockLineStart blockLineEnd) >> (void $ liftUI $ element out # set UI.text err)
                          outputUI o = void $ liftUI $ element out # set UI.text o
@@ -124,8 +125,6 @@ setupBackend str stdout = do
 
        --createHaskellFunction "displayLoop" (displayLoop win disp str)
        --void $ liftIO $ forkIO $ runUI win $ runFunction $ ffi "requestAnimationFrame(displayLoop)"
-
-       void $ liftIO $ forkIO $ listen 5000 env
 
        createHaskellFunction "evaluateBlock" (\cm -> runReaderT (interpretCommands cm False) env)
        createHaskellFunction "evaluateLine" (\cm -> runReaderT (interpretCommands cm True) env)
@@ -280,9 +279,9 @@ noDoubleQuotes = init . tail
 
 --OSC
 
-listen :: Int -> Env -> IO ()
-listen listenPort env = do
-            local <- udpServer "127.0.0.1" listenPort
+listen :: String -> Int -> Env -> IO ()
+listen s listenPort env = do
+            local <- udpServer s listenPort
             loopOSC env local
             where loopOSC e l = do -- wait for, read and act on OSC message
                          m <- recvMessage l

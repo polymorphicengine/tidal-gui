@@ -16,6 +16,7 @@ data Command = Hush
              | M String
              | Statement String
              | Conf Configurable String
+             | Listen String Int
              deriving Show
 
 data Block = Block {bStart :: Int
@@ -59,11 +60,21 @@ parseSetDefPath = do
         s <- many anyChar
         return (Conf DefPath s)
 
+parseListen :: Parser Command
+parseListen = do
+        whitespace
+        _ <- string ":listen"
+        whitespace
+        s <- many (letter <|> digit <|> char '.')
+        _ <- char ':'
+        i <- fmap read $ many1 digit
+        return (Listen s i)
+
 parseStatement :: Parser Command
 parseStatement = fmap Statement $ many anyChar
 
 parseCommand :: Parser Command
-parseCommand = try parseHush <|> try parseType <|> try parseMakro <|> try parseSetDefPath <|> parseStatement
+parseCommand = try parseHush <|> try parseType <|> try parseMakro <|> try parseSetDefPath <|> try parseListen <|> parseStatement
 
 --parsing blocks
 
