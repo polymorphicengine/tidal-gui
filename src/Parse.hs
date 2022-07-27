@@ -6,11 +6,16 @@ import Control.Monad (void)
 
 type Position = (Int,Int)
 
+data Configurable = DefPath
+
+instance Show Configurable where
+  show DefPath = "defPath"
+
 data Command = Hush
              | T String
              | M String
              | Statement String
-             | Conf String
+             | Conf Configurable String
              deriving Show
 
 data Block = Block {bStart :: Int
@@ -44,18 +49,21 @@ parseMakro = do
         s <- many anyChar
         return (M s)
 
-parseConfig :: Parser Command
-parseConfig = do
+parseSetDefPath :: Parser Command
+parseSetDefPath = do
         whitespace
-        _ <- string ":c"
+        _ <- string ":set"
+        whitespace
+        _ <- string "defPath"
+        whitespace
         s <- many anyChar
-        return (Conf s)
+        return (Conf DefPath s)
 
 parseStatement :: Parser Command
 parseStatement = fmap Statement $ many anyChar
 
 parseCommand :: Parser Command
-parseCommand = try parseHush <|> try parseType <|> try parseMakro <|> try parseConfig <|> parseStatement
+parseCommand = try parseHush <|> try parseType <|> try parseMakro <|> try parseSetDefPath <|> parseStatement
 
 --parsing blocks
 

@@ -9,6 +9,8 @@ import Control.Concurrent (forkIO)
 import Control.Concurrent.MVar  (newEmptyMVar, MVar, putMVar, takeMVar)
 import Control.Monad  (void)
 import Control.Monad.Reader (ReaderT, runReaderT, ask)
+import Control.Exception  (SomeException)
+import Control.Monad.Catch (try)
 
 
 import Sound.Tidal.Context as T hiding (mute,solo,(#),s)
@@ -101,7 +103,12 @@ interpretCommandsLine cm lineBool line = do
                                                            RError e -> errorUI e
                                                            _ -> return ()
                                                 (Hush)     -> successUI >> (liftIO $ hush str)
-                                                (Conf s) -> (liftUI $ setBootPath s) >> successUI >> (outputUI $ "Successfully set path to: " ++ s)
+                                                (Conf DefPath s) -> do
+                                                          x <- liftUI $ setDefPath s
+                                                          case x of
+                                                              Left _ -> errorUI "Perhaps you don't have authority to write to the config file?\nTry running with sudo or admin privileges"
+                                                              Right True -> successUI >> (outputUI $ "Successfully set path to: " ++ s)
+                                                              Right False -> errorUI "This path doesn't seem to exist!"
                    where successUI = liftUI $ flashSuccess cm blockLineStart blockLineEnd
                          errorUI err = (liftUI $ flashError cm blockLineStart blockLineEnd) >> (void $ liftUI $ element out # set UI.text err)
                          outputUI o = void $ liftUI $ element out # set UI.text o
@@ -128,17 +135,20 @@ setupBackend str stdout = do
 
        on disconnect win $ \_ -> (runFunction $ ffi "saveFile()")
 
-lookupBootPath :: UI String
-lookupBootPath = callFunction $ ffi "config.bootPath"
+lookupDefPath :: UI String
+lookupDefPath = callFunction $ ffi "config.defPath"
 
-setBootPath :: String -> UI ()
-setBootPath s = do
+setDefPath :: String -> UI (Either SomeException Bool)
+setDefPath s = do
           execPath <- liftIO $ dropFileName <$> getExecutablePath
-          liftIO $ writeFile (execPath ++ "static/config.js") ("const config = {bootPath:" ++ s ++ " }")
+          b <- liftIO $ doesDirectoryExist s
+          case b of
+            True -> try $ liftIO $ writeFile (execPath ++ "static/config.js") ("const config = {defPath:" ++ s ++ " }") >> return True
+            False -> return $ Right False
 
 getBootDefs :: UI [String]
 getBootDefs = do
-       bootPath <- lookupBootPath
+       bootPath <- lookupDefPath
        b <- liftIO $ doesDirectoryExist bootPath
        case b of
          False -> do

@@ -1,1 +1,1 @@
-const config = {bootPath: "" }
+const config = {defPath: "" }
