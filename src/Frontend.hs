@@ -24,12 +24,22 @@ setup str stdout win = void $ do
 
      setCallBufferMode NoBuffering -- important for highlighting
 
+     canvas <- UI.canvas # set UI.id_ "hydraCanvas" # set style [("position", "fixed")
+                                                                ,("left","0")
+                                                                ,("top","0")
+                                                                ,("width","100%")
+                                                                ,("height","100%")
+                                                                ,("pointer-events","none")]
+
      editor <- UI.textarea # set (attr "id") "editor0"
 
      output <- UI.pre # set UI.id_ "output"
                       #. "outputBox"
                       #+ [ string "output goes here" ]
                       # set style [("font-size","3vh")]
+
+     outputWrapper <- UI.div #+ [ element output]
+
      displayP <- UI.div # set UI.id_ "displayP"
                        #. "displayBox"
                        # set style [("font-size","3vh"),("display","flex"),("flex-wrap","wrap")]
@@ -41,17 +51,16 @@ setup str stdout win = void $ do
                            # set style [("display","none")]
 
      mainEditor <- UI.div #. "main" #+ [element editor] # set UI.style [("flex-grow","8")]
-     container <- UI.div # set UI.id_ "editors" #. "flex-container" #+ [element mainEditor] # set UI.style [("display","flex"),("flex-wrap","wrap")]
+     container <- UI.div # set UI.id_ "container" #. "flex-container CodeMirror cm-s-tomorrow-night-eighties"
+     editorContainer <- UI.div # set UI.id_ "editors" #. "flex-container" #+ [element mainEditor] # set UI.style [("display","flex"),("flex-wrap","wrap")]
 
-     body <- UI.getBody win #. "CodeMirror cm-s-theme" # set UI.style [("background-color","black")]
+     body <- UI.getBody win  # set UI.style [("background-color","black")]
 
      createShortcutFunctions str mainEditor
 
      _ <- (element body) #+
-                       [--element displayV
-                       element displayP
-                       ,element container
-                       ,element output
+                       [element canvas
+                       ,element container #+ [element displayP, element editorContainer, element outputWrapper]
                        ,config
                        ]
 
@@ -62,6 +71,7 @@ setup str stdout win = void $ do
                         ,tidalSettings
                         ]
      makeEditor "editor0"
+     startHydra
 
 tidalSettings :: UI Element
 tidalSettings = do
