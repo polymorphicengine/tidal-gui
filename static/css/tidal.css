@@ -3,18 +3,60 @@
       float: left;
       margin:10px;
       resize: both;
+      height: 80vh;
       }
       
 
 .editor{
 	overflow: hidden;
 	border: 1px solid black;
+	background: transparent;
 	}
 
 .outputBox{
-        height: 10vh;
-	border: 2px solid black;
-	resize: vertical;
-	overflow: auto;
+        height: 15vh;
+        overflow-y:auto;
+        resize: vertical;
+        unicode-bidi: embed;
+        font-family: monospace;
+        white-space: pre;
 	}
+
+pre::-webkit-scrollbar {
+    display: none;
+}
+
+html, body {
+  background: #000;
+  margin: 0px;
+  padding: 0px;
+  width: 100%;
+  height: 100%;
+  color: #fff;
+  line-height: 1.4;
+}
+
+textarea {
+    background: #000;
+}
+
+canvas {
+  /* background-color: #000; */
+  image-rendering: -moz-crisp-edges;
+  image-rendering: -webkit-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
+.CodeMirror-vscrollbar, .CodeMirror-hscrollbar, .CodeMirror-scrollbar-filler, .CodeMirror-gutter-filler {
+  position: absolute;
+  z-index: 6;
+  display: none !important;
+  outline: none;
+}
+
+.CodeMirror-gutters {
+  border-right: 1px solid #ddd;
+  background-color: transparent !important;
+  white-space: nowrap;
+}
 

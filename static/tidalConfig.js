@@ -34,6 +34,8 @@ const editorSettings = {lineNumbers: true,
 			 keyMap: keyMap,
 			 extraKeys: extraKeys,
 			 matchBrackets: true,
-			 autoCloseBrackets: true
+			 autoCloseBrackets: true,
+			 theme: "tomorrow-night-eighties"
 			 }
-			 
+
+		
