@@ -110,6 +110,11 @@ interpretCommandsLine cm lineBool line = do
                                                               Right True -> successUI >> (outputUI $ "Successfully set path to: " ++ s)
                                                               Right False -> errorUI "This path doesn't seem to exist!"
                                                 (Listen s i) -> (liftUI $ void $ liftIO $ forkIO $ listen s i env) >> successUI >> outputUI ("Listening on port " ++ s ++ ":" ++ show i)
+                                                (Hydra s) -> do
+                                                        x <- liftUI $ hydraJob s
+                                                        case x == "" of
+                                                          True -> successUI >> outputUI ""
+                                                          False -> errorUI (show x)
                    where successUI = liftUI $ flashSuccess cm blockLineStart blockLineEnd
                          errorUI err = (liftUI $ flashError cm blockLineStart blockLineEnd) >> (void $ liftUI $ element out # set UI.text err)
                          outputUI o = void $ liftUI $ element out # set UI.text o
@@ -297,3 +302,11 @@ actOSC env (Just (Message "/eval/line" [Int32 line])) = (runUI (windowE env) $ r
 actOSC env (Just (Message "/mute" [ASCII_String s])) = (runUI (windowE env) $ (liftIO $ muteP (streamE env) (ID $ ascii_to_string s)) >> updateDisplay (streamE env)) >> return env
 actOSC env (Just m) = (runUI (windowE env) $ getOutputEl # (set UI.text $ "Unhandeled OSC message: " ++ show m)) >> return env
 actOSC env _ = return env
+
+--hydra
+
+startHydra :: UI ()
+startHydra = runFunction $ ffi "var hydra = new Hydra({canvas: document.getElementById(\"hydraCanvas\"),detectAudio: false})"
+
+hydraJob :: String -> UI String
+hydraJob s = callFunction $ ffi "function f(x) {try{eval(x); return \"\";} catch (error) { return error.message; }}; f(%1)" s

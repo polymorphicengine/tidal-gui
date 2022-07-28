@@ -17,6 +17,7 @@ data Command = Hush
              | Statement String
              | Conf Configurable String
              | Listen String Int
+             | Hydra String
              deriving Show
 
 data Block = Block {bStart :: Int
@@ -70,11 +71,19 @@ parseListen = do
         i <- fmap read $ many1 digit
         return (Listen s i)
 
+parseHydra :: Parser Command
+parseHydra = do
+        whitespace
+        _ <- string ":hydra"
+        whitespace
+        s <- many anyChar
+        return (Hydra s)
+
 parseStatement :: Parser Command
 parseStatement = fmap Statement $ many anyChar
 
 parseCommand :: Parser Command
-parseCommand = try parseHush <|> try parseType <|> try parseMakro <|> try parseSetDefPath <|> try parseListen <|> parseStatement
+parseCommand = try parseHush <|> try parseType <|> try parseMakro <|> try parseSetDefPath <|> try parseListen <|> try parseHydra <|> parseStatement
 
 --parsing blocks
 
