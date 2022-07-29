@@ -24,13 +24,17 @@ setup str stdout win = void $ do
 
      setCallBufferMode NoBuffering -- important for highlighting
 
+     winWidth <- getWindowWidth
+     winHeight <- getWindowHeight
+
      canvas <- UI.canvas # set UI.id_ "hydraCanvas" # set style [("position", "fixed")
                                                                 ,("left","0")
                                                                 ,("top","0")
                                                                 ,("width","100%")
                                                                 ,("height","100%")
                                                                 ,("pointer-events","none")]
-
+                                                    # set UI.width (round $ winWidth*2)
+                                                    # set UI.height (round $ winHeight*2)
      editor <- UI.textarea # set (attr "id") "editor0"
 
      output <- UI.pre # set UI.id_ "output"

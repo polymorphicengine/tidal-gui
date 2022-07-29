@@ -310,3 +310,9 @@ startHydra = runFunction $ ffi "var hydra = new Hydra({canvas: document.getEleme
 
 hydraJob :: String -> UI String
 hydraJob s = callFunction $ ffi "function f(x) {try{eval(x); return \"\";} catch (error) { return error.message; }}; f(%1)" s
+
+getWindowWidth :: UI Double
+getWindowWidth = callFunction $ ffi "window.innerWidth"
+
+getWindowHeight :: UI Double
+getWindowHeight = callFunction $ ffi "window.innerHeight"
