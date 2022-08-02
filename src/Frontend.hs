@@ -39,17 +39,29 @@ setup str stdout win = void $ do
 
      output <- UI.pre # set UI.id_ "output"
                       #. "outputBox"
-                      #+ [ string "output goes here" ]
                       # set style [("font-size","3vh")]
 
      outputWrapper <- UI.div #+ [ element output]
 
-     displayP <- UI.div # set UI.id_ "displayP"
-                       #. "displayBox"
-                       # set style [("font-size","3vh"),("display","flex"),("flex-wrap","wrap")]
-     -- continous display needs some more thought ...
-     -- displayV <- UI.div # set UI.id_ "displayV"
-     --                    #. "displayBox"
+     cpsEl <- UI.span # set UI.id_ "cps" # set UI.style [("background-color","rgba(0,0,0,0.5)")]
+     bpmEl <- UI.span # set UI.id_ "bpm" # set UI.style [("background-color","rgba(0,0,0,0.5)")]
+     cycEl <- UI.span # set UI.id_ "cyc" # set UI.style [("background-color","rgba(0,0,0,0.5)")]
+
+     cycmodEL <- UI.span  # set UI.id_ "cycmod" # set UI.style [("background-color","rgba(0,0,0,0.5)")] # set UI.text "4" # set (attr "contenteditable") "true"
+
+     cycContainer <- UI.div # set UI.id_ "cycContainer" #+ [element cycEl, UI.span # set UI.text "%",element cycmodEL]
+
+     displayCPS <- UI.div # set UI.id_ "diplayCPS" #+ [element cycContainer
+                                                      ,element cpsEl
+                                                      ,element bpmEl
+                                                      ]
+                                                   # set style [("display","flex"),("flex-direction","column")]
+
+     displayBox <- UI.div #. "displayBox" # set style [("font-size","3vh"), ("display", "flex"), ("height", "13vh")]
+
+     displayP <- UI.div # set UI.id_ "displayP" # set style [("display","flex"),("flex-direction","column"), ("flex-wrap", "wrap")]
+
+
      fileInput <- UI.input # set UI.id_ "fileInput"
                            # set UI.type_ "file"
                            # set style [("display","none")]
@@ -64,7 +76,9 @@ setup str stdout win = void $ do
 
      _ <- (element body) #+
                        [element canvas
-                       ,element container #+ [element displayP, element editorContainer, element outputWrapper]
+                       ,element container #+ [element displayBox #+ [element displayCPS, element displayP]
+                                             ,element editorContainer
+                                             , element outputWrapper]
                        ,config
                        ]
 
