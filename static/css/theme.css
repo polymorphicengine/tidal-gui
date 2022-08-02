@@ -1,29 +1,22 @@
 ﻿/*theme
 CodeMirror theme file created with CodeMirror-Themes
 https://github.com/mkaminsky11/codemirror-themes*/
-.cm-s-theme.CodeMirror{background:rgba(18,18,18,0)}
-.cm-s-theme.CodeMirror{color:rgba(103,127,173,1) !important;}
-.cm-s-theme div.CodeMirror-selected{background:rgba(209,236,255,1) !important;}
-.cm-s-theme .CodeMirror-gutters{background:rgba(7,15,75,0) !important;}
-.cm-s-theme .CodeMirror-guttermarker{color:rgba(29,117,179,1) !important;}
-.cm-s-theme .CodeMirror-guttermarker-subtle{color:rgba(224,226,229,1) !important;}
-.cm-s-theme .CodeMirror-linenumber{color:rgba(224,226,229,1) !important;}
-.cm-s-theme .CodeMirror-cursor{border-color:rgba(137,178,194,1) !important;}
-.cm-s-theme span.cm-comment{color:rgba(122,158,194,1) !important;}
-.cm-s-theme span.cm-atom{color:rgba(154,61,194,1) !important;}
-.cm-s-theme span.cm-number{color:rgba(41,158,101,1) !important;}
-.cm-s-theme span.cm-property{color:rgba(29,117,179,1) !important;}
-.cm-s-theme span.cm-attribute{color:rgba(46,56,60,1) !important;}
-.cm-s-theme span.cm-keyword{color:rgba(146,56,255,1) !important;}
-.cm-s-theme span.cm-string{color:rgba(3,150,79,1) !important;}
-.cm-s-theme span.cm-string-2{color:rgba(46,56,60,1) !important;}
-.cm-s-theme span.cm-variable{color:rgba(86,194,173,1) !important;}
-.cm-s-theme span.cm-variable-2{color:rgba(76,161,194,1) !important;}
-.cm-s-theme span.cm-def{color:rgba(52,162,65,1) !important;}
-.cm-s-theme span.cm-bracket{color:rgba(206,229,238,1) !important;}
-.cm-s-theme span.cm-tag{color:rgba(156,51,40,1) !important;}
-.cm-s-theme span.cm-link{color:rgba(46,56,60,1) !important;}
-.cm-s-theme span.cm-error{background:rgba(0,0,0,0) !important;}
-.cm-s-theme span.cm-error{color:rgba(46,56,60,1) !important;}
-.cm-s-theme .CodeMirror-activeline-background{color:rgba(46,56,60,1) !important;}
-.cm-s-theme .CodeMirror-matchingbracket{color:rgba(68,202,68,1) !important;}
+
+.cm-s-tomorrow-night-eighties span.cm-comment{color:rgba(122,158,194,1) !important;}
+.cm-s-tomorrow-night-eighties span.cm-atom{color:rgba(154,61,194,1) !important;}
+.cm-s-tomorrow-night-eighties span.cm-number{color:rgba(41,158,101,1) !important;}
+.cm-s-tomorrow-night-eighties span.cm-property{color:rgba(29,117,179,1) !important;}
+.cm-s-tomorrow-night-eighties span.cm-attribute{color:rgba(46,56,60,1) !important;}
+.cm-s-tomorrow-night-eighties span.cm-keyword{color:rgba(146,56,255,1) !important;}
+.cm-s-tomorrow-night-eighties span.cm-builtin{color:rgba(146,56,255,1) !important;}
+.cm-s-tomorrow-night-eighties span.cm-string{color:rgba(3,150,79,1) !important;}
+.cm-s-tomorrow-night-eighties span.cm-string-2{color:rgba(46,56,60,1) !important;}
+.cm-s-tomorrow-night-eighties span.cm-variable{color:rgba(86,194,173,1) !important;}
+.cm-s-tomorrow-night-eighties span.cm-variable-2{color:rgba(76,161,194,1) !important;}
+.cm-s-tomorrow-night-eighties span.cm-def{color:rgba(52,162,65,1) !important;}
+.cm-s-tomorrow-night-eighties span.cm-bracket{color:rgba(206,229,238,1) !important;}
+.cm-s-tomorrow-night-eighties span.cm-tag{color:rgba(156,51,40,1) !important;}
+.cm-s-tomorrow-night-eighties span.cm-link{color:rgba(46,56,60,1) !important;}
+.cm-s-tomorrow-night-eighties span.cm-error{color:rgba(46,56,60,1) !important;}
+.cm-s-tomorrow-night-eighties .CodeMirror-activeline-background{color:rgba(46,56,60,1) !important;}
+.cm-s-tomorrow-night-eighties .CodeMirror-matchingbracket{color:rgba(68,202,68,1) !important;}

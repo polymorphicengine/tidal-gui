@@ -104,10 +104,3 @@
   color: #6a6a6a;
 }
 
-.cm-s-tomorrow-night-eighties .CodeMirror-activeline-background {
-  background: #343600;
-}
-/*.cm-s-tomorrow-night-eighties .CodeMirror-activeline-background { background: #0f0; }*/
-.cm-s-tomorrow-night-eighties .CodeMirror-matchingbracket {
-  color: white !important;
-}
