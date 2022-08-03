@@ -15,7 +15,7 @@ Other commands are:
 - :t exp, to print the type of exp
 - :set path, where 'path' is a path to a folder containing .hs files that will be loaded automatically (see below for more information)
 - :listen hostname:port, where 'hostname' is the remote host's name and 'port' is the port you want the editor to listen on (see below for more information)
-- :hydra <code>, where <code> is hydra code
+- :hydra code, where 'code' is hydra code
 
 If you set a path to a folder of the definitions, you need to make sure that each file in the folder only contains one single 'let' expression.
 
