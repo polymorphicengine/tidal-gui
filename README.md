@@ -12,7 +12,7 @@ The interface has three basic parts:
 If you are familiar with the atom-plugin for tidal, most of the features of tidal-gui are very similar. There is one notable difference: if you want to print something to the console, you have to make sure to lift it to IO (via return).
 
 Other commands are:
-- :t exp, to print the type of exp
+-`:t exp`, to print the type of exp
 - :set path, where 'path' is a path to a folder containing .hs files that will be loaded automatically (see below for more information)
 - :listen hostname:port, where 'hostname' is the remote host's name and 'port' is the port you want the editor to listen on (see below for more information)
 - :hydra code, where 'code' is hydra code
