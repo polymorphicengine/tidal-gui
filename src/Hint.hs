@@ -59,9 +59,9 @@ staticInterpreter :: Stream -> [String] -> Interpreter ()
 staticInterpreter str bootDefs = do
                     Hint.set [languageExtensions := exts]
                     Hint.setImportsF libs
-                    bind "tidal" str
-                    Hint.runStmt bootTidal
-                    _ <- sequence $ map Hint.runStmt bootDefs
+                    -- bind "tidal" str
+                    -- Hint.runStmt bootTidal
+                  --  _ <- sequence $ map Hint.runStmt bootDefs
                     return ()
 
 interpreterLoop :: MVar InterpreterMessage -> MVar InterpreterResponse -> Interpreter ()

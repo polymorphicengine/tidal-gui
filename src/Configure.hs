@@ -7,10 +7,11 @@ import Data.List
 
 libsU :: [String]
 libsU = [
-    "Sound.Tidal.Transition"
+  "Sound.Tidal.Link"
   , "Sound.Tidal.Context"
-  , "Sound.Tidal.ID"
-  , "Sound.Tidal.Simple"
+  , "Sound.Tidal.Transition"
+  --, "Sound.Tidal.ID"
+  --, "Sound.Tidal.Simple"
   , "Control.Applicative"
   , "Data.Bifunctor"
   , "Data.Bits"

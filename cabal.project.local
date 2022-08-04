@@ -4,3 +4,5 @@ allow-newer: snap-server:base, io-streams-haproxy:base,
              io-streams-haproxy:attoparsec, io-streams-haproxy:bytestring
 ignore-project: False
 
+packages: /home/martin/Dokumente/Tidal
+          /home/martin/Dokumente/Tidal/tidal-link
