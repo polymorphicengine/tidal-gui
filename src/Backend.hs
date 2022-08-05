@@ -298,6 +298,7 @@ actOSC env (Just (Message "/go/line" [Int32 line])) = (runUI (windowE env) $ run
 actOSC env (Just (Message "/eval/block" [Int32 line])) = (runUI (windowE env) $ runFunction $ ffi "evaluateBlockLine(document.querySelector(\"#editor0 + .CodeMirror\").CodeMirror, (%1))" ((fromIntegral line) - 1 :: Int)) >> return env
 actOSC env (Just (Message "/eval/line" [Int32 line])) = (runUI (windowE env) $ runFunction $ ffi "evaluateLineLine(document.querySelector(\"#editor0 + .CodeMirror\").CodeMirror, (%1))" ((fromIntegral line) - 1 :: Int)) >> return env
 actOSC env (Just (Message "/mute" [ASCII_String s])) = (runUI (windowE env) $ (liftIO $ muteP (streamE env) (ID $ ascii_to_string s)) >> updateDisplay (streamE env)) >> return env
+actOSC env (Just (Message "/print" [ASCII_String s])) = (runUI (windowE env) $ getOutputEl # (set UI.text $ "Recieved message: " ++ ascii_to_string s)) >> return env
 actOSC env (Just m) = (runUI (windowE env) $ getOutputEl # (set UI.text $ "Unhandeled OSC message: " ++ show m)) >> return env
 actOSC env _ = return env
 
