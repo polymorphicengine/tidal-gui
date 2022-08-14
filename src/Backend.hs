@@ -126,14 +126,14 @@ setupBackend str stdout = do
        win <- askWindow
        env <- startInterpreter str stdout
 
-       createHaskellFunction "displayLoop" (runUI win $ displayLoop str)
-       void $ liftIO $ forkIO $ runUI win $ runFunction $ ffi "requestAnimationFrame(displayLoop)"
-
        createHaskellFunction "evaluateBlock" (\cm -> runReaderT (interpretCommands cm False) env)
        createHaskellFunction "evaluateLine" (\cm -> runReaderT (interpretCommands cm True) env)
 
        createHaskellFunction "evaluateBlockLine" (\cm l -> runReaderT (interpretCommandsLine cm False l) env)
        createHaskellFunction "evaluateLineLine" (\cm l -> runReaderT (interpretCommandsLine cm True l) env)
+
+       createHaskellFunction "displayLoop" (runUI win $ displayLoop str)
+       void $ liftIO $ forkIO $ runUI win $ runFunction $ ffi "requestAnimationFrame(displayLoop)"
 
        on disconnect win $ \_ -> (runFunction $ ffi "saveFile()")
 
