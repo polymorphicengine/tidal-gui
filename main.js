@@ -53,10 +53,10 @@ freeport((err, port) => {
           webPreferences: {nodeIntegration: true, contextIsolation: false,
   nativeWindowOpen: true, enableRemoteModule: true}
       });
-      
+
       enable(win.webContents);
 
-      //win.removeMenu();
+      win.removeMenu();
       console.log(`Loading URL: ${url}`);
       win.loadURL(url);
 
@@ -87,4 +87,3 @@ freeport((err, port) => {
     }
   });
 });
-
