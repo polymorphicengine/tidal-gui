@@ -3,11 +3,14 @@ const freeport = require('freeport');
 const spawn    = require('child_process').spawn;
 const path     = require('path');
 const waitOn   = require('wait-on');
+const { initialize, enable } = require("@electron/remote/main");
+
+initialize();
 
  // Time to wait for Threepenny server, milliseconds
 const timeout = 10000;
 // Relative path to the Threepenny binary.
-const relBin = './binary/tidal-gui';
+const relBin = './dist-newstyle/build/x86_64-linux/ghc-9.2.3/tidal-gui-0.1.0.0/x/tidal-gui/build/tidal-gui/tidal-gui';
 
 // Assign a random port to run on.
 freeport((err, port) => {
@@ -46,10 +49,14 @@ freeport((err, port) => {
           height: 370,
           maximizable: true,
           resizable: true,
-          title: 'TidalCycles'
+          title: 'TidalCycles',
+          webPreferences: {nodeIntegration: true, contextIsolation: false,
+  nativeWindowOpen: true, enableRemoteModule: true}
       });
+      
+      enable(win.webContents);
 
-      win.removeMenu();
+      //win.removeMenu();
       console.log(`Loading URL: ${url}`);
       win.loadURL(url);
 
@@ -80,3 +87,4 @@ freeport((err, port) => {
     }
   });
 });
+

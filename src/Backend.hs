@@ -305,7 +305,15 @@ actOSC env _ = return env
 --hydra
 
 startHydra :: UI ()
-startHydra = runFunction $ ffi "var hydra = new Hydra({canvas: document.getElementById(\"hydraCanvas\"),detectAudio: false})"
+startHydra = do
+  runFunction $ ffi "hydra = new Hydra({canvas: document.getElementById(\"hydraCanvas\"),detectAudio: false})"
+  hijackScreen
+
+hijackScreen :: UI ()
+hijackScreen = do
+        execPath <- liftIO $ dropFileName <$> getExecutablePath
+        h <- liftIO $ readFile $ execPath ++ "static/hijackScreen.js"
+        runFunction $ ffi h
 
 hydraJob :: String -> UI String
 hydraJob s = callFunction $ ffi "function f(x) {try{eval(x); return \"\";} catch (error) { return error.message; }}; f(%1)" s
