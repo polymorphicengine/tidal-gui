@@ -24,13 +24,17 @@ displayLoop stream = do
                 cpsEl <- getcpsEl
                 cycEl <- getcycEl
                 bpmEl <- getbpmEl
-                void $ element cpsEl # set UI.text (show cpsx)
-                void $ element bpmEl # set UI.text (show $ cpsx*60*4)
+                void $ element cpsEl # set UI.text (show $ truncNum cpsx 4)
+                void $ element bpmEl # set UI.text (show $ truncNum (cpsx*60*4) 1)
                 cycmod <- getcycMod
                 case cycmod of
                   Just x -> void $ element cycEl # set UI.text (show $ (mod (round now :: Int) x) + 1)
                   Nothing -> void $ element cycEl # set UI.text (show $ (round now :: Int))
                 runFunction $ ffi "requestAnimationFrame(displayLoop)"
+
+truncNum :: Double -> Int -> Double
+truncNum x m = (fromIntegral (floor (x * t))) / t
+          where t = 10^m
 
 getcpsEl :: UI Element
 getcpsEl = do
