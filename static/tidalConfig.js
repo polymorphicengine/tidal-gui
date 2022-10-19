@@ -24,7 +24,8 @@ const extraKeys = {
 		   "Ctrl-Up": swapLineUp,
 		   "Ctrl-Down": swapLineDown,
 		   "Shift-Ctrl-D": duplicateLine,
-		   "Ctrl-M": replaceWordByDef
+		   "Ctrl-M": replaceWordByDef,
+			 "Ctrl-T": tapBPM
 	          }
 
 
@@ -37,5 +38,3 @@ const editorSettings = {lineNumbers: true,
 			 autoCloseBrackets: true,
 			 theme: "tomorrow-night-eighties"
 			 }
-
-		

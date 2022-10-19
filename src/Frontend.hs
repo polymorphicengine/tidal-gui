@@ -10,7 +10,6 @@ import Sound.Tidal.Context as T hiding (mute,solo,(#),s)
 import qualified Graphics.UI.Threepenny as UI
 import Graphics.UI.Threepenny.Core as C hiding (text)
 
-
 import Backend
 
 
@@ -44,7 +43,7 @@ setup str stdout win = void $ do
      outputWrapper <- UI.div #+ [ element output]
 
      cpsEl <- UI.span # set UI.id_ "cps" # set UI.style [("background-color","rgba(0,0,0,0.5)")]
-     bpmEl <- UI.span # set UI.id_ "bpm" # set UI.style [("background-color","rgba(0,0,0,0.5)")]
+     bpmEl <- UI.span # set UI.id_ "bpm" # set UI.style [("background-color","rgba(0,0,0,0.5)"),("user-select","none")]
      cycEl <- UI.span # set UI.id_ "cyc" # set UI.style [("background-color","rgba(0,0,0,0.5)")]
 
      cycmodEL <- UI.span  # set UI.id_ "cycmod" # set UI.style [("background-color","rgba(0,0,0,0.5)")] # set UI.text "4" # set (attr "contenteditable") "true"

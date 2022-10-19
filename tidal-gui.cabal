@@ -40,7 +40,8 @@ executable tidal-gui
                        silently,
                        directory,
                        exceptions,
-                       deepseq
+                       deepseq,
+                       clock
   if os(windows)
      build-depends: snap-core < 1.0.5.0,
                     ghc-prim < 0.8.0

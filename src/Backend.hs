@@ -5,6 +5,8 @@ import System.FilePath  (dropFileName)
 import System.Environment (getExecutablePath)
 import System.Directory (listDirectory, doesDirectoryExist)
 
+import System.Clock
+
 import Control.Concurrent (forkIO)
 import Control.Concurrent.MVar  (newEmptyMVar, MVar, putMVar, takeMVar)
 import Control.Monad  (void)
@@ -125,6 +127,8 @@ setupBackend str stdout = do
 
        win <- askWindow
        env <- startInterpreter str stdout
+
+       setupBPMTap str
 
        createHaskellFunction "evaluateBlock" (\cm -> runReaderT (interpretCommands cm False) env)
        createHaskellFunction "evaluateLine" (\cm -> runReaderT (interpretCommands cm True) env)
@@ -323,3 +327,41 @@ getWindowWidth = callFunction $ ffi "window.innerWidth"
 
 getWindowHeight :: UI Double
 getWindowHeight = callFunction $ ffi "window.innerHeight"
+
+-- bpm tap
+
+setupBPMTap :: Stream -> UI ()
+setupBPMTap str = do
+  win <- askWindow
+  bpmEl <- getbpmEl
+  ref <- liftIO $ newIORef []
+  on UI.click bpmEl $ const $ tapBPM str ref
+  createHaskellFunction "tapBPM" (runUI win $ tapBPM str ref)
+
+tapBPM :: Stream -> IORef ([Double]) -> UI ()
+tapBPM s ref = do
+  nowS <- liftIO $ getTime Monotonic
+  let now = (fromIntegral $ toNanoSecs nowS) / 1000000000
+  times <- liftIO $ readIORef ref
+  case length times > 0 of
+    False -> liftIO $ modifyIORef ref (const [now])
+    True -> if now - times!!0 > 5 then liftIO $ modifyIORef ref (const [now]) else
+              case times of
+                (x:[]) -> do
+                    let avg = now-x
+                    liftIO $ streamOnce s $ cps $ pure $ 1/(avg*4)
+                    liftIO $ modifyIORef ref (const $ now:times)
+                (x:(y:[])) -> do
+                    let n1 = x-y
+                        n2 = now-x
+                        avg = (n1 + n2)/2
+                    liftIO $ streamOnce s $ cps $ pure $ 1/(avg*4)
+                    liftIO $ modifyIORef ref (const $ now:times)
+                (x:(y:(z:_))) -> do
+                    let n1 = y-z
+                        n2 = x-y
+                        n3 = now-x
+                        avg = (n1 + n2 + n3)/3
+                    liftIO $ streamOnce s $ cps $ pure $ 1/(avg*4)
+                    liftIO $ modifyIORef ref (const $ now:times)
+                _ -> return ()
