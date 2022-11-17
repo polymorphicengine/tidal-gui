@@ -1,4 +1,4 @@
-const {app, BrowserWindow} = require('electron');
+const {app, BrowserWindow, globalShortcut} = require('electron');
 const freeport = require('freeport');
 const spawn    = require('child_process').spawn;
 const path     = require('path');
@@ -40,6 +40,10 @@ freeport((err, port) => {
       if (err_) throw err_;
       createWindow();
     });
+
+      //unregister all shortcuts coming from electron for the defined shortcuts
+
+    globalShortcut.unregisterAll();
   });
 
   function createWindow() {
@@ -60,7 +64,7 @@ freeport((err, port) => {
       console.log(`Loading URL: ${url}`);
       win.loadURL(url);
 
-      // Emitted when the window is closed.
+      //Emitted when the window is closed.
       win.on('closed', () => {
           // Dereference the window object for garbage collection.
           win = null;
@@ -75,6 +79,8 @@ freeport((err, port) => {
       app.quit();
     }
   });
+
+
 
   // Kill the child process when quitting Electron.
   app.on('will-quit', () => child.kill());
