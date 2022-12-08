@@ -24,8 +24,9 @@ const extraKeys = {
 		   "Ctrl-Up": swapLineUp,
 		   "Ctrl-Down": swapLineDown,
 		   "Shift-Ctrl-D": duplicateLine,
+		   "Shift-Ctrl-H": hideAll,
 		   "Ctrl-M": replaceWordByDef,
-			 "Ctrl-T": tapBPM
+		   "Ctrl-T": tapBPM
 	          }
 
 

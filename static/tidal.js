@@ -1,3 +1,24 @@
+function hideAll() {
+
+	var elems = document.getElementsByTagName('span');
+	var ed = document.getElementById('editors');
+	
+	for (var i = 0; i < elems.length; i++) {
+	    if (elems[i].style.visibility === "hidden") {
+		elems[i].style.visibility = "visible";
+	    } else {
+        	elems[i].style.visibility = "hidden";
+    		}	
+	}
+
+	if (ed.style.visibility === "hidden") {
+		ed.style.visibility = "visible";
+	    } else {
+        	ed.style.visibility = "hidden";
+    		}
+}
+
+
  function loadFile(cm){
  
    document.getElementById('fileInput').onchange = e => { 
