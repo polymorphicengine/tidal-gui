@@ -104,7 +104,7 @@ interpretCommandsLine cm lineBool line = do
                                                            RStat Nothing -> errorUI "A makro has to return a string"
                                                            RError e -> errorUI e
                                                            _ -> return ()
-                                                (Hush)     -> successUI >> (liftIO $ hush str)
+                                                (Hush)     -> successUI >> (liftIO $ hush str) >> (liftUI hydraTry)
                                                 (Conf DefPath s) -> do
                                                           x <- liftUI $ setDefPath s
                                                           case x of

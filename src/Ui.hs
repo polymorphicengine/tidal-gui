@@ -147,3 +147,28 @@ flashError cm lineStart lineEnd = do
                             liftIO $ threadDelay 100000
                             unHighlight mark
                             flushCallBuffer
+
+-- hydra try
+
+hydraOut :: JSObject -> UI ()
+hydraOut o = runFunction $ ffi "%1.out()" o
+
+hydraColor :: Int -> Int -> Int -> JSObject -> UI JSObject
+hydraColor i j k o = callFunction $ ffi "%4.color(%1,%2,%3)" i j k o
+
+hydraNoise :: Int -> UI JSObject
+hydraNoise i = callFunction $ ffi "noise(%1)" i
+
+hydraModulate :: JSObject -> JSObject -> UI JSObject
+hydraModulate o1 o2 = callFunction $ ffi "%1.modulate(%2)" o1 o2
+
+(~|~) :: UI JSObject -> UI JSObject -> UI JSObject
+(~|~) o1 o2 = do
+            ob1 <- o1
+            ob2 <- o2
+            hydraModulate ob1 ob2
+
+
+--works
+hydraTry :: UI ()
+hydraTry = hydraNoise 1 ~|~ hydraNoise 10 >>= hydraColor 1 0 1 >>= hydraOut
