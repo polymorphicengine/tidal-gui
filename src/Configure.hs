@@ -47,7 +47,7 @@ libs = [ModuleImport "Data.Map" (QualifiedAs $ Just "Map") NoImportList
        ] ++ libsU'
 
 exts :: [Extension]
-exts = [OverloadedStrings, BangPatterns, MonadComprehensions]
+exts = [OverloadedStrings, BangPatterns, MonadComprehensions, LambdaCase]
 
 listenPort,remotePort :: Int
 listenPort = 6011
