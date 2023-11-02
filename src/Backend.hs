@@ -13,6 +13,7 @@ import Control.Monad  (void)
 import Control.Monad.Reader (ReaderT, runReaderT, ask)
 import Control.Exception  (SomeException)
 import Control.Monad.Catch (try)
+import Control.Monad.Except
 
 
 import Sound.Tidal.Context as T hiding (mute,solo,(#),s)
@@ -34,93 +35,177 @@ import Parse
 import Ui
 import Hint
 
-data Env = Env {windowE :: Window
-                 ,streamE :: Stream
-                 ,hintM :: MVar InterpreterMessage
-                 ,hintR :: MVar InterpreterResponse
-                 }
+type CurrentLine
+  = Int
 
+data EvalMode
+  = L | B
+  deriving (Eq, Show)
 
+data Env
+  = Env {windowE :: Window
+        ,streamE :: Stream
+        ,hintM :: MVar InterpreterMessage
+        ,hintR :: MVar InterpreterResponse
+        ,lineE :: Maybe CurrentLine
+        ,evalModeE :: EvalMode
+        ,editorE :: JSObject
+        }
+
+type I = ReaderT Env (ExceptT String IO)
 
 -- to combine UI and IO actions with an environment
-instance MonadUI (ReaderT Env IO) where
+instance MonadUI I where
   liftUI m = do
             env <- ask
             let win = windowE env
             liftIO $ runUI win m
 
-interpretCommands :: JSObject -> Bool -> ReaderT Env IO ()
-interpretCommands cm lineBool = do
-                  line <- liftUI $ getCursorLine cm
-                  interpretCommandsLine cm lineBool line
 
-interpretCommandsLine :: JSObject -> Bool -> Int -> ReaderT Env IO ()
-interpretCommandsLine cm lineBool line = do
-      env <- ask
-      let str = streamE env
-          mMV = hintM env
-          rMV = hintR env
-      undef <- liftUI $ checkUndefined cm
-      case undef of
-        "yes" -> return ()
-        _ -> do
-              contentsControl <- liftUI $ getValue cm
-              out <- liftUI getOutputEl
-              let bs = getBlocks contentsControl
-                  blockMaybe = if lineBool then getLineContent line (linesNum contentsControl) else getBlock line bs
-              case blockMaybe of
-                  Nothing -> void $ liftUI $ element out # set UI.text "Failed to get Block"
-                  Just (Block blockLineStart blockLineEnd block) -> do
-                          case parse parseCommand "" block of
-                                Left e -> errorUI $ show e
-                                Right command -> case command of
+runI :: I () -> Env -> IO ()
+runI i env = resolveError env (runExceptT $ runReaderT i env)
 
-                                                (Statement s)   -> do
-                                                        -- evaluate the given expression, if a string is returned, print it to the console
-                                                        liftIO $ putMVar mMV $ MStat s
-                                                        res <- liftIO $ takeMVar rMV
-                                                        case res of
-                                                          RStat (Just "()") -> successUI >> outputUI ""
-                                                          RStat (Just outputString) -> successUI >> (outputUI outputString)
-                                                          RStat Nothing -> successUI >> outputUI ""
-                                                          RError e -> errorUI e
-                                                          _ -> return ()
+resolveError :: Env -> IO (Either String ()) -> IO ()
+resolveError env xA = do
+                    x <- xA
+                    case x of
+                      Left err -> do
+                        out <- runUI (windowE env) getOutputEl
+                        void $ runUI (windowE env) $ element out # set UI.text err
+                      Right _ -> return ()
 
-                                                (T s)       -> do
-                                                           -- ask the interpreter for the type of the given expression
-                                                           liftIO $ putMVar mMV $ MType s
-                                                           res <- liftIO $ takeMVar rMV
-                                                           case res of
-                                                             (RType t) -> successUI >> (outputUI t)
-                                                             (RError e) -> errorUI e
-                                                             _ -> return ()
-                                                (M s)   -> do
-                                                         -- evaluate the given expression expecting a string, which will replace the line
-                                                         liftIO $ putMVar mMV $ MStat s
-                                                         res <- liftIO $ takeMVar rMV
-                                                         case res of
-                                                           RStat (Just "()") -> errorUI "A makro has to return a string"
-                                                           RStat (Just outputString) -> successUI >> (liftUI $ runFunction $ ffi ("(%1).replaceRange(" ++ outputString ++ ", {line: (%2), ch: 0}, {line: (%2), ch: 50})") cm line)
-                                                           RStat Nothing -> errorUI "A makro has to return a string"
-                                                           RError e -> errorUI e
-                                                           _ -> return ()
-                                                (Hush)     -> successUI >> (liftIO $ hush str) >> (liftUI hydraTry)
-                                                (Conf DefPath s) -> do
-                                                          x <- liftUI $ setDefPath s
-                                                          case x of
-                                                              Left _ -> errorUI "Perhaps you don't have authority to write to the config file?\nTry running with sudo or admin privileges"
-                                                              Right True -> successUI >> (outputUI $ "Successfully set path to: " ++ s)
-                                                              Right False -> errorUI "This path doesn't seem to exist!"
-                                                (Listen s i) -> (liftUI $ void $ liftIO $ forkIO $ listen s i env) >> successUI >> outputUI ("Listening on port " ++ s ++ ":" ++ show i)
-                                                (Hydra s) -> do
-                                                        x <- liftUI $ hydraJob s
-                                                        case x == "" of
-                                                          True -> successUI >> outputUI ""
-                                                          False -> errorUI (show x)
-                   where successUI = liftUI $ flashSuccess cm blockLineStart blockLineEnd
-                         errorUI err = (liftUI $ flashError cm blockLineStart blockLineEnd) >> (void $ liftUI $ element out # set UI.text err)
-                         outputUI o = void $ liftUI $ element out # set UI.text o
-              liftUI $ updateDisplay str
+flashErrorI :: Int -> Int -> I ()
+flashErrorI st en = do
+            Env {editorE = cm} <- ask
+            liftUI $ flashError cm st en
+
+flashSuccessI :: Int -> Int -> I ()
+flashSuccessI st en = do
+            Env {editorE = cm} <- ask
+            liftUI $ flashSuccess cm st en
+
+outputI :: String -> I ()
+outputI st = do
+            out <- liftUI getOutputEl
+            void $ liftUI $ element out # set UI.text st
+
+clearOut :: Int -> Int -> I ()
+clearOut strt en = succI strt en ""
+
+throwE :: Int -> Int -> String -> I a
+throwE i k err = flashErrorI i k >> throwError err
+
+succI :: Int -> Int -> String -> I ()
+succI strt en o = flashSuccessI strt en >> outputI o
+
+checkEditor :: I ()
+checkEditor = do
+            Env {editorE = cm} <- ask
+            x <- liftUI (checkUndefined cm)
+            case x of
+              "yes" -> flashErrorI 0 1 >> throwError "Oops, try evaluating again!"
+              _ -> return ()
+
+getBlockContent :: I Block
+getBlockContent = do
+     Env { editorE = cm, lineE = mayl, evalModeE = m} <- ask
+     contents <- liftUI $ getValue cm
+     l <- case mayl of
+            Just x -> return x
+            Nothing -> liftUI $ getCursorLine cm
+     let blockMaybe = case m of
+                        L -> getLineContent l (linesNum contents)
+                        _ -> getBlock l $ getBlocks contents
+     case blockMaybe of
+       Nothing -> throwE 0 1 "Failed to get block!"
+       Just b -> return b
+
+
+parseBlock :: Block -> I Command
+parseBlock (Block lst len cont) = do
+  case parse parseCommand "" cont of
+        Left e -> throwE lst len (show e)
+        Right c -> return c
+
+-- evaluate the given expression, if a string is returned, print it to the console
+statI :: Int -> Int -> String -> I ()
+statI strt en s = do
+        Env {hintM = mMV, hintR = rMV} <- ask
+        liftIO $ putMVar mMV $ MStat s
+        res <- liftIO $ takeMVar rMV
+        case res of
+          RStat (Just "()") -> clearOut strt en
+          RStat (Just outputString) -> succI strt en outputString
+          RStat Nothing -> clearOut strt en
+          RError e -> throwE strt en $ show e
+          _ -> clearOut strt en
+
+-- ask the interpreter for the type of the given expression
+typeI :: Int -> Int -> String -> I ()
+typeI strt en s = do
+           Env {hintM = mMV, hintR = rMV} <- ask
+           liftIO $ putMVar mMV $ MType s
+           res <- liftIO $ takeMVar rMV
+           case res of
+             (RType t) -> succI strt en t
+             (RError e) -> throwE strt en e
+             _ -> clearOut strt en
+
+-- evaluate the given expression expecting a string, which will replace the line
+makroI :: Int -> Int -> String -> I ()
+makroI strt en s = do
+  Env {editorE = cm, lineE = mayl, hintM = mMV, hintR = rMV} <- ask
+  liftIO $ putMVar mMV $ MStat s
+  res <- liftIO $ takeMVar rMV
+  line <- case mayl of
+         Just x -> return x
+         Nothing -> liftUI $ getCursorLine cm
+  case res of
+    RStat (Just "()") -> throwE strt en "A makro has to return a string"
+    RStat (Just outputString) -> (liftUI $ runFunction $ ffi ("(%1).replaceRange(" ++ outputString ++ ", {line: (%2), ch: 0}, {line: (%2), ch: 50})") cm line)
+    RStat Nothing -> throwE strt en "A makro has to return a string"
+    RError e -> throwE strt en e
+    _ -> clearOut strt en
+
+hushI :: I ()
+hushI = do
+     Env {streamE = str} <- ask
+     liftIO $ hush str
+
+confI :: Int -> Int -> String -> I ()
+confI strt en p = do
+          x <- liftUI $ setDefPath p
+          case x of
+              Left _ -> throwE strt en "Perhaps you don't have authority to write to the config file?\nTry running with sudo or admin privileges"
+              Right True -> succI strt en ("Successfully set path to: " ++ p)
+              Right False -> throwE strt en "This path doesn't seem to exist!"
+
+listenI :: Int -> Int -> String -> Int -> I ()
+listenI strt en s i = do
+     env <- ask
+     liftUI $ void $ liftIO $ forkIO $ listen s i env
+     succI strt en ("Listening on port " ++ s ++ ":" ++ show i)
+
+hydraI :: Int -> Int -> String -> I ()
+hydraI strt en s = do
+        x <- liftUI $ hydraJob s
+        case x == "" of
+          True -> clearOut strt en
+          False -> throwE strt en (show x)
+
+interpretCommandsI :: I ()
+interpretCommandsI = do
+                checkEditor
+                b@(Block strt en _) <- getBlockContent
+                c <- parseBlock b
+                case c of
+                  Statement s -> statI strt en s
+                  T t -> typeI strt en t
+                  M x -> makroI strt en x
+                  Hush -> hushI
+                  Conf DefPath p -> confI strt en p
+                  Listen s i -> listenI strt en s i
+                  Hydra s -> hydraI strt en s
 
 setupBackend :: Stream -> String -> UI ()
 setupBackend str stdout = do
@@ -130,11 +215,11 @@ setupBackend str stdout = do
 
        setupBPMTap str
 
-       createHaskellFunction "evaluateBlock" (\cm -> runReaderT (interpretCommands cm False) env)
-       createHaskellFunction "evaluateLine" (\cm -> runReaderT (interpretCommands cm True) env)
+       createHaskellFunction "evaluateBlock" (\cm -> runI interpretCommandsI (env Nothing B cm))
+       createHaskellFunction "evaluateLine" (\cm -> runI interpretCommandsI (env Nothing L cm))
 
-       createHaskellFunction "evaluateBlockLine" (\cm l -> runReaderT (interpretCommandsLine cm False l) env)
-       createHaskellFunction "evaluateLineLine" (\cm l -> runReaderT (interpretCommandsLine cm True l) env)
+       createHaskellFunction "evaluateBlockLine" (\cm l -> runI interpretCommandsI (env (Just l) B cm))
+       createHaskellFunction "evaluateLineLine" (\cm l -> runI interpretCommandsI (env (Just l) L cm))
 
        createHaskellFunction "displayLoop" (runUI win $ displayLoop str)
        void $ liftIO $ forkIO $ runUI win $ runFunction $ ffi "requestAnimationFrame(displayLoop)"
@@ -168,7 +253,7 @@ getBootDefs = do
              return bootDefs
 
 
-startInterpreter :: Stream -> String -> UI Env
+startInterpreter :: Stream -> String -> UI (Maybe CurrentLine -> EvalMode -> JSObject -> Env)
 startInterpreter str stdout = do
 
            win <- askWindow
@@ -305,6 +390,7 @@ actOSC env (Just (Message "/mute" [ASCII_String s])) = (runUI (windowE env) $ (l
 actOSC env (Just (Message "/print" [ASCII_String s])) = (runUI (windowE env) $ getOutputEl # (set UI.text $ "Recieved message: " ++ ascii_to_string s)) >> return env
 actOSC env (Just (Message "/hydra/set" [ASCII_String s1, ASCII_String s2])) = (runUI (windowE env) $ hydraJob (ascii_to_string s1 ++ "=" ++ ascii_to_string s2)) >> return env
 actOSC env (Just (Message "/tidal/incBy" [ASCII_String s1, Double d])) = (runUI (windowE env) $ liftIO $ increaseBy (streamE env) (ascii_to_string s1) d) >> return env
+actOSC env (Just (Message "/action" [ASCII_String s])) = (runI (statI 0 0 (ascii_to_string s)) env) >> return env
 actOSC env (Just m) = (runUI (windowE env) $ getOutputEl # (set UI.text $ "Unhandeled OSC message: " ++ show m)) >> return env
 actOSC env _ = return env
 

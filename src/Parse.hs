@@ -23,7 +23,7 @@ data Command = Hush
 data Block = Block {bStart :: Int
                    ,bEnd :: Int
                    ,bContent ::String
-                   } deriving Show
+                   } deriving (Eq, Show)
 
 --parsing commands
 
