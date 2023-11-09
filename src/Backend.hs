@@ -9,7 +9,6 @@ import System.Clock
 
 import Control.Concurrent (forkIO)
 import Control.Concurrent.MVar  (newEmptyMVar, MVar, putMVar, takeMVar)
-import Control.Monad  (void)
 import Control.Monad.Reader (ReaderT, runReaderT, ask)
 import Control.Exception  (SomeException)
 import Control.Monad.Catch (try)
@@ -137,7 +136,7 @@ statI strt en s = do
           RStat (Just "()") -> clearOut strt en
           RStat (Just outputString) -> succI strt en outputString
           RStat Nothing -> clearOut strt en
-          RError e -> throwE strt en $ show e
+          RError e -> throwE strt en e
           _ -> clearOut strt en
 
 -- ask the interpreter for the type of the given expression
@@ -390,7 +389,7 @@ actOSC env (Just (Message "/mute" [ASCII_String s])) = (runUI (windowE env) $ (l
 actOSC env (Just (Message "/print" [ASCII_String s])) = (runUI (windowE env) $ getOutputEl # (set UI.text $ "Recieved message: " ++ ascii_to_string s)) >> return env
 actOSC env (Just (Message "/hydra/set" [ASCII_String s1, ASCII_String s2])) = (runUI (windowE env) $ hydraJob (ascii_to_string s1 ++ "=" ++ ascii_to_string s2)) >> return env
 actOSC env (Just (Message "/tidal/incBy" [ASCII_String s1, Double d])) = (runUI (windowE env) $ liftIO $ increaseBy (streamE env) (ascii_to_string s1) d) >> return env
-actOSC env (Just (Message "/action" [ASCII_String s])) = (runI (statI 0 0 (ascii_to_string s)) env) >> return env
+actOSC env (Just (Message "/action" [ASCII_String s])) = (runI (statI (-1) (-1) (ascii_to_string s)) env) >> return env
 actOSC env (Just m) = (runUI (windowE env) $ getOutputEl # (set UI.text $ "Unhandeled OSC message: " ++ show m)) >> return env
 actOSC env _ = return env
 

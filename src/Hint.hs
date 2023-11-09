@@ -68,8 +68,8 @@ interpreterLoop :: MVar InterpreterMessage -> MVar InterpreterResponse -> Interp
 interpreterLoop mMV rMV = do
                     message <- liftIO $ takeMVar mMV
                     case message of
-                      MStat cont -> catch (interpretStatement cont rMV) (\e -> liftIO $ putMVar rMV $ RError $ show (e :: SomeException))
-                      MType cont -> catch (interpretType cont rMV) (\e -> liftIO $ putMVar rMV $ RError $ show (e :: SomeException))
+                      MStat cont -> catch (interpretStatement cont rMV) (\e -> liftIO $ putMVar rMV $ RError $ parseError e)
+                      MType cont -> catch (interpretType cont rMV) (\e -> liftIO $ putMVar rMV $ RError $ parseError e)
                     interpreterLoop mMV rMV
 
 
@@ -97,7 +97,7 @@ interpretType cont rMV = do
                     Right out -> liftIO $ putMVar rMV $ RType out
 
 
-parseError:: InterpreterError -> String
+parseError :: InterpreterError -> String
 parseError (UnknownError s) = "Unknown error: " ++ s
 parseError (WontCompile es) = "Compile error: " ++ (intercalate "\n" (Prelude.map errMsg es))
 parseError (NotAllowed s) = "NotAllowed error: " ++ s
