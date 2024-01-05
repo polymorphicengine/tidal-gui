@@ -2,7 +2,8 @@ const keyMap = "default" // possible options: "default", "emacs", "vim", "sublim
 
 const extraKeys = {
 	           "Ctrl-.": hush,
-		   "Ctrl-Enter": evalB,
+		   "Ctrl-Enter": evaluateBlock,
+		   "Shift-Ctrl-Enter": evaluateAll,
 		   "Shift-Enter": evaluateLine,
 		   "Ctrl-D": openDocs,
 		   "Ctrl-1": muteP1,

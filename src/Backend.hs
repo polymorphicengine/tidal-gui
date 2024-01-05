@@ -38,7 +38,7 @@ type CurrentLine
   = Int
 
 data EvalMode
-  = L | B
+  = L | B | A
   deriving (Eq, Show)
 
 data Env
@@ -105,7 +105,7 @@ checkEditor = do
               "yes" -> flashErrorI 0 1 >> throwError "Oops, try evaluating again!"
               _ -> return ()
 
-getBlockContent :: I Block
+getBlockContent :: I [Block]
 getBlockContent = do
      Env { editorE = cm, lineE = mayl, evalModeE = m} <- ask
      contents <- liftUI $ getValue cm
@@ -113,11 +113,13 @@ getBlockContent = do
             Just x -> return x
             Nothing -> liftUI $ getCursorLine cm
      let blockMaybe = case m of
-                        L -> getLineContent l (linesNum contents)
-                        _ -> getBlock l $ getBlocks contents
-     case blockMaybe of
-       Nothing -> throwE 0 1 "Failed to get block!"
-       Just b -> return b
+                        L -> [getLineContent l (linesNum contents)]
+                        B -> [getBlock l $ getBlocks contents]
+                        A -> fmap Just $ getBlocks contents
+         bs = concatMap (\x -> case x of Nothing -> []; Just y -> [y]) blockMaybe
+     case bs of
+       [] -> throwE 0 1 "Failed to get block!"
+       xs -> return xs
 
 
 parseBlock :: Block -> I Command
@@ -192,12 +194,16 @@ hydraI strt en s = do
           True -> clearOut strt en
           False -> throwE strt en (show x)
 
-interpretCommandsI :: I ()
-interpretCommandsI = do
-                checkEditor
-                b@(Block strt en _) <- getBlockContent
-                c <- parseBlock b
-                case c of
+interpretCommandsManyI :: I ()
+interpretCommandsManyI = do
+                  checkEditor
+                  bs <- getBlockContent
+                  commands <- sequence $ map parseBlock bs
+                  _ <- sequence $ map (\(c,Block str en _) -> interpretCommandsI str en c) (zip commands bs)
+                  return ()
+
+interpretCommandsI :: Int -> Int -> Command -> I ()
+interpretCommandsI strt en c = case c of
                   Statement s -> statI strt en s
                   T t -> typeI strt en t
                   M x -> makroI strt en x
@@ -214,11 +220,12 @@ setupBackend str stdout = do
 
        setupBPMTap str
 
-       createHaskellFunction "evaluateBlock" (\cm -> runI interpretCommandsI (env Nothing B cm))
-       createHaskellFunction "evaluateLine" (\cm -> runI interpretCommandsI (env Nothing L cm))
+       createHaskellFunction "evaluateBlock" (\cm -> runI interpretCommandsManyI (env Nothing B cm))
+       createHaskellFunction "evaluateLine" (\cm -> runI interpretCommandsManyI (env Nothing L cm))
+       createHaskellFunction "evaluateAll" (\cm -> runI interpretCommandsManyI (env Nothing A cm))
 
-       createHaskellFunction "evaluateBlockLine" (\cm l -> runI interpretCommandsI (env (Just l) B cm))
-       createHaskellFunction "evaluateLineLine" (\cm l -> runI interpretCommandsI (env (Just l) L cm))
+       createHaskellFunction "evaluateBlockLine" (\cm l -> runI interpretCommandsManyI (env (Just l) B cm))
+       createHaskellFunction "evaluateLineLine" (\cm l -> runI interpretCommandsManyI (env (Just l) L cm))
 
        createHaskellFunction "displayLoop" (runUI win $ displayLoop str)
        void $ liftIO $ forkIO $ runUI win $ runFunction $ ffi "requestAnimationFrame(displayLoop)"
